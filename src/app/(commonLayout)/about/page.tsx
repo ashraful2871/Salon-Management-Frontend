@@ -58,7 +58,7 @@ export default function AboutPage() {
             About Stylish Salon
           </h1>
           <p className="text-xl text-purple-100 max-w-3xl mx-auto">
-            We're on a mission to make beauty services accessible, convenient, and delightful for everyone
+            We&apos;re on a mission to make beauty services accessible, convenient, and delightful for everyone
           </p>
         </div>
       </section>
@@ -76,10 +76,10 @@ export default function AboutPage() {
                   Founded in 2020, Stylish Salon was born out of a simple frustration: finding and booking quality salon appointments was unnecessarily complicated. We knew there had to be a better way.
                 </p>
                 <p>
-                  Today, we've grown into a platform that connects thousands of customers with hundreds of verified salons across the country. Our platform has facilitated over 200,000 bookings, helping people look and feel their best.
+                  Today, we&apos;ve grown into a platform that connects thousands of customers with hundreds of verified salons across the country. Our platform has facilitated over 200,000 bookings, helping people look and feel their best.
                 </p>
                 <p>
-                  We're proud to be changing the way people discover and book beauty services, making the process seamless, transparent, and enjoyable.
+                  We&apos;re proud to be changing the way people discover and book beauty services, making the process seamless, transparent, and enjoyable.
                 </p>
               </div>
             </div>

@@ -80,7 +80,7 @@ export default function ContactPage() {
             Get in Touch
           </h1>
           <p className="text-xl text-purple-100 max-w-3xl mx-auto">
-            Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+            Have questions? We&apos;d love to hear from you. Send us a message and we&apos;ll respond as soon as possible.
           </p>
         </div>
       </section>
@@ -124,7 +124,7 @@ export default function ContactPage() {
                     Message Sent!
                   </h3>
                   <p className="text-green-600">
-                    Thank you for contacting us. We'll get back to you soon.
+                    Thank you for contacting us. We&apos;ll get back to you soon.
                   </p>
                 </div>
               ) : (
