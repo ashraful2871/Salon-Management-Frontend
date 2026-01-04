@@ -22,7 +22,7 @@ const Services = () => {
       reviews: 189,
       specialty: "Wellness & Spa",
       image:
-        "https://images.unsplash.com/photo-1540555700478-4be289fbec6e?w=400&h=300&fit=crop",
+        "https://plus.unsplash.com/premium_photo-1661780553870-091aaf88d9cc?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTN8fFNlcmVuaXR5JTIwU3BhfGVufDB8fDB8fHww",
     },
     {
       id: 3,

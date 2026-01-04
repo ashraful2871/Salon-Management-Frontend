@@ -5,9 +5,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, Scissors, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePathname } from "next/navigation";
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   const navLinks = [
     { href: "/", label: "Home" },
@@ -38,7 +40,7 @@ const Navbar = () => {
                 href={link.href}
                 className={cn(
                   "text-sm font-medium transition-colors hover:text-primary",
-                  location.pathname === link.href
+                  pathname === link.href
                     ? "text-primary"
                     : "text-muted-foreground"
                 )}
