@@ -26,7 +26,7 @@ const Hero = () => {
           </span>
 
           {/* Main Heading */}
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold leading-[1.1] mb-6">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl  font-bold leading-[1.1] mb-6">
             <span className="text-[#f5f0e8] block">Your Beauty,</span>
             <span className="text-[#DFC59F] block">Our Passion</span>
           </h1>
