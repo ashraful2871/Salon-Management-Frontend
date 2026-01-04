@@ -102,8 +102,8 @@
   );
   --gradient-hero: linear-gradient(
     135deg,
-    oklch(24.078% 0.01737 86.835),
-    oklch(31.142% 0.03132 89.158)
+    oklch(19.712% 0.01245 84.502 / 0.897),
+    oklch(18.602% 0.0099 97.911)
   );
 
   /* Shadows */
@@ -152,5 +152,8 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  .gradient-hero {
+    background: var(--gradient-hero);
   }
 }

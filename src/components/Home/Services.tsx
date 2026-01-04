@@ -1,39 +1,38 @@
+"use client";
 import { Button } from "../ui/button";
 import Link from "next/link";
-import { ArrowRight, Star } from "lucide-react";
+import { ArrowRight, MapPin, Star } from "lucide-react";
 import Image from "next/image";
+import { motion } from "framer-motion";
+import { Card } from "../ui/card";
 
 const Services = () => {
   const featuredSalons = [
     {
       id: 1,
       name: "Luxe Hair Studio",
+      location: "Downtown Manhattan",
       rating: 4.9,
-      reviews: 234,
-      specialty: "Hair & Color",
       image:
-        "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&fit=crop",
+        "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&q=80",
     },
     {
       id: 2,
-      name: "Serenity Spa",
+      name: "Serenity Spa & Salon",
+      location: "Brooklyn Heights",
       rating: 4.8,
-      reviews: 189,
-      specialty: "Wellness & Spa",
       image:
-        "https://plus.unsplash.com/premium_photo-1661780553870-091aaf88d9cc?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTN8fFNlcmVuaXR5JTIwU3BhfGVufDB8fDB8fHww",
+        "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&q=80",
     },
     {
       id: 3,
-      name: "Glow Beauty Bar",
-      rating: 4.9,
-      reviews: 312,
-      specialty: "Makeup & Nails",
+      name: "The Beauty Bar",
+      location: "Upper East Side",
+      rating: 4.7,
       image:
-        "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&h=300&fit=crop",
+        "https://images.unsplash.com/photo-1633681926022-84c23e8cb2d6?w=400&q=80",
     },
   ];
-
   return (
     <section className="py-20 bg-muted/50">
       <div className="container mx-auto px-4">
@@ -53,42 +52,42 @@ const Services = () => {
             </Link>
           </Button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featuredSalons.map((salon) => (
-            <Link
+        <div className="grid md:grid-cols-3 gap-8">
+          {featuredSalons.map((salon, index) => (
+            <motion.div
               key={salon.id}
-              href={`/salons/${salon.id}`}
-              className="group rounded-2xl overflow-hidden bg-card border border-border shadow-soft hover:shadow-card transition-all duration-300"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.1 }}
             >
-              <div className="aspect-[4/3] overflow-hidden">
-                <Image
-                  src={salon.image}
-                  alt={salon.name}
-                  width={400}
-                  height={300}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-              <div className="p-5">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
-                    {salon.specialty}
-                  </span>
+              <Card className="overflow-hidden group cursor-pointer py-0">
+                <div className="relative h-60 overflow-hidden ">
+                  <Image
+                    fill
+                    src={salon.image}
+                    alt={salon.name}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 to-transparent" />
+                  <div className="absolute bottom-4 left-4 right-4 text-primary-foreground">
+                    <h3 className="font-serif text-xl font-semibold mb-1">
+                      {salon.name}
+                    </h3>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1 text-sm opacity-90">
+                        <MapPin className="h-4 w-4" />
+                        {salon.location}
+                      </span>
+                      <span className="flex items-center gap-1 text-sm">
+                        <Star fill="gold" className="h-4 w-4 text-yellow-400" />
+                        {salon.rating}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="font-display font-semibold text-xl text-foreground mb-2 group-hover:text-primary transition-colors">
-                  {salon.name}
-                </h3>
-                <div className="flex items-center gap-2">
-                  <Star className="w-4 h-4 text-gold fill-gold" />
-                  <span className="font-medium text-foreground">
-                    {salon.rating}
-                  </span>
-                  <span className="text-muted-foreground text-sm">
-                    ({salon.reviews} reviews)
-                  </span>
-                </div>
-              </div>
-            </Link>
+              </Card>
+            </motion.div>
           ))}
         </div>
       </div>
