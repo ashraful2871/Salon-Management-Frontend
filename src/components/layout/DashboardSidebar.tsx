@@ -1,4 +1,5 @@
 "use client";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -13,23 +14,71 @@ import {
   Store,
   ChevronLeft,
   ChevronRight,
+  ShieldCheck,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { UserRole } from "@/services/auth/auth-utils";
 
+// 2. Add an 'allowedRoles' array to each menu item
 const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: Calendar, label: "Appointments", path: "/dashboard/appointments" },
-  { icon: Users, label: "Customers", path: "/dashboard/customers" },
-  { icon: Package, label: "Services", path: "/dashboard/services" },
-  { icon: Store, label: "Store", path: "/dashboard/store" },
-  { icon: Settings, label: "Settings", path: "/dashboard/settings" },
+  {
+    icon: LayoutDashboard,
+    label: "Dashboard",
+    path: "/dashboard",
+    allowedRoles: ["SALON_OWNER", "STAFF", "ADMIN", "CUSTOMER"],
+  },
+  {
+    icon: Calendar,
+    label: "Appointments",
+    path: "/dashboard/appointments",
+    allowedRoles: ["SALON_OWNER", "STAFF", "CUSTOMER"],
+  },
+  {
+    icon: Users,
+    label: "Customers",
+    path: "/dashboard/customers",
+    allowedRoles: ["SALON_OWNER", "STAFF", "ADMIN"], // Customers shouldn't see this
+  },
+  {
+    icon: Package,
+    label: "Services",
+    path: "/dashboard/services",
+    allowedRoles: ["SALON_OWNER", "ADMIN"], // Only owners/admin manage services
+  },
+  {
+    icon: Store,
+    label: "My Salon",
+    path: "/dashboard/store",
+    allowedRoles: ["SALON_OWNER"], // Specific to owners
+  },
+  {
+    icon: ShieldCheck,
+    label: "Admin Panel",
+    path: "/dashboard/admin",
+    allowedRoles: ["ADMIN"], // Only for Super Admins
+  },
+  {
+    icon: Settings,
+    label: "Settings",
+    path: "/dashboard/settings",
+    allowedRoles: ["SALON_OWNER", "STAFF", "ADMIN", "CUSTOMER"],
+  },
 ];
 
-export const DashboardSidebar = () => {
+interface DashboardSidebarProps {
+  userRole: UserRole; // Renamed to singular for clarity, though 'userRoles' works too
+}
+
+export const DashboardSidebar = ({ userRole }: DashboardSidebarProps) => {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+
+  // 3. Filter the menu items based on the current userRole
+  const filteredNav = menuItems.filter((item) =>
+    item.allowedRoles.includes(userRole)
+  );
 
   return (
     <motion.aside
@@ -60,9 +109,9 @@ export const DashboardSidebar = () => {
           )}
         </div>
 
-        {/* Navigation */}
+        {/* Navigation - Uses filteredNav instead of menuItems */}
         <nav className="flex-1 space-y-1 p-4">
-          {menuItems.map((item) => {
+          {filteredNav.map((item) => {
             const isActive = pathname === item.path;
             return (
               <Link

@@ -17,12 +17,13 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { registerUser } from "@/services/auth/registerUser";
 import { toast } from "sonner";
-import { redirect } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 
 const RegisterForm = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [state, formAction, isPending] = useActionState(registerUser, null);
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
 
   if (state?.password !== state?.confirmPassword) {
     alert("Passwords do not match");
@@ -32,14 +33,13 @@ const RegisterForm = () => {
   useEffect(() => {
     if (state?.message) {
       toast.success(state?.message || "Registration successful");
+      router.push("/login");
     }
 
     if (state?.error) {
       toast.error(state.error);
     }
-
-    redirect("/login");
-  }, [state]);
+  }, [state, router]);
 
   return (
     <div className="min-h-screen flex">

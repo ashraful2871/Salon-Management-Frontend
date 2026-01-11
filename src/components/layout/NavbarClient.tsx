@@ -7,13 +7,12 @@ import {
   Menu,
   Scissors,
   X,
-  LogOut,
   User,
   LayoutDashboard,
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,7 +38,6 @@ interface NavbarClientProps {
 const NavbarClient = ({ user }: NavbarClientProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
 
   // Helper to get initials
   const getInitials = (name: string) => {
@@ -49,18 +47,6 @@ const NavbarClient = ({ user }: NavbarClientProps) => {
       .slice(0, 2)
       .join("")
       .toUpperCase();
-  };
-
-  // Logout Handler
-  const handleLogout = async () => {
-    // 1. Remove cookie (Client side method)
-    document.cookie =
-      "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-
-    // 2. Refresh the page to update server state
-    router.refresh();
-    // OR redirect to login
-    // router.push("/login");
   };
 
   const navLinks = [

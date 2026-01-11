@@ -1,8 +1,8 @@
-import jwt, { JwtPayload } from "jsonwebtoken";
+"use server";
 
-import { UserRole } from "@/services/auth/auth-utils";
-import { getCookie } from "@/services/auth/cookiesHandler";
-import NavbarClient from "./NavbarClient";
+import { UserRole } from "../auth/auth-utils";
+import { getCookie } from "../auth/cookiesHandler";
+import jwt, { JwtPayload } from "jsonwebtoken";
 
 interface DecodedToken extends JwtPayload {
   role: UserRole;
@@ -10,7 +10,7 @@ interface DecodedToken extends JwtPayload {
   name?: string;
 }
 
-const Navbar = async () => {
+export const getUserRoles = async () => {
   const accessToken = await getCookie("accessToken");
 
   let user = null;
@@ -32,10 +32,5 @@ const Navbar = async () => {
       // If token is invalid, user remains null (logged out)
     }
   }
-  console.log(user?.role);
-
-  // Pass the user data (or null) to the client component
-  return <NavbarClient user={user} />;
+  return user?.role;
 };
-
-export default Navbar;
