@@ -1,18 +1,23 @@
 "use client";
 
-import { ArrowRight, Lock, Mail, Scissors } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Lock, Mail, Scissors } from "lucide-react";
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useActionState, useEffect, useState } from "react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
+import { loginUser } from "@/services/auth/login";
+import { toast } from "sonner";
 
 const LoginForm = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [state, formAction, isPending] = useActionState(loginUser, null);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-  };
+  // Show error toast when login fails
+  useEffect(() => {
+    if (state && !state.success) {
+      toast.error(state.message || "Login failed");
+    }
+  }, [state]);
 
   return (
     <div className="min-h-screen flex">
@@ -37,7 +42,7 @@ const LoginForm = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form action={formAction} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
                 Email Address
@@ -45,12 +50,14 @@ const LoginForm = () => {
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
+                  id="email"
+                  name="email"
                   type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="john@example.com"
+                  className="pl-10"
                   required
-                  className="pl-12 h-12"
+                  disabled={isPending}
+                  autoComplete="email"
                 />
               </div>
             </div>
@@ -67,19 +74,40 @@ const LoginForm = () => {
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
-                  type="password"
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10 pr-10"
                   required
-                  className="pl-12 h-12"
+                  disabled={isPending}
+                  autoComplete="current-password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
+                  tabIndex={-1}
+                  disabled={isPending}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
               </div>
             </div>
 
-            <Button type="submit" variant="gold" size="lg" className="w-full">
-              Sign In
-              <ArrowRight className="w-5 h-5 ml-2" />
+            {/* submit button */}
+            <Button
+              disabled={isPending}
+              type="submit"
+              className="w-full group"
+              size="lg"
+            >
+              {isPending ? "Signing in..." : "Sign In"}
+              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
           </form>
 
