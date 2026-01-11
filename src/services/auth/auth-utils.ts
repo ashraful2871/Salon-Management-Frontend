@@ -1,4 +1,4 @@
-export type UserRole = "CUSTOMER" | "STAFF" | "SALON_OWNER" | "ADMIN";
+export type UserRole = "CUSTOMER" | "STAFF" | "SALON_OWNER" | "ADMIN" | "GUEST";
 
 export const getDefaultDashboardRoute = (role: UserRole): string => {
   if (role === "ADMIN") {
