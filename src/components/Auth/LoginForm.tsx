@@ -8,7 +8,7 @@ import { Button } from "../ui/button";
 import { loginUser } from "@/services/auth/login";
 import { toast } from "sonner";
 
-const LoginForm = ({ redirect }: { redirect?: string }) => {
+const LoginForm = () => {
   const [state, formAction, isPending] = useActionState(loginUser, null);
   const [showPassword, setShowPassword] = useState(false);
 

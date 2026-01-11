@@ -17,7 +17,7 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { registerUser } from "@/services/auth/registerUser";
 import { toast } from "sonner";
-import { redirect, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 const RegisterForm = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
