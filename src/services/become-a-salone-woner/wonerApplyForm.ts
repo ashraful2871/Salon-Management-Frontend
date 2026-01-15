@@ -1,3 +1,5 @@
+import { serverFetch } from "@/lib/server-fetch";
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export const ownerApplyForm = async (
   _currentState: any,
@@ -12,16 +14,12 @@ export const ownerApplyForm = async (
       documentUrl: formData.get("documentUrl"),
     };
 
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/become-salon-owner/apply`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      }
-    );
+    const res = await serverFetch.post(`/become-salon-owner/apply`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
     const result = await res.json();
 
     console.log(result);
