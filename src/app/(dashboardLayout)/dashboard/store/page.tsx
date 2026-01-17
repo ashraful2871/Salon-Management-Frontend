@@ -1,10 +1,12 @@
 import Store from "@/components/Dashboard/Store";
-import React from "react";
+import { getMySalon } from "@/services/salon/getMySalon";
 
-const StorePage = () => {
+const StorePage = async () => {
+  const storeData = await getMySalon();
+
   return (
-    <div>
-      <Store />
+    <div className="p-4 md:p-6">
+      <Store salonResponse={storeData} />
     </div>
   );
 };
