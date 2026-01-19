@@ -83,127 +83,8 @@ function Field({
   );
 }
 
-function PreviewRow({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value?: string;
-  mono?: boolean;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-3">
-      <p className="text-muted-foreground">{label}</p>
-      <p className={`text-right ${mono ? "font-mono text-xs" : ""}`}>
-        {value || "—"}
-      </p>
-    </div>
-  );
-}
-// Mock useAuth hook
-function useAuthMock() {
-  const [loading] = React.useState(false);
-  const [user] = React.useState<{
-    id: string;
-    name?: string;
-    email?: string;
-  } | null>({
-    id: "user_123",
-    name: "Admin",
-    email: "admin@example.com",
-  });
-  return { user, loading };
-}
-
-const formSchema = z.object({
-  businessName: z.string().min(2, "Business name is required"),
-  businessAddress: z.string().min(5, "Business address is required"),
-  businessPhone: z
-    .string()
-    .min(8, "Phone number is required")
-    .regex(/^\+?[0-9\s\-()]{8,}$/, "Please enter a valid phone number"),
-  businessEmail: z.string().email("Please enter a valid email"),
-  documentUrl: z.string().url("Please provide a valid URL"),
-  aboutSalon: z.string().min(20, "Tell us a bit more (minimum 20 characters)"),
-  services: z.string().min(3, "Add at least one service"),
-  agree: z
-    .boolean()
-    .refine((v) => v === true, "You must agree before submitting"),
-});
-
-type FormValues = z.infer<typeof formSchema>;
-
-const defaultValues: FormValues = {
-  businessName: "Glow & Go Salon",
-  businessAddress: "House 12, Road 5, Banasree, Dhaka",
-  businessPhone: "+8801712345678",
-  businessEmail: "owner@glowgosalon.com",
-  documentUrl: "https://example.com/docs/nid-trade-license.pdf",
-  aboutSalon:
-    "We’re a modern salon focused on premium service, hygiene, and a friendly customer experience.",
-  services: "Haircut, Hair Color, Facial, Manicure, Pedicure",
-  agree: false,
-};
-
 const ApplyForm = () => {
   const [state, formAction, isPending] = useActionState(ownerApplyForm, null);
-
-  const { user, loading } = useAuthMock();
-
-  const [submitting, setSubmitting] = React.useState(false);
-  const [serverMsg, setServerMsg] = React.useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
-
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues,
-    mode: "onTouched",
-  });
-
-  const watch = form.watch();
-  const isAuthed = !!user && !loading;
-
-  async function onSubmit(values: FormValues) {
-    setServerMsg(null);
-
-    if (!isAuthed) {
-      setServerMsg("Please login to submit your application.");
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-
-      const payload = {
-        ...values,
-        uploadedDocumentName: selectedFile?.name ?? null,
-      };
-      console.log(payload);
-      return;
-      const res = await fetch("/api/v1/salon-owner/apply", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok)
-        throw new Error(data?.message || "Failed to submit application");
-
-      setServerMsg(
-        "✅ Application submitted successfully! We’ll review and get back to you soon.",
-      );
-      form.reset({ ...defaultValues, agree: false });
-      setSelectedFile(null);
-    } catch (err: any) {
-      setServerMsg(err?.message || "Something went wrong. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
   return (
     <section id="apply" className="py-20 bg-background">
@@ -223,8 +104,7 @@ const ApplyForm = () => {
             </p>
           </div>
 
-          {!isAuthed && (
-            <Alert className="mb-6 border border-border bg-card">
+          {/* <Alert className="mb-6 border border-border bg-card">
               <AlertTitle className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-primary" />
                 Login required
@@ -233,15 +113,14 @@ const ApplyForm = () => {
                 You must be logged in to submit the application. You can still
                 fill the form, but submission will be disabled until you login.
               </AlertDescription>
-            </Alert>
-          )}
+            </Alert> */}
 
-          {serverMsg && (
+          {/* {serverMsg && (
             <Alert className="mb-6 border border-border bg-card">
               <AlertTitle>Update</AlertTitle>
               <AlertDescription>{serverMsg}</AlertDescription>
             </Alert>
-          )}
+          )} */}
 
           <div className="grid gap-8 lg:grid-cols-5">
             {/* left info (like contact left column steps) */}
@@ -329,7 +208,6 @@ const ApplyForm = () => {
                     <Field
                       label="Business Name"
                       icon={<Building2 className="w-4 h-4 text-primary" />}
-                      error={form.formState.errors.businessName?.message}
                     >
                       <Input
                         id="businessName"
@@ -346,7 +224,6 @@ const ApplyForm = () => {
                     <Field
                       label="Business Phone"
                       icon={<Phone className="w-4 h-4 text-primary" />}
-                      error={form.formState.errors.businessPhone?.message}
                     >
                       <Input
                         id="businessPhone"
@@ -365,7 +242,6 @@ const ApplyForm = () => {
                     <Field
                       label="Business Email"
                       icon={<Mail className="w-4 h-4 text-primary" />}
-                      error={form.formState.errors.businessEmail?.message}
                     >
                       <Input
                         id="businessEmail"
@@ -382,7 +258,6 @@ const ApplyForm = () => {
                     <Field
                       label="Document URL"
                       icon={<FileText className="w-4 h-4 text-primary" />}
-                      error={form.formState.errors.documentUrl?.message}
                     >
                       <Input
                         id="documentUrl"
@@ -400,7 +275,6 @@ const ApplyForm = () => {
                   <Field
                     label="Business Address"
                     icon={<MapPin className="w-4 h-4 text-primary" />}
-                    error={form.formState.errors.businessAddress?.message}
                   >
                     <Input
                       id="businessAddress"
@@ -416,7 +290,7 @@ const ApplyForm = () => {
 
                   {/* agreement */}
                   <div className="flex items-start gap-3 rounded-2xl border border-border bg-background p-4">
-                    <Input
+                    {/* <Input
                       type="checkbox"
                       className="mt-1 h-4 w-4 accent-[color:var(--primary)]"
                       checked={watch.agree}
@@ -425,7 +299,7 @@ const ApplyForm = () => {
                           shouldValidate: true,
                         })
                       }
-                    />
+                    /> */}
                     <div className="text-sm">
                       <p className="font-semibold text-foreground">
                         I confirm the information is accurate
@@ -434,11 +308,11 @@ const ApplyForm = () => {
                         I agree to verification checks and understand false
                         information may lead to rejection.
                       </p>
-                      {form.formState.errors.agree?.message && (
+                      {/* {form.formState.errors.agree?.message && (
                         <p className="mt-1 text-xs text-destructive">
                           {form.formState.errors.agree?.message}
                         </p>
-                      )}
+                      )} */}
                     </div>
                   </div>
 
@@ -448,9 +322,9 @@ const ApplyForm = () => {
                       type="submit"
                       variant="gold"
                       size="lg"
-                      disabled={!isAuthed || submitting}
+                      disabled={isPending}
                     >
-                      {submitting ? "Submitting..." : "Submit Application"}
+                      {isPending ? "Submitting..." : "Submit Application"}
                       <ArrowRight className="w-5 h-5 ml-2" />
                     </Button>
 
@@ -458,7 +332,7 @@ const ApplyForm = () => {
                       variant="secondary"
                       className="border border-border bg-background"
                     >
-                      {isAuthed ? "Logged in ✅" : "Not logged in ❗"}
+                      {/* {isAuthed ? "Logged in ✅" : "Not logged in ❗"} */}
                     </Badge>
                   </div>
                 </form>
@@ -478,7 +352,7 @@ const ApplyForm = () => {
                   What we’ll review for verification.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm">
+              {/* <CardContent className="space-y-3 text-sm">
                 <PreviewRow label="Business Name" value={watch.businessName} />
                 <PreviewRow label="Phone" value={watch.businessPhone} />
                 <PreviewRow label="Email" value={watch.businessEmail} />
@@ -489,7 +363,7 @@ const ApplyForm = () => {
                   value={watch.documentUrl}
                   mono
                 />
-              </CardContent>
+              </CardContent> */}
             </Card>
 
             <Card className="bg-card border border-border shadow-soft">

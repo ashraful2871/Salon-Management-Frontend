@@ -5,11 +5,10 @@ const BACKEND_API_URL =
 
 const serverFetchHelper = async (
   endPoint: string,
-  options: RequestInit
+  options: RequestInit,
 ): Promise<Response> => {
   const { headers, ...restOptions } = options;
   const accessToken = await getCookie("accessToken");
-  console.log(accessToken);
   const response = await fetch(`${BACKEND_API_URL}${endPoint}`, {
     headers: {
       Cookie: accessToken ? `accessToken=${accessToken}` : "",
@@ -27,7 +26,7 @@ export const serverFetch = {
 
   post: async (
     endPoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<Response> =>
     serverFetchHelper(endPoint, { ...options, method: "POST" }),
 
@@ -35,12 +34,12 @@ export const serverFetch = {
     serverFetchHelper(endPoint, { ...options, method: "PUT" }),
   patch: async (
     endPoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<Response> =>
     serverFetchHelper(endPoint, { ...options, method: "PATCH" }),
   delete: async (
     endPoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<Response> =>
     serverFetchHelper(endPoint, { ...options, method: "DELETE" }),
 };

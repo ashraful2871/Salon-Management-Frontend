@@ -94,13 +94,13 @@ export default function OwnerRequest({
   /* ---------------- Stats ---------------- */
   const total = applications.length;
   const pending = applications.filter(
-    (a) => a.applicationStatus === "PENDING"
+    (a) => a.applicationStatus === "PENDING",
   ).length;
   const approved = applications.filter(
-    (a) => a.applicationStatus === "APPROVED"
+    (a) => a.applicationStatus === "APPROVED",
   ).length;
   const rejected = applications.filter(
-    (a) => a.applicationStatus === "REJECTED"
+    (a) => a.applicationStatus === "REJECTED",
   ).length;
 
   /* ---------------- Filtering ---------------- */
@@ -155,8 +155,7 @@ export default function OwnerRequest({
   /* ---------------- Actions (UI only - connect API later) ---------------- */
 
   const handleApprove = async (id: string) => {
-    const result = await approveApplication(id);
-    console.log(result);
+    await approveApplication(id);
   };
 
   const handleReject = async (id: string) => {
