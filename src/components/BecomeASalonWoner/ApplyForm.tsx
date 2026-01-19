@@ -101,7 +101,7 @@ function PreviewRow({
     </div>
   );
 }
-
+// Mock useAuth hook
 function useAuthMock() {
   const [loading] = React.useState(false);
   const [user] = React.useState<{
@@ -194,7 +194,7 @@ const ApplyForm = () => {
         throw new Error(data?.message || "Failed to submit application");
 
       setServerMsg(
-        "✅ Application submitted successfully! We’ll review and get back to you soon."
+        "✅ Application submitted successfully! We’ll review and get back to you soon.",
       );
       form.reset({ ...defaultValues, agree: false });
       setSelectedFile(null);
