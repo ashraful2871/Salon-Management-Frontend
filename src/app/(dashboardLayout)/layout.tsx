@@ -9,8 +9,6 @@ const CommonDashboardLayout = async ({
 }) => {
   const userRole = await getUserRoles();
 
-  console.log(userRole);
-
   return (
     <div className="flex h-screen overflow-hidden">
       <DashboardSidebar userRole={userRole ?? "GUEST"} />

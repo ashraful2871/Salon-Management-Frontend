@@ -65,6 +65,18 @@ const menuItems = [
     path: "/dashboard/settings",
     allowedRoles: ["SALON_OWNER", "STAFF", "ADMIN", "CUSTOMER"],
   },
+  {
+    icon: Scissors,
+    label: "Become a Salon Owner Request",
+    path: "/dashboard/become-a-salon-owner-request",
+    allowedRoles: ["ADMIN"],
+  },
+  {
+    icon: Scissors,
+    label: "Applications Status",
+    path: "/dashboard/applications-status",
+    allowedRoles: ["SALON_OWNER", "CUSTOMER"],
+  },
 ];
 
 interface DashboardSidebarProps {

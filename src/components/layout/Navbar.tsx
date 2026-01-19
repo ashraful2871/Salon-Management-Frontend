@@ -19,7 +19,7 @@ const Navbar = async () => {
     try {
       const decoded = jwt.verify(
         accessToken,
-        process.env.JWT_SECRET as string
+        process.env.JWT_SECRET as string,
       ) as DecodedToken;
 
       user = {
@@ -32,7 +32,6 @@ const Navbar = async () => {
       // If token is invalid, user remains null (logged out)
     }
   }
-  console.log(user?.role);
 
   // Pass the user data (or null) to the client component
   return <NavbarClient user={user} />;
