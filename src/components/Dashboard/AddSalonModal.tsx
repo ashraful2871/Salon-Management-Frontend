@@ -240,7 +240,7 @@ export default function AddSalonModal({
       setIsSubmitting(false);
     }
   };
-
+  //---------------- Render ---------------- //
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="w-[100vw] sm:w-[95vw] md:w-[92vw] lg:w-[1100px] xl:w-[1200px] max-w-full h-[100dvh] sm:h-auto sm:max-h-[90vh] sm:max-w-[1200px] p-0 overflow-hidden rounded-none sm:rounded-2xl flex flex-col ">
