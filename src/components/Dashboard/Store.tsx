@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
 import AddSalonModal, { AddSalonPayload } from "./AddSalonModal";
+import Link from "next/link";
 
 /* ---------------- Types ---------------- */
 
@@ -608,9 +609,11 @@ export default function Store({
 
                           {/* CTA */}
                           <div className="flex gap-2">
-                            <Button className="flex-1 bg-sage hover:opacity-90 text-white">
-                              Manage Salon
-                            </Button>
+                            <Link href={`/dashboard/store/${selectedSalon.id}`}>
+                              <Button className="flex-1 bg-sage hover:opacity-90 text-white">
+                                Manage Salon
+                              </Button>
+                            </Link>
                             <Button variant="outline" className="flex-1">
                               Edit Salon
                             </Button>
