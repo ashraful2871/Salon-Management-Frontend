@@ -36,6 +36,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner"; // Assuming you use sonner or similar for toasts
 import { updateSalon } from "@/services/salon/updateSalon";
+import AddStaffModal, { AddStaffPayload } from "./AddStaffModal";
 
 /* ---------------- Types ---------------- */
 
@@ -123,6 +124,7 @@ export default function ManageSalon({ initialData }: { initialData: any }) {
 
   // 2. Local State for Inputs (Immediate UI Feedback)
   const [salon, setSalon] = useState<SalonData>(initialData);
+  const [openAddStaff, setOpenAddStaff] = useState(false);
 
   // 3. Handle Success/Error Toasts
   useEffect(() => {
@@ -531,7 +533,11 @@ export default function ManageSalon({ initialData }: { initialData: any }) {
                   Manage your stylists and their permissions.
                 </CardDescription>
               </div>
-              <Button size="sm" variant="outline">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setOpenAddStaff(true)}
+              >
                 <Users className="w-4 h-4 mr-2" /> Add Staff
               </Button>
             </CardHeader>
@@ -579,6 +585,14 @@ export default function ManageSalon({ initialData }: { initialData: any }) {
           </Card>
         </TabsContent>
       </Tabs>
+      <AddStaffModal
+        open={openAddStaff}
+        setOpen={setOpenAddStaff}
+        salonId={salon.id}
+        onCreate={async (payload: AddStaffPayload) => {
+          console.log("payload", payload);
+        }}
+      ></AddStaffModal>
     </div>
   );
 }
