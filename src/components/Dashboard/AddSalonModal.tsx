@@ -31,6 +31,7 @@ import {
   Building2,
 } from "lucide-react";
 import { createSalon } from "@/services/salon/createSalon";
+import { toast } from "sonner";
 
 /* ---------------- Types ---------------- */
 
@@ -130,7 +131,10 @@ export default function AddSalonModal({
 
   // ✅ Watch for Server Action Success
   useEffect(() => {
+    if (!state) return;
+
     if (state?.success) {
+      toast.success(state?.message || "Salon Created Successfully");
       onCreate(state.data); // Pass data back to parent if needed
       setOpen(false);
       // Reset form (defer to avoid cascading renders)
@@ -151,6 +155,8 @@ export default function AddSalonModal({
         });
         setImageUrl("");
       }, 0);
+    } else if (!state.success) {
+      toast.error(state.message || "Failed to create Salon");
     }
   }, [state, setOpen, onCreate]);
 
