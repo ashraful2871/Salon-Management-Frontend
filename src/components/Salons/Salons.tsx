@@ -15,6 +15,7 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Badge } from "../ui/badge";
+import Link from "next/link";
 
 /** ✅ Your API types */
 type OperatingHour = { open: string; close: string };
@@ -276,9 +277,11 @@ const Salons = ({ allSalons }: { allSalons: Salon[] }) => {
                         </Badge>
                       ))}
                     </div>
-                    <Button className="w-full cursor-pointer">
-                      Book Appointment
-                    </Button>
+                    <Link href={`/salons/${salon.id}`}>
+                      <Button className="w-full cursor-pointer">
+                        Book Appointment
+                      </Button>
+                    </Link>
                   </CardContent>
                 </Card>
               </motion.div>
