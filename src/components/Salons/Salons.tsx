@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
+
 import { motion } from "framer-motion";
 import { Clock, Filter, MapPin, Search, Star } from "lucide-react";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import Image from "next/image";
@@ -13,101 +15,139 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Badge } from "../ui/badge";
+import Link from "next/link";
 
-const allSalons = [
-  {
-    id: 1,
-    name: "Luxe Hair Studio",
-    rating: 4.9,
-    reviews: 234,
-    specialty: "Hair & Color",
-    location: "Downtown LA",
-    image:
-      "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&fit=crop",
-    price: "$$$",
-    services: ["Haircut", "Coloring", "Styling"],
-    openNow: true,
-  },
-  {
-    id: 2,
-    name: "Serenity Spa",
-    rating: 4.8,
-    reviews: 189,
-    specialty: "Wellness & Spa",
-    location: "Beverly Hills",
-    image:
-      "https://plus.unsplash.com/premium_photo-1661780553870-091aaf88d9cc?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTN8fFNlcmVuaXR5JTIwU3BhfGVufDB8fDB8fHww",
-    price: "$$$$",
-    services: ["Spa", "Massage", "Facial"],
-    openNow: true,
-  },
-  {
-    id: 3,
-    name: "Glow Beauty Bar",
-    rating: 4.9,
-    reviews: 312,
-    specialty: "Makeup & Nails",
-    location: "Santa Monica",
-    image:
-      "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&h=300&fit=crop",
-    price: "$$",
-    services: ["Makeup", "Nails", "Waxing"],
-    openNow: false,
-  },
-  {
-    id: 4,
-    name: "The Cutting Edge",
-    rating: 4.7,
-    reviews: 156,
-    specialty: "Hair & Styling",
-    location: "Hollywood",
-    image:
-      "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=400&h=300&fit=crop",
-    price: "$$$",
-    services: ["Haircut", "Beard Trim", "Styling"],
-    openNow: true,
-  },
-  {
-    id: 5,
-    name: "Bliss Nail Lounge",
-    rating: 4.8,
-    reviews: 278,
-    specialty: "Nails & Pedicure",
-    location: "West Hollywood",
-    image:
-      "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=300&fit=crop",
-    price: "$$",
-    services: ["Skincare", "Facial", "Lashes"],
-    openNow: true,
-  },
-  {
-    id: 6,
-    name: "Zen Wellness Center",
-    rating: 4.9,
-    reviews: 421,
-    specialty: "Spa & Massage",
-    location: "Malibu",
-    image:
-      "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400&h=300&fit=crop",
-    price: "$$$$",
-    services: ["Manicure", "Pedicure", "Nail Art"],
-    openNow: false,
-  },
-];
+/** ✅ Your API types */
+type OperatingHour = { open: string; close: string };
+type OperatingHours = Partial<
+  Record<
+    | "monday"
+    | "tuesday"
+    | "wednesday"
+    | "thursday"
+    | "friday"
+    | "saturday"
+    | "sunday",
+    OperatingHour
+  >
+>;
 
-const categories = [
-  "All",
-  "Hair & Color",
-  "Wellness & Spa",
-  "Makeup & Nails",
-  "Spa & Massage",
-];
+type SalonService = {
+  id: string;
+  name: string;
+  description?: string | null;
+  category?: string | null;
+  price?: number | null;
+  duration?: number | null;
+  images?: string[];
+  isActive?: boolean;
+};
 
-const Salons = () => {
+type Salon = {
+  id: string;
+  name: string;
+  description?: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zipCode?: string | null;
+  images?: string[]; // may be empty
+  operatingHours?: OperatingHours;
+  status?: "ACTIVE" | "INACTIVE";
+  rating?: number;
+  totalReviews?: number;
+  services?: SalonService[];
+};
+
+const dayKey = (d: number) => {
+  // JS: 0=Sun ... 6=Sat
+  const map = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ] as const;
+  return map[d];
+};
+
+const timeToMinutes = (t: string) => {
+  // "09:00"
+  const [hh, mm] = t.split(":").map(Number);
+  return hh * 60 + mm;
+};
+
+const isOpenNow = (operatingHours?: OperatingHours) => {
+  if (!operatingHours) return false;
+
+  const now = new Date();
+  const key = dayKey(now.getDay());
+  const today = operatingHours[key];
+  if (!today?.open || !today?.close) return false;
+
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const openMinutes = timeToMinutes(today.open);
+  const closeMinutes = timeToMinutes(today.close);
+
+  // normal same-day range (e.g., 09:00 -> 21:00)
+  if (closeMinutes >= openMinutes) {
+    return nowMinutes >= openMinutes && nowMinutes <= closeMinutes;
+  }
+
+  // overnight range (e.g., 20:00 -> 02:00)
+  return nowMinutes >= openMinutes || nowMinutes <= closeMinutes;
+};
+
+const Salons = ({ allSalons }: { allSalons: Salon[] }) => {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
 
-  const filteredSalons = allSalons.filter((salon) => {
+  /** ✅ Normalize your API data into the same fields your UI already expects */
+  const normalizedSalons = useMemo(() => {
+    return (allSalons || []).map((salon) => {
+      const firstImage =
+        salon.images?.[0] ||
+        // fallback placeholder (keeps design stable even if images: [])
+        "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&fit=crop";
+
+      const services = (salon.services || [])
+        .filter((s) => s?.isActive !== false)
+        .map((s) => s.name);
+
+      // Category/specialty: use first service category if exists, else "Salon"
+      const specialty = (
+        salon.services?.find((s) => s.category)?.category ?? "Salon"
+      ).replaceAll("_", " ");
+
+      const locationParts = [salon.city, salon.state].filter(Boolean);
+      const location = locationParts.length
+        ? locationParts.join(", ")
+        : salon.address || "Unknown";
+
+      return {
+        id: salon.id,
+        name: salon.name,
+        rating: salon.rating ?? 0,
+        reviews: salon.totalReviews ?? 0,
+        specialty, // used for filter categories
+        location,
+        image: firstImage,
+        services: services.length ? services : ["Service"], // keep badges visible
+        openNow: isOpenNow(salon.operatingHours),
+      };
+    });
+  }, [allSalons]);
+
+  /** ✅ Build categories from your API (still same UI) */
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    normalizedSalons.forEach((s) => set.add(s.specialty));
+    return ["All", ...Array.from(set)];
+  }, [normalizedSalons]);
+
+  const filteredSalons = normalizedSalons.filter((salon) => {
     const matchesSearch =
       salon.name.toLowerCase().includes(search.toLowerCase()) ||
       salon.location.toLowerCase().includes(search.toLowerCase());
@@ -207,6 +247,7 @@ const Salons = () => {
                       </Badge>
                     </div>
                   </div>
+
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between">
                       <CardTitle className="text-xl">{salon.name}</CardTitle>
@@ -223,6 +264,7 @@ const Salons = () => {
                       {salon.location}
                     </CardDescription>
                   </CardHeader>
+
                   <CardContent>
                     <div className="flex flex-wrap gap-2 mb-4">
                       {salon.services.map((service) => (
@@ -235,9 +277,11 @@ const Salons = () => {
                         </Badge>
                       ))}
                     </div>
-                    <Button className="w-full cursor-pointer">
-                      Book Appointment
-                    </Button>
+                    <Link href={`/salons/${salon.id}`}>
+                      <Button className="w-full cursor-pointer">
+                        Book Appointment
+                      </Button>
+                    </Link>
                   </CardContent>
                 </Card>
               </motion.div>
