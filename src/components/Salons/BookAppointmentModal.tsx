@@ -177,6 +177,7 @@ const BookAppointmentModal = ({
                         {counter.name}
                         {counter.code ? ` (${counter.code})` : ""}
                       </option>
+                      //
                     ))}
                   </select>
                   {errors.counterId && (
