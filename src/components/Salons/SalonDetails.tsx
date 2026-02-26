@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import {
@@ -19,6 +19,7 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Separator } from "../ui/separator";
+import BookAppointmentModal from "./BookAppointmentModal";
 
 type OperatingHour = { open: string; close: string };
 type OperatingHours = Partial<
@@ -112,6 +113,7 @@ const getTodayKey = (): keyof OperatingHours => {
 };
 
 const SalonDetails = ({ salon }: { salon: any }) => {
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const heroImage =
     salon?.images?.[0] ||
     "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&h=700&fit=crop";
@@ -489,7 +491,11 @@ const SalonDetails = ({ salon }: { salon: any }) => {
                   <Separator className="my-2" />
 
                   <div className="space-y-3 pt-2">
-                    <Button className="w-full font-semibold" size="lg">
+                    <Button
+                      className="w-full font-semibold"
+                      size="lg"
+                      onClick={() => setIsBookingModalOpen(true)}
+                    >
                       Book Appointment
                     </Button>
                     <Button variant="outline" className="w-full" size="lg">
@@ -556,6 +562,11 @@ const SalonDetails = ({ salon }: { salon: any }) => {
           </div>
         </div>
       </section>
+      <BookAppointmentModal
+        open={isBookingModalOpen}
+        onClose={() => setIsBookingModalOpen(false)}
+        salon={salon}
+      />
     </div>
   );
 };

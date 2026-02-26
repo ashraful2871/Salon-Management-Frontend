@@ -6,7 +6,6 @@ const SalonDetailsPage = async ({ params }: { params: { id: string } }) => {
   const { id } = await params;
 
   const res = await getSingleSalon(id);
-
   return <SalonDetails salon={res?.data} />;
 };
 
