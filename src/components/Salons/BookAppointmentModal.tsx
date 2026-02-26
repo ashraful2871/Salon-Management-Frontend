@@ -68,19 +68,6 @@ const BookAppointmentModal = ({
     [salon?.staff],
   );
 
-  const counters = useMemo(() => {
-    const realCounters = (salon?.counters || []).filter(
-      (c) => !c?.isDeleted && c?.isActive !== false,
-    );
-    if (realCounters.length > 0) return realCounters;
-
-    return [
-      { id: "counter-demo-1", name: "Counter 1", code: "C-01" },
-      { id: "counter-demo-2", name: "Counter 2", code: "C-02" },
-      { id: "counter-demo-3", name: "VIP Room", code: "VIP-01" },
-    ];
-  }, [salon?.counters]);
-
   const [form, setForm] = useState({
     counterId: "",
     serviceId: "",
