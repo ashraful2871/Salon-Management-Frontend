@@ -3,7 +3,7 @@ import { Button } from "../ui/button";
 import Link from "next/link";
 import { ArrowRight, MapPin, Star } from "lucide-react";
 import Image from "next/image";
-import { motion } from "framer-motion";
+
 import { Card } from "../ui/card";
 
 const Services = () => {
@@ -54,12 +54,10 @@ const Services = () => {
         </div>
         <div className="grid md:grid-cols-3 gap-8">
           {featuredSalons.map((salon, index) => (
-            <motion.div
+            <div
               key={salon.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
+              className="animate-in fade-in slide-in-from-bottom-4 duration-700"
+              style={{ animationDelay: `${index * 100}ms`, animationFillMode: 'both' }}
             >
               <Card className="overflow-hidden group cursor-pointer py-0">
                 <div className="relative h-60 overflow-hidden ">
@@ -87,7 +85,7 @@ const Services = () => {
                   </div>
                 </div>
               </Card>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>

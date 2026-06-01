@@ -12,7 +12,7 @@ const LoginSuccessToast = () => {
       toast.success("Login successful!");
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete("loggedIn");
-      router.replace(newUrl.toString());
+      router.replace(`${newUrl.pathname}${newUrl.search}`);
     }
   }, [searchParams, router]);
 
