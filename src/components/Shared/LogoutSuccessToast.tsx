@@ -12,7 +12,7 @@ const LogoutSuccessToast = () => {
       toast.success("Logout successful!");
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete("loggedOut");
-      router.replace(newUrl.toString());
+      router.replace(`${newUrl.pathname}${newUrl.search}`);
     }
   }, [searchParams, router]);
 
