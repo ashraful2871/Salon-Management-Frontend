@@ -71,7 +71,6 @@ const BookAppointmentModal = ({
   const [form, setForm] = useState({
     counterId: "",
     serviceId: "",
-    staffId: "",
     appointmentDate: "",
     startTime: "",
     notes: "",
@@ -85,7 +84,6 @@ const BookAppointmentModal = ({
       setForm({
         counterId: "",
         serviceId: "",
-        staffId: "",
         appointmentDate: "",
         startTime: "",
         notes: "",
@@ -105,7 +103,6 @@ const BookAppointmentModal = ({
     const nextErrors: Record<string, string> = {};
     if (!form.counterId) nextErrors.counterId = "Counter is required";
     if (!form.serviceId) nextErrors.serviceId = "Service is required";
-    if (!form.staffId) nextErrors.staffId = "Staff is required";
     if (!form.appointmentDate)
       nextErrors.appointmentDate = "Appointment date is required";
     if (!form.startTime) nextErrors.startTime = "Start time is required";
@@ -241,27 +238,7 @@ const BookAppointmentModal = ({
                 </div>
               </div>
 
-              {/* Staff */}
-              <div>
-                <label className="text-sm font-medium">Staff *</label>
-                <select
-                  name="staffId"
-                  className="mt-2 w-full h-10 rounded-md border bg-background px-3 text-sm"
-                  value={form.staffId}
-                  onChange={(e) => setField("staffId", e.target.value)}
-                >
-                  <option value="">Select staff</option>
-                  {staffList.map((member) => (
-                    <option key={member.id} value={member.id}>
-                      {member?.user?.name || "Staff"}
-                      {member?.speciality ? ` — ${member.speciality}` : ""}
-                    </option>
-                  ))}
-                </select>
-                {errors.staffId && (
-                  <p className="mt-1 text-xs text-red-500">{errors.staffId}</p>
-                )}
-              </div>
+
 
               {/* Notes */}
               <div>
