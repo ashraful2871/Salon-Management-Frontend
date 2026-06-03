@@ -324,7 +324,6 @@ const SalonDetails = ({ salon }: { salon: any }) => {
                               ৳{s.price}
                             </p>
                           )}
-                          <Button size="sm">Book Service</Button>
                         </div>
                       </div>
                     ))
@@ -407,10 +406,6 @@ const SalonDetails = ({ salon }: { salon: any }) => {
                               </p>
                             )}
                           </div>
-
-                          <Button variant="outline" className="w-full mt-5">
-                            Book {m?.user?.name?.split(" ")?.[0] || "Staff"}
-                          </Button>
                         </div>
                       ))}
                     </div>

@@ -18,6 +18,7 @@ import {
   AlertCircle,
   Pencil,
   Loader2,
+  MonitorSmartphone,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner"; // Assuming you use sonner or similar for toasts
 import { updateSalon } from "@/services/salon/updateSalon";
 import AddStaffModal, { AddStaffPayload } from "./AddStaffModal";
+import AddCounterModal from "./AddCounterModal";
+import { useRouter } from "next/navigation";
 
 /* ---------------- Types ---------------- */
 
@@ -65,6 +68,13 @@ type SalonData = {
     experience: number;
     status: string;
     user: { name: string; profilePhoto: string | null };
+  }>;
+  counters?: Array<{
+    id: string;
+    name: string;
+    code: string | null;
+    isActive: boolean;
+    createdAt: string;
   }>;
 };
 
@@ -125,6 +135,8 @@ export default function ManageSalon({ initialData }: { initialData: any }) {
   // 2. Local State for Inputs (Immediate UI Feedback)
   const [salon, setSalon] = useState<SalonData>(initialData);
   const [openAddStaff, setOpenAddStaff] = useState(false);
+  const [openAddCounter, setOpenAddCounter] = useState(false);
+  const router = useRouter();
 
   // 3. Handle Success/Error Toasts
   useEffect(() => {
@@ -193,6 +205,9 @@ export default function ManageSalon({ initialData }: { initialData: any }) {
             <TabsTrigger value="edit">Edit Details</TabsTrigger>
             <TabsTrigger value="staff">
               Staff ({salon.staff.length})
+            </TabsTrigger>
+            <TabsTrigger value="counters">
+              Counters ({salon.counters?.length || 0})
             </TabsTrigger>
           </TabsList>
 
@@ -584,6 +599,64 @@ export default function ManageSalon({ initialData }: { initialData: any }) {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* ================= COUNTERS TAB ================= */}
+        <TabsContent value="counters">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Counters</CardTitle>
+                <CardDescription>
+                  Manage the physical counters or workstations in your salon.
+                </CardDescription>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setOpenAddCounter(true)}
+              >
+                <MonitorSmartphone className="w-4 h-4 mr-2" /> Add Counter
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {salon.counters?.map((counter) => (
+                  <div
+                    key={counter.id}
+                    className="flex items-center justify-between p-4 border rounded-xl hover:bg-muted/20 transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                        <MonitorSmartphone className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">{counter.name}</p>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                          {counter.code && <span>Code: {counter.code}</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge
+                        variant={counter.isActive ? "default" : "secondary"}
+                      >
+                        {counter.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                      <Button size="icon" variant="ghost">
+                        <Pencil className="w-4 h-4 text-muted-foreground" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {!salon.counters?.length && (
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    No counters added yet.
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
       <AddStaffModal
         open={openAddStaff}
@@ -592,7 +665,15 @@ export default function ManageSalon({ initialData }: { initialData: any }) {
         onCreate={async (payload: AddStaffPayload) => {
           console.log("payload", payload);
         }}
-      ></AddStaffModal>
+      />
+      <AddCounterModal
+        open={openAddCounter}
+        setOpen={setOpenAddCounter}
+        salonId={salon.id}
+        onCreate={() => {
+          router.refresh();
+        }}
+      />
     </div>
   );
 }
