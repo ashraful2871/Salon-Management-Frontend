@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { useActionState } from "react";
 import { Button } from "../ui/button";
 import { bookingAppointment } from "@/services/appoinments/book-appoiments";
+import { toast } from "sonner";
 
 type CounterItem = {
   id: string;
@@ -78,17 +79,27 @@ const BookAppointmentModal = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const lastProcessedState = React.useRef(state);
+
   useEffect(() => {
+    if (!state || lastProcessedState.current === state) return;
+    lastProcessedState.current = state;
+
     if (state?.success) {
+      toast.success(state?.message || "Appointment booked successfully");
       onClose();
-      setForm({
-        counterId: "",
-        serviceId: "",
-        appointmentDate: "",
-        startTime: "",
-        notes: "",
-      });
-      setErrors({});
+      setTimeout(() => {
+        setForm({
+          counterId: "",
+          serviceId: "",
+          appointmentDate: "",
+          startTime: "",
+          notes: "",
+        });
+        setErrors({});
+      }, 0);
+    } else if (state?.success === false) {
+      toast.error(state?.message || "Failed to book appointment");
     }
   }, [state, onClose]);
 
@@ -252,16 +263,7 @@ const BookAppointmentModal = ({
                 />
               </div>
 
-              {/* server response message */}
-              {state?.message ? (
-                <p
-                  className={`text-sm ${
-                    state.success ? "text-green-600" : "text-red-500"
-                  }`}
-                >
-                  {state.message}
-                </p>
-              ) : null}
+
             </div>
 
             <div className="flex items-center justify-end gap-3 border-t px-5 py-4">
