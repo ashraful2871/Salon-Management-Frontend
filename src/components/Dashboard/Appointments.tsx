@@ -2,7 +2,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,28 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  CheckCircle2,
+  XCircle,
+  Play,
+  AlertTriangle,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { updateAppointmentStatus } from "@/services/appoinments/updateAppointmentStatus";
+import { cancelAppointment } from "@/services/appoinments/cancelAppointment";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 type ApiAppointment = any;
 
@@ -36,9 +57,13 @@ const getStatusBadge = (status: string) => {
       );
     case "pending":
       return <Badge variant="secondary">Pending</Badge>;
+    case "completed":
+      return <Badge className="bg-primary text-primary-foreground">Completed</Badge>;
     case "cancelled":
     case "canceled":
       return <Badge variant="destructive">Cancelled</Badge>;
+    case "no_show":
+      return <Badge variant="destructive">No Show</Badge>;
     default:
       return <Badge variant="secondary">{status}</Badge>;
   }
@@ -69,9 +94,12 @@ const formatTime12 = (hhmm?: string) => {
 };
 
 const addDays = (ymd: string, delta: number) => {
-  const d = new Date(ymd + "T00:00:00");
+  const d = new Date(ymd + "T12:00:00"); // noon to avoid DST/timezone edge cases
   d.setDate(d.getDate() + delta);
-  return d.toISOString().slice(0, 10);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
 };
 
 const getInitials = (name?: string) => {
@@ -90,6 +118,9 @@ const Appointments = ({
   appointments: ApiAppointment[];
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [cancelId, setCancelId] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   // ✅ pick default selectedDate from API (if exists) else today
   const defaultDate = useMemo(() => {
@@ -150,6 +181,33 @@ const Appointments = ({
     (a) => a.rawStatus === "PENDING",
   ).length;
 
+  const handleStatusUpdate = (appointmentId: string, newStatus: string) => {
+    startTransition(async () => {
+      const res = await updateAppointmentStatus(appointmentId, newStatus);
+      if (res?.success) {
+        toast.success(`Appointment ${newStatus.toLowerCase().replace("_", " ")} successfully`);
+        router.refresh();
+      } else {
+        toast.error(res?.message || "Failed to update status");
+      }
+    });
+  };
+
+  const handleCancel = () => {
+    if (!cancelId) return;
+    startTransition(async () => {
+      const res = await cancelAppointment(cancelId);
+      if (res?.success) {
+        toast.success("Appointment cancelled successfully");
+        setCancelId(null);
+        router.refresh();
+      } else {
+        toast.error(res?.message || "Failed to cancel appointment");
+        setCancelId(null);
+      }
+    });
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -164,10 +222,6 @@ const Appointments = ({
             Manage your salon appointments
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          New Appointment
-        </Button>
       </motion.div>
 
       {/* Stats */}
@@ -304,9 +358,70 @@ const Appointments = ({
 
                       {getStatusBadge(appointment.rawStatus)}
 
-                      <Button variant="outline" size="sm">
-                        View
-                      </Button>
+                      {/* Status Actions Dropdown */}
+                      {appointment.rawStatus !== "COMPLETED" &&
+                        appointment.rawStatus !== "CANCELLED" && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={isPending}
+                              >
+                                Actions
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {appointment.rawStatus === "PENDING" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleStatusUpdate(
+                                      appointment.id,
+                                      "CONFIRMED"
+                                    )
+                                  }
+                                >
+                                  <CheckCircle2 className="mr-2 h-4 w-4 text-sage" />
+                                  Confirm
+                                </DropdownMenuItem>
+                              )}
+                              {(appointment.rawStatus === "PENDING" ||
+                                appointment.rawStatus === "CONFIRMED") && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleStatusUpdate(
+                                      appointment.id,
+                                      "IN_PROGRESS"
+                                    )
+                                  }
+                                >
+                                  <Play className="mr-2 h-4 w-4 text-gold" />
+                                  Start
+                                </DropdownMenuItem>
+                              )}
+                              {appointment.rawStatus === "IN_PROGRESS" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleStatusUpdate(
+                                      appointment.id,
+                                      "COMPLETED"
+                                    )
+                                  }
+                                >
+                                  <CheckCircle2 className="mr-2 h-4 w-4 text-primary" />
+                                  Complete
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                onClick={() => setCancelId(appointment.id)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Cancel
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                     </div>
                   </div>
                 ))
@@ -315,6 +430,46 @@ const Appointments = ({
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Cancel Confirmation Dialog */}
+      <Dialog
+        open={!!cancelId}
+        onOpenChange={(open) => !open && setCancelId(null)}
+      >
+        <DialogContent className="sm:max-w-[425px] overflow-hidden rounded-2xl p-0">
+          <div className="p-6 pb-4 border-b bg-destructive/5 shrink-0">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-xl text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                Cancel Appointment
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground mt-2">
+                Are you sure you want to cancel this appointment? This action
+                cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="p-6 bg-background flex justify-end gap-3 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setCancelId(null)}
+              disabled={isPending}
+            >
+              Keep Appointment
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleCancel}
+              disabled={isPending}
+              className="text-white"
+            >
+              {isPending ? "Cancelling..." : "Cancel Appointment"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

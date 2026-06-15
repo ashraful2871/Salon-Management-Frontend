@@ -37,6 +37,7 @@ import {
 import { ScrollArea } from "../ui/scroll-area";
 import AddSalonModal, { AddSalonPayload } from "./AddSalonModal";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 /* ---------------- Types ---------------- */
 
@@ -173,6 +174,7 @@ export default function Store({
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedId, setSelectedId] = React.useState<string>("");
   const [openAddSalon, setOpenAddSalon] = React.useState(false);
+  const router = useRouter();
 
   const dummyImage =
     "https://i.ibb.co/jZWzbYnM/lindsay-cash-Md-Dha-Fsn-CQ-unsplash.jpg";
@@ -632,10 +634,9 @@ export default function Store({
         open={openAddSalon}
         setOpen={setOpenAddSalon}
         onCreate={async (payload: AddSalonPayload) => {
-          console.log("✅ Payload:", payload);
-
-          // await createSalon(payload)
-          // router.refresh()
+          // Salon is created via useActionState inside AddSalonModal.
+          // This callback fires on success — we just need to refresh the data.
+          router.refresh();
         }}
       />
     </>

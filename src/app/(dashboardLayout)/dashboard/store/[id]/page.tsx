@@ -2,7 +2,7 @@ import ManageSalon from "@/components/Dashboard/ManageSalon";
 import { getSalonById } from "@/services/salon/getSalonNyId";
 import React from "react";
 
-const ManageSalonPage = async ({ params }: { params: { id: string } }) => {
+const ManageSalonPage = async ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
 
   const getSingleSalon = await getSalonById(id);

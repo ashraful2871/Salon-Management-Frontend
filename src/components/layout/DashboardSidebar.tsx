@@ -20,6 +20,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/services/auth/auth-utils";
+import LogoutButton from "./LogoutButton";
 
 // 2. Add an 'allowedRoles' array to each menu item
 const menuItems = [
@@ -159,16 +160,7 @@ export const DashboardSidebar = ({ userRole }: DashboardSidebarProps) => {
 
         {/* Footer */}
         <div className="border-t border-sidebar-border p-4">
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start gap-3 text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive",
-              collapsed && "justify-center"
-            )}
-          >
-            <LogOut className="h-5 w-5 shrink-0" />
-            {!collapsed && <span>Logout</span>}
-          </Button>
+          <LogoutButton />
         </div>
       </div>
     </motion.aside>

@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { motion } from "framer-motion";
+import { useState, useTransition } from "react";
 import {
   Card,
   CardContent,
@@ -12,9 +14,43 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Store, Bell, Shield, Globe, Palette } from "lucide-react";
+import { Store, Bell, Shield } from "lucide-react";
+import { changePassword } from "@/services/auth/changePassword";
+import { toast } from "sonner";
 
 const Settings = () => {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isPending, startTransition] = useTransition();
+
+  const handleChangePassword = () => {
+    if (!currentPassword || !newPassword) {
+      toast.error("Please fill in all password fields");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("New password must be at least 6 characters");
+      return;
+    }
+
+    startTransition(async () => {
+      const res = await changePassword(currentPassword, newPassword);
+      if (res?.success) {
+        toast.success(res?.message || "Password updated successfully");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        toast.error(res?.message || "Failed to update password");
+      }
+    });
+  };
+
   return (
     <div className="space-y-8 max-w-4xl">
       {/* Header */}
@@ -28,68 +64,11 @@ const Settings = () => {
         </p>
       </motion.div>
 
-      {/* Salon Information */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Store className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle>Salon Information</CardTitle>
-                <CardDescription>
-                  Update your salon details and business information
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="salonName">Salon Name</Label>
-                <Input id="salonName" defaultValue="Luxe Hair Studio" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" defaultValue="+1 (555) 123-4567" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Input
-                id="address"
-                defaultValue="123 Main Street, Downtown Manhattan, NY 10001"
-              />
-            </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Business Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  defaultValue="hello@luxehairstudio.com"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="website">Website</Label>
-                <Input id="website" defaultValue="www.luxehairstudio.com" />
-              </div>
-            </div>
-            <Button className="mt-4">Save Changes</Button>
-          </CardContent>
-        </Card>
-      </motion.div>
-
       {/* Notifications */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
+        transition={{ delay: 0.1 }}
       >
         <Card>
           <CardHeader>
@@ -142,11 +121,11 @@ const Settings = () => {
         </Card>
       </motion.div>
 
-      {/* Security */}
+      {/* Security / Change Password */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
+        transition={{ delay: 0.2 }}
       >
         <Card>
           <CardHeader>
@@ -169,6 +148,8 @@ const Settings = () => {
                 id="currentPassword"
                 type="password"
                 placeholder="••••••••"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
               />
             </div>
             <div className="grid md:grid-cols-2 gap-4">
@@ -178,6 +159,8 @@ const Settings = () => {
                   id="newPassword"
                   type="password"
                   placeholder="••••••••"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -186,10 +169,18 @@ const Settings = () => {
                   id="confirmPassword"
                   type="password"
                   placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                 />
               </div>
             </div>
-            <Button variant="outline">Update Password</Button>
+            <Button
+              variant="outline"
+              onClick={handleChangePassword}
+              disabled={isPending}
+            >
+              {isPending ? "Updating..." : "Update Password"}
+            </Button>
             <Separator className="my-4" />
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
@@ -208,7 +199,7 @@ const Settings = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
+        transition={{ delay: 0.3 }}
       >
         <Card className="border-destructive/50">
           <CardHeader>
