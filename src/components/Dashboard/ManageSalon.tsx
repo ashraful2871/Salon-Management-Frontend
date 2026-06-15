@@ -663,7 +663,9 @@ export default function ManageSalon({ initialData }: { initialData: any }) {
         setOpen={setOpenAddStaff}
         salonId={salon.id}
         onCreate={async (payload: AddStaffPayload) => {
-          console.log("payload", payload);
+          // Staff is created via useActionState inside AddStaffModal.
+          // This callback fires on success — we just need to refresh the data.
+          router.refresh();
         }}
       />
       <AddCounterModal

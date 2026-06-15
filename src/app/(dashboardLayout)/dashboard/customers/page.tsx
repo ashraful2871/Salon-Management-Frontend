@@ -1,12 +1,15 @@
 import Customers from "@/components/Dashboard/Customers";
+import { getAllUsers } from "@/services/users/getAllUsers";
 import React from "react";
 
-const CustomersPAge = () => {
+const CustomersPage = async () => {
+  const usersResponse = await getAllUsers({ role: "CUSTOMER", limit: 50 });
+
   return (
     <div>
-      <Customers />
+      <Customers usersResponse={usersResponse} />
     </div>
   );
 };
 
-export default CustomersPAge;
+export default CustomersPage;
