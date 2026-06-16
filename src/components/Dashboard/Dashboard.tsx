@@ -210,67 +210,58 @@ const Dashboard = ({
             <CardContent>
               <div className="space-y-4">
                 {dashboardData?.appointmentsByStatus?.length > 0 ? (
-                  dashboardData.appointmentsByStatus.map(
-                    (item: any, index: number) => (
-                      <div
-                        key={item.status || index}
-                        className="flex items-center justify-between"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-sm font-semibold text-primary">
-                            {index + 1}
+                  <>
+                    {dashboardData.appointmentsByStatus.map(
+                      (item: any, index: number) => {
+                        const statusLabel = (item.status || "")
+                          .replace(/_/g, " ")
+                          .toLowerCase()
+                          .replace(/\b\w/g, (c: string) => c.toUpperCase());
+                        const statusColor =
+                          item.status === "COMPLETED"
+                            ? "bg-primary text-primary-foreground"
+                            : item.status === "CONFIRMED"
+                              ? "bg-sage text-white"
+                              : item.status === "IN_PROGRESS"
+                                ? "bg-gold text-primary-foreground"
+                                : item.status === "CANCELLED"
+                                  ? "bg-destructive text-destructive-foreground"
+                                  : "bg-secondary text-secondary-foreground";
+
+                        return (
+                          <div
+                            key={item.status || index}
+                            className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                          >
+                            <div className="flex items-center gap-3">
+                              <Badge className={statusColor}>
+                                {statusLabel}
+                              </Badge>
+                            </div>
+                            <span className="font-bold text-lg">
+                              {item._count}
+                            </span>
                           </div>
-                          <div>
-                            <p className="font-medium">
-                              {(item.status || "").replace("_", " ")}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {item._count} appointments
-                            </p>
-                          </div>
+                        );
+                      }
+                    )}
+
+                    {/* Show total spent for customers */}
+                    {userRole === "CUSTOMER" &&
+                      dashboardData?.totalSpent !== undefined && (
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border-t mt-2">
+                          <span className="text-sm font-medium text-muted-foreground">
+                            Total Spent
+                          </span>
+                          <span className="font-bold text-gold">
+                            ${dashboardData.totalSpent || 0}
+                          </span>
                         </div>
-                        <Badge variant="secondary">{item._count}</Badge>
-                      </div>
-                    )
-                  )
-                ) : userRole === "CUSTOMER" ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                      <span className="text-sm text-muted-foreground">
-                        Total Appointments
-                      </span>
-                      <span className="font-bold">
-                        {dashboardData?.totalAppointments || 0}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                      <span className="text-sm text-muted-foreground">
-                        Completed
-                      </span>
-                      <span className="font-bold text-sage">
-                        {dashboardData?.completedAppointments || 0}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                      <span className="text-sm text-muted-foreground">
-                        Upcoming
-                      </span>
-                      <span className="font-bold text-primary">
-                        {dashboardData?.upcomingAppointments || 0}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                      <span className="text-sm text-muted-foreground">
-                        Total Spent
-                      </span>
-                      <span className="font-bold text-gold">
-                        ${dashboardData?.totalSpent || 0}
-                      </span>
-                    </div>
-                  </div>
+                      )}
+                  </>
                 ) : (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    No data available yet.
+                    No appointment data available yet.
                   </p>
                 )}
               </div>

@@ -6,6 +6,10 @@ import {
   getCustomerDashboardStats,
 } from "@/services/dashboard/getDashboardStats";
 
+// ✅ Force dynamic rendering for real-time dashboard stats
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function DashboardPage() {
   const userRole = await getUserRoles();
 

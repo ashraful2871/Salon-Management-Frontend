@@ -2,11 +2,18 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Calendar as CalendarIcon,
   Plus,
@@ -19,6 +26,8 @@ import {
   XCircle,
   Play,
   AlertTriangle,
+  Filter,
+  ListFilter,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -121,16 +130,17 @@ const Appointments = ({
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [selectedDate, setSelectedDate] = useState<string | null>(null); // null = all dates
   const router = useRouter();
 
-  // ✅ pick default selectedDate from API (if exists) else today
-  const defaultDate = useMemo(() => {
-    const first = appointments?.[0]?.appointmentDate;
-    if (first) return toYMD(first);
-    return new Date().toISOString().slice(0, 10);
-  }, [appointments]);
-
-  const [selectedDate, setSelectedDate] = useState(defaultDate);
+  // ✅ Auto-polling: refresh data every 15 seconds for real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      router.refresh();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [router]);
 
   // ✅ normalize API -> UI
   const normalized = useMemo(() => {
@@ -151,7 +161,7 @@ const Appointments = ({
         service: serviceName,
         time,
         duration,
-        status: (apt?.status || "PENDING").toLowerCase(), // for badge
+        status: (apt?.status || "PENDING").toLowerCase(),
         rawStatus: apt?.status || "PENDING",
         salonName: apt?.salon?.name,
         counterName: apt?.counter?.name,
@@ -160,27 +170,49 @@ const Appointments = ({
     });
   }, [appointments]);
 
+  // ✅ filter by date (optional), status, and search
   const filteredAppointments = normalized.filter((apt) => {
-    const matchesDate = apt.date === selectedDate;
+    // Date filter (null means all dates)
+    if (selectedDate && apt.date !== selectedDate) return false;
+
+    // Status filter
+    if (statusFilter !== "ALL" && apt.rawStatus !== statusFilter) return false;
+
+    // Search filter
     const q = searchTerm.toLowerCase();
-    const matchesSearch =
-      apt.customer.toLowerCase().includes(q) ||
-      apt.service.toLowerCase().includes(q) ||
-      (apt.salonName || "").toLowerCase().includes(q) ||
-      (apt.staffName || "").toLowerCase().includes(q);
-    return matchesDate && matchesSearch;
+    if (q) {
+      const matchesSearch =
+        apt.customer.toLowerCase().includes(q) ||
+        apt.service.toLowerCase().includes(q) ||
+        (apt.salonName || "").toLowerCase().includes(q) ||
+        (apt.staffName || "").toLowerCase().includes(q);
+      if (!matchesSearch) return false;
+    }
+
+    return true;
   });
 
-  // ✅ stats based on selected date (more useful)
-  const todayAppointments = normalized.filter(
-    (a) => a.date === selectedDate,
-  ).length;
+  // ✅ overall stats (not per-date)
+  const totalCount = normalized.length;
   const confirmedCount = normalized.filter(
     (a) => a.rawStatus === "CONFIRMED",
   ).length;
   const pendingCount = normalized.filter(
     (a) => a.rawStatus === "PENDING",
   ).length;
+  const completedCount = normalized.filter(
+    (a) => a.rawStatus === "COMPLETED",
+  ).length;
+
+  // Status filter options
+  const statusOptions = [
+    { label: "All", value: "ALL", count: totalCount },
+    { label: "Pending", value: "PENDING", count: pendingCount },
+    { label: "Confirmed", value: "CONFIRMED", count: confirmedCount },
+    { label: "In Progress", value: "IN_PROGRESS", count: normalized.filter((a) => a.rawStatus === "IN_PROGRESS").length },
+    { label: "Completed", value: "COMPLETED", count: completedCount },
+    { label: "Cancelled", value: "CANCELLED", count: normalized.filter((a) => a.rawStatus === "CANCELLED").length },
+  ];
 
   const handleStatusUpdate = (appointmentId: string, newStatus: string) => {
     startTransition(async () => {
@@ -226,11 +258,12 @@ const Appointments = ({
       </motion.div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Today", value: todayAppointments, icon: CalendarIcon },
-          { label: "Confirmed", value: confirmedCount, icon: Clock },
-          { label: "Pending", value: pendingCount, icon: User },
+          { label: "Total", value: totalCount, icon: CalendarIcon },
+          { label: "Pending", value: pendingCount, icon: Clock },
+          { label: "Confirmed", value: confirmedCount, icon: User },
+          { label: "Completed", value: completedCount, icon: CheckCircle2 },
         ].map((stat, index) => (
           <motion.div
             key={stat.label}
@@ -253,78 +286,215 @@ const Appointments = ({
         ))}
       </div>
 
-      {/* Date Navigation & Search */}
+      {/* Filters Toolbar */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="flex flex-col md:flex-row gap-4"
+        transition={{ delay: 0.25 }}
       >
-        <div className="flex items-center gap-2 bg-card rounded-lg border p-2 relative">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSelectedDate((d) => addDays(d, -1))}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
+        <Card>
+          <CardContent className="p-3">
+            <div className="flex flex-col lg:flex-row gap-3">
+              {/* Status Dropdown */}
+              <div className="flex items-center gap-2">
+                <ListFilter className="h-4 w-4 text-muted-foreground shrink-0" />
+                <Select
+                  value={statusFilter}
+                  onValueChange={(val) => setStatusFilter(val)}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        <div className="flex items-center justify-between gap-3 w-full">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`h-2 w-2 rounded-full ${
+                                opt.value === "ALL"
+                                  ? "bg-foreground"
+                                  : opt.value === "PENDING"
+                                    ? "bg-yellow-500"
+                                    : opt.value === "CONFIRMED"
+                                      ? "bg-emerald-500"
+                                      : opt.value === "IN_PROGRESS"
+                                        ? "bg-amber-500"
+                                        : opt.value === "COMPLETED"
+                                          ? "bg-primary"
+                                          : "bg-destructive"
+                              }`}
+                            />
+                            <span>{opt.label}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground ml-auto">
+                            {opt.count}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <button
-            type="button"
-            className="px-4 py-2 font-medium hover:bg-muted rounded-md transition-colors flex items-center gap-2 cursor-pointer"
-            onClick={() => setCalendarOpen((v) => !v)}
-          >
-            <CalendarIcon className="h-4 w-4 text-primary" />
-            {formatDateLabel(selectedDate)}
-          </button>
+              {/* Divider */}
+              <div className="hidden lg:block w-px bg-border" />
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSelectedDate((d) => addDays(d, 1))}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+              {/* Date Navigation */}
+              <div className="flex items-center gap-1 relative">
+                <Button
+                  variant={selectedDate === null ? "default" : "outline"}
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => {
+                    setSelectedDate(null);
+                    setCalendarOpen(false);
+                  }}
+                >
+                  All Dates
+                </Button>
 
-          {/* Today button */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="ml-1 text-xs"
-            onClick={() => {
-              const today = new Date();
-              const yyyy = today.getFullYear();
-              const mm = String(today.getMonth() + 1).padStart(2, "0");
-              const dd = String(today.getDate()).padStart(2, "0");
-              setSelectedDate(`${yyyy}-${mm}-${dd}`);
-              setCalendarOpen(false);
-            }}
-          >
-            Today
-          </Button>
+                <div className="h-6 w-px bg-border mx-1" />
 
-          {/* Calendar Dropdown */}
-          {calendarOpen && (
-            <MiniCalendar
-              selectedDate={selectedDate}
-              onSelect={(date) => {
-                setSelectedDate(date);
-                setCalendarOpen(false);
-              }}
-              onClose={() => setCalendarOpen(false)}
-            />
-          )}
-        </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => {
+                    const current = selectedDate || new Date().toISOString().slice(0, 10);
+                    setSelectedDate(addDays(current, -1));
+                  }}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
 
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search appointments..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+                <button
+                  type="button"
+                  className={`px-3 py-1.5 text-sm font-medium hover:bg-muted rounded-md transition-colors flex items-center gap-2 cursor-pointer ${
+                    selectedDate ? "text-primary" : "text-muted-foreground"
+                  }`}
+                  onClick={() => setCalendarOpen((v) => !v)}
+                >
+                  <CalendarIcon className="h-4 w-4" />
+                  {selectedDate ? formatDateLabel(selectedDate) : "Select Date"}
+                </button>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => {
+                    const current = selectedDate || new Date().toISOString().slice(0, 10);
+                    setSelectedDate(addDays(current, 1));
+                  }}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => {
+                    const today = new Date();
+                    const yyyy = today.getFullYear();
+                    const mm = String(today.getMonth() + 1).padStart(2, "0");
+                    const dd = String(today.getDate()).padStart(2, "0");
+                    setSelectedDate(`${yyyy}-${mm}-${dd}`);
+                    setCalendarOpen(false);
+                  }}
+                >
+                  Today
+                </Button>
+
+                {/* Calendar Dropdown */}
+                {calendarOpen && (
+                  <MiniCalendar
+                    selectedDate={selectedDate || new Date().toISOString().slice(0, 10)}
+                    onSelect={(date) => {
+                      setSelectedDate(date);
+                      setCalendarOpen(false);
+                    }}
+                    onClose={() => setCalendarOpen(false)}
+                  />
+                )}
+              </div>
+
+              {/* Divider */}
+              <div className="hidden lg:block w-px bg-border" />
+
+              {/* Search */}
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name, service, salon..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 h-9"
+                />
+              </div>
+
+              {/* Clear Filters */}
+              {(statusFilter !== "ALL" || selectedDate !== null || searchTerm) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    setStatusFilter("ALL");
+                    setSelectedDate(null);
+                    setSearchTerm("");
+                    setCalendarOpen(false);
+                  }}
+                >
+                  <XCircle className="h-3.5 w-3.5 mr-1" />
+                  Clear
+                </Button>
+              )}
+            </div>
+
+            {/* Active filters summary */}
+            {(statusFilter !== "ALL" || selectedDate !== null) && (
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+                <span className="text-xs text-muted-foreground">Active filters:</span>
+                {statusFilter !== "ALL" && (
+                  <Badge
+                    variant="secondary"
+                    className="text-xs cursor-pointer hover:bg-destructive/10"
+                    onClick={() => setStatusFilter("ALL")}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full mr-1.5 ${
+                        statusFilter === "PENDING"
+                          ? "bg-yellow-500"
+                          : statusFilter === "CONFIRMED"
+                            ? "bg-emerald-500"
+                            : statusFilter === "IN_PROGRESS"
+                              ? "bg-amber-500"
+                              : statusFilter === "COMPLETED"
+                                ? "bg-primary"
+                                : "bg-destructive"
+                      }`}
+                    />
+                    {statusOptions.find((o) => o.value === statusFilter)?.label}
+                    <XCircle className="h-3 w-3 ml-1" />
+                  </Badge>
+                )}
+                {selectedDate && (
+                  <Badge
+                    variant="secondary"
+                    className="text-xs cursor-pointer hover:bg-destructive/10"
+                    onClick={() => setSelectedDate(null)}
+                  >
+                    <CalendarIcon className="h-3 w-3 mr-1" />
+                    {formatDateLabel(selectedDate)}
+                    <XCircle className="h-3 w-3 ml-1" />
+                  </Badge>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </motion.div>
 
       {/* Appointments List */}
@@ -334,15 +504,20 @@ const Appointments = ({
         transition={{ delay: 0.4 }}
       >
         <Card>
-          <CardHeader>
-            <CardTitle>Schedule</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>
+              {selectedDate ? formatDateLabel(selectedDate) : "All Appointments"}
+            </CardTitle>
+            <span className="text-sm text-muted-foreground">
+              {filteredAppointments.length} appointment{filteredAppointments.length !== 1 ? "s" : ""}
+            </span>
           </CardHeader>
 
           <CardContent>
             <div className="space-y-4">
               {filteredAppointments.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
-                  No appointments found for this date.
+                  No appointments found.
                 </p>
               ) : (
                 filteredAppointments.map((appointment) => (
@@ -384,6 +559,18 @@ const Appointments = ({
 
                     {/* Right */}
                     <div className="flex items-center justify-between md:justify-end gap-4 md:gap-6">
+                      {/* Show date when viewing all dates */}
+                      {!selectedDate && (
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(appointment.date + "T00:00:00").toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </p>
+                        </div>
+                      )}
                       <div className="text-right">
                         <p className="font-medium">{appointment.time}</p>
                         <p className="text-sm text-muted-foreground">
