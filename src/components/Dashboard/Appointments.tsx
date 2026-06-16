@@ -118,6 +118,7 @@ const Appointments = ({
   appointments: ApiAppointment[];
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -259,7 +260,7 @@ const Appointments = ({
         transition={{ delay: 0.3 }}
         className="flex flex-col md:flex-row gap-4"
       >
-        <div className="flex items-center gap-2 bg-card rounded-lg border p-2">
+        <div className="flex items-center gap-2 bg-card rounded-lg border p-2 relative">
           <Button
             variant="ghost"
             size="icon"
@@ -268,9 +269,14 @@ const Appointments = ({
             <ChevronLeft className="h-4 w-4" />
           </Button>
 
-          <div className="px-4 py-2 font-medium">
+          <button
+            type="button"
+            className="px-4 py-2 font-medium hover:bg-muted rounded-md transition-colors flex items-center gap-2 cursor-pointer"
+            onClick={() => setCalendarOpen((v) => !v)}
+          >
+            <CalendarIcon className="h-4 w-4 text-primary" />
             {formatDateLabel(selectedDate)}
-          </div>
+          </button>
 
           <Button
             variant="ghost"
@@ -279,6 +285,35 @@ const Appointments = ({
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
+
+          {/* Today button */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-1 text-xs"
+            onClick={() => {
+              const today = new Date();
+              const yyyy = today.getFullYear();
+              const mm = String(today.getMonth() + 1).padStart(2, "0");
+              const dd = String(today.getDate()).padStart(2, "0");
+              setSelectedDate(`${yyyy}-${mm}-${dd}`);
+              setCalendarOpen(false);
+            }}
+          >
+            Today
+          </Button>
+
+          {/* Calendar Dropdown */}
+          {calendarOpen && (
+            <MiniCalendar
+              selectedDate={selectedDate}
+              onSelect={(date) => {
+                setSelectedDate(date);
+                setCalendarOpen(false);
+              }}
+              onClose={() => setCalendarOpen(false)}
+            />
+          )}
         </div>
 
         <div className="relative flex-1 max-w-md">
@@ -473,5 +508,134 @@ const Appointments = ({
     </div>
   );
 };
+
+/* ---------- Mini Calendar Dropdown ---------- */
+
+function MiniCalendar({
+  selectedDate,
+  onSelect,
+  onClose,
+}: {
+  selectedDate: string;
+  onSelect: (ymd: string) => void;
+  onClose: () => void;
+}) {
+  const [year, month] = selectedDate.split("-").map(Number);
+  const [viewYear, setViewYear] = useState(year);
+  const [viewMonth, setViewMonth] = useState(month); // 1-indexed
+
+  const today = new Date();
+  const todayYmd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  // First day of the viewed month (0=Sun..6=Sat)
+  const firstDay = new Date(viewYear, viewMonth - 1, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth, 0).getDate();
+
+  const monthName = new Date(viewYear, viewMonth - 1).toLocaleString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+
+  const prevMonth = () => {
+    if (viewMonth === 1) {
+      setViewMonth(12);
+      setViewYear((y) => y - 1);
+    } else {
+      setViewMonth((m) => m - 1);
+    }
+  };
+
+  const nextMonth = () => {
+    if (viewMonth === 12) {
+      setViewMonth(1);
+      setViewYear((y) => y + 1);
+    } else {
+      setViewMonth((m) => m + 1);
+    }
+  };
+
+  const dayYmd = (day: number) => {
+    return `${viewYear}-${String(viewMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  };
+
+  return (
+    <>
+      {/* Backdrop to close on outside click */}
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+
+      <div className="absolute top-full left-0 mt-2 z-50 bg-card border rounded-xl shadow-lg p-4 w-[320px] animate-in fade-in-0 zoom-in-95 duration-200">
+        {/* Month/Year Header */}
+        <div className="flex items-center justify-between mb-3">
+          <Button variant="ghost" size="icon" onClick={prevMonth} className="h-8 w-8">
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="font-semibold text-sm">{monthName}</span>
+          <Button variant="ghost" size="icon" onClick={nextMonth} className="h-8 w-8">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Day-of-week headers */}
+        <div className="grid grid-cols-7 gap-1 mb-1">
+          {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
+            <div
+              key={d}
+              className="text-center text-[11px] font-medium text-muted-foreground py-1"
+            >
+              {d}
+            </div>
+          ))}
+        </div>
+
+        {/* Day grid */}
+        <div className="grid grid-cols-7 gap-1">
+          {/* Empty cells for offset */}
+          {Array.from({ length: firstDay }).map((_, i) => (
+            <div key={`e-${i}`} />
+          ))}
+
+          {Array.from({ length: daysInMonth }).map((_, i) => {
+            const day = i + 1;
+            const ymd = dayYmd(day);
+            const isSelected = ymd === selectedDate;
+            const isToday = ymd === todayYmd;
+
+            return (
+              <button
+                key={day}
+                type="button"
+                onClick={() => onSelect(ymd)}
+                className={`
+                  h-9 w-full rounded-lg text-sm font-medium transition-all
+                  flex items-center justify-center cursor-pointer
+                  ${isSelected
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : isToday
+                      ? "bg-primary/10 text-primary font-bold ring-1 ring-primary/30"
+                      : "hover:bg-muted text-foreground"
+                  }
+                `}
+              >
+                {day}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Quick jump to today */}
+        <div className="mt-3 pt-3 border-t flex justify-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs text-primary"
+            onClick={() => onSelect(todayYmd)}
+          >
+            Jump to Today
+          </Button>
+        </div>
+      </div>
+    </>
+  );
+}
 
 export default Appointments;
