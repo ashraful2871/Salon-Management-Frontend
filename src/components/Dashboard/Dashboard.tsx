@@ -332,22 +332,24 @@ function buildStats(data: any, role: string) {
   if (role === "SALON_OWNER") {
     return [
       {
-        title: "My Salons",
-        value: data.totalSalons?.toLocaleString() || "0",
-        icon: Store,
+        title: "Today's Appointments",
+        value: data.todayAppointments?.toLocaleString() || "0",
+        icon: Calendar,
         color: "bg-gradient-rose",
       },
       {
-        title: "Total Services",
-        value: data.totalServices?.toLocaleString() || "0",
-        icon: Package,
-        color: "bg-sage",
+        title: "Total Appointments",
+        value: data.totalAppointments?.toLocaleString() || "0",
+        icon: Clock,
+        color: "bg-primary",
       },
       {
-        title: "Total Staff",
-        value: data.totalStaff?.toLocaleString() || "0",
+        title: "Pending",
+        value: data.pendingAppointments?.toLocaleString() || "0",
         icon: Users,
-        color: "bg-primary",
+        color: "bg-sage",
+        change: data.pendingAppointments > 0 ? `${data.pendingAppointments} awaiting` : undefined,
+        trend: "up",
       },
       {
         title: "Revenue",
