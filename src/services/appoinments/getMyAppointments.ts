@@ -1,9 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { serverFetch } from "@/lib/server-fetch";
 
-export const getMyAppointments = async () => {
+export const getMyAppointments = async (salonId?: string, status?: string) => {
   try {
-    const response = await serverFetch.get("/appointments/my-appointments");
+    let url = "/appointments/my-appointments?";
+    if (salonId) url += `salonId=${salonId}&`;
+    if (status) url += `status=${status}&`;
+
+    const response = await serverFetch.get(url);
 
     const result = await response.json();
     return result;

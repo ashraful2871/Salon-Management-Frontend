@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import {
@@ -20,6 +20,8 @@ import { Badge } from "../ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Separator } from "../ui/separator";
 import BookAppointmentModal from "./BookAppointmentModal";
+import ReviewModal from "./ReviewModal";
+import { getMyAppointments } from "@/services/appoinments/getMyAppointments";
 
 type OperatingHour = { open: string; close: string };
 type OperatingHours = Partial<
@@ -114,6 +116,36 @@ const getTodayKey = (): keyof OperatingHours => {
 
 const SalonDetails = ({ salon }: { salon: any }) => {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [unreviewedAppointmentId, setUnreviewedAppointmentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkReviews = async () => {
+      if (!salon?.id) return;
+      const res = await getMyAppointments(salon.id, "COMPLETED");
+      if (res?.success && res.data) {
+        // Find the first completed appointment without a review
+        const unreviewed = res.data.find((app: any) => !app.review);
+        if (unreviewed) {
+          setUnreviewedAppointmentId(unreviewed.id);
+          
+          // Check if user already skipped this one in this session
+          const skipped = sessionStorage.getItem(`skipped_review_${unreviewed.id}`);
+          if (!skipped) {
+            setReviewModalOpen(true);
+          }
+        }
+      }
+    };
+    checkReviews();
+  }, [salon?.id]);
+
+  const handleSkipReview = () => {
+    if (unreviewedAppointmentId) {
+      sessionStorage.setItem(`skipped_review_${unreviewedAppointmentId}`, "true");
+    }
+    setReviewModalOpen(false);
+  };
   const heroImage =
     salon?.images?.[0] ||
     "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&h=700&fit=crop";
@@ -415,8 +447,17 @@ const SalonDetails = ({ salon }: { salon: any }) => {
 
               {/* REVIEWS SECTION */}
               <Card id="reviews" className="shadow-sm">
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-xl">Reviews</CardTitle>
+                  {unreviewedAppointmentId && !reviewModalOpen && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setReviewModalOpen(true)}
+                    >
+                      Leave a Review
+                    </Button>
+                  )}
                 </CardHeader>
                 <CardContent>
                   {reviews.length === 0 ? (
@@ -562,6 +603,13 @@ const SalonDetails = ({ salon }: { salon: any }) => {
         onClose={() => setIsBookingModalOpen(false)}
         salon={salon}
       />
+      {unreviewedAppointmentId && (
+        <ReviewModal
+          open={reviewModalOpen}
+          onClose={handleSkipReview}
+          appointmentId={unreviewedAppointmentId}
+        />
+      )}
     </div>
   );
 };

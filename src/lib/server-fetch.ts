@@ -24,10 +24,7 @@ export const serverFetch = {
   get: async (endPoint: string, options: RequestInit = {}): Promise<Response> =>
     serverFetchHelper(endPoint, { ...options, method: "GET" }),
 
-  post: async (
-    endPoint: string,
-    options: RequestInit = {},
-  ): Promise<Response> =>
+  post: async (endPoint: string, options: RequestInit = {}): Promise<Response> =>
     serverFetchHelper(endPoint, { ...options, method: "POST" }),
 
   put: async (endPoint: string, options: RequestInit = {}): Promise<Response> =>
