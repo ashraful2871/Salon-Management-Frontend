@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { motion } from "framer-motion";
 import { Clock, Filter, MapPin, Search, Star } from "lucide-react";
@@ -16,6 +17,16 @@ import {
 } from "../ui/card";
 import { Badge } from "../ui/badge";
 import Link from "next/link";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { BANGLADESH_LOCATIONS } from "@/constants/bangladesh-locations";
+
+
 
 /** ✅ Your API types */
 type OperatingHour = { open: string; close: string };
@@ -101,8 +112,47 @@ const isOpenNow = (operatingHours?: OperatingHours) => {
 };
 
 const Salons = ({ allSalons }: { allSalons: Salon[] }) => {
-  const [search, setSearch] = useState("");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  const [search, setSearch] = useState(searchParams.get("searchTerm") || "");
+  const [divisionFilter, setDivisionFilter] = useState(searchParams.get("division") || "");
+  const [districtFilter, setDistrictFilter] = useState(searchParams.get("district") || "");
+  const [areaFilter, setAreaFilter] = useState(searchParams.get("area") || "");
   const [activeCategory, setActiveCategory] = useState("All");
+
+  const ALL_DIVISIONS = BANGLADESH_LOCATIONS.map((d) => d.division).sort();
+  
+  const AVAILABLE_DISTRICTS = useMemo(() => {
+    if (!divisionFilter) return [];
+    const div = BANGLADESH_LOCATIONS.find((d) => d.division === divisionFilter);
+    return div ? div.districts.map((d) => d.district).sort() : [];
+  }, [divisionFilter]);
+
+  const AVAILABLE_AREAS = useMemo(() => {
+    if (!divisionFilter || !districtFilter) return [];
+    const div = BANGLADESH_LOCATIONS.find((d) => d.division === divisionFilter);
+    if (!div) return [];
+    const dist = div.districts.find((d) => d.district === districtFilter);
+    return dist ? [...dist.areas].sort() : [];
+  }, [divisionFilter, districtFilter]);
+
+  const updateUrl = (newDiv: string, newDist: string, newArea: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (search) params.set("searchTerm", search);
+    else params.delete("searchTerm");
+    
+    if (newDiv) params.set("division", newDiv);
+    else params.delete("division");
+    
+    if (newDist) params.set("district", newDist);
+    else params.delete("district");
+    
+    if (newArea) params.set("area", newArea);
+    else params.delete("area");
+    
+    router.push(`/salons?${params.toString()}`);
+  };
 
   /** ✅ Normalize your API data into the same fields your UI already expects */
   const normalizedSalons = useMemo(() => {
@@ -171,20 +221,100 @@ const Salons = ({ allSalons }: { allSalons: Salon[] }) => {
           </div>
 
           {/* Search & Filter */}
-          <div className="max-w-3xl mx-auto">
-            <div className="flex gap-3">
+          <div className="max-w-4xl mx-auto flex flex-col gap-3">
+            <div className="flex flex-col md:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
-                  placeholder="Search salons or locations..."
+                  placeholder="Search salons..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-12 h-12 bg-background"
                 />
               </div>
-              <Button variant="outline" size="icon" className="h-12 w-12">
-                <Filter className="w-5 h-5" />
+              <Button 
+                className="h-12 px-8" 
+                onClick={() => updateUrl(divisionFilter, districtFilter, areaFilter)}
+              >
+                Search
               </Button>
+            </div>
+
+            {/* Location Filters */}
+            <div className="flex flex-col md:flex-row gap-3 mt-2">
+              {/* Division */}
+              <div className="relative flex-1">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10 pointer-events-none" />
+                <Select
+                  value={divisionFilter || "all"}
+                  onValueChange={(value) => {
+                    const newDiv = value === "all" ? "" : value;
+                    setDivisionFilter(newDiv);
+                    setDistrictFilter("");
+                    setAreaFilter("");
+                    updateUrl(newDiv, "", "");
+                  }}
+                >
+                  <SelectTrigger className="h-12 w-full bg-background pl-12">
+                    <SelectValue placeholder="Select Division" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Divisions</SelectItem>
+                    {ALL_DIVISIONS.map((div) => (
+                      <SelectItem key={div} value={div}>{div}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* District */}
+              <div className="relative flex-1">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10 pointer-events-none opacity-50" />
+                <Select
+                  value={districtFilter || "all"}
+                  onValueChange={(value) => {
+                    const newDist = value === "all" ? "" : value;
+                    setDistrictFilter(newDist);
+                    setAreaFilter("");
+                    updateUrl(divisionFilter, newDist, "");
+                  }}
+                  disabled={!divisionFilter}
+                >
+                  <SelectTrigger className="h-12 w-full bg-background pl-12">
+                    <SelectValue placeholder="Select District" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Districts</SelectItem>
+                    {AVAILABLE_DISTRICTS.map((dist) => (
+                      <SelectItem key={dist} value={dist}>{dist}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Area */}
+              <div className="relative flex-1">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10 pointer-events-none opacity-50" />
+                <Select
+                  value={areaFilter || "all"}
+                  onValueChange={(value) => {
+                    const newArea = value === "all" ? "" : value;
+                    setAreaFilter(newArea);
+                    updateUrl(divisionFilter, districtFilter, newArea);
+                  }}
+                  disabled={!districtFilter}
+                >
+                  <SelectTrigger className="h-12 w-full bg-background pl-12">
+                    <SelectValue placeholder="Select Area" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Areas</SelectItem>
+                    {AVAILABLE_AREAS.map((area) => (
+                      <SelectItem key={area} value={area}>{area}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Categories */}
