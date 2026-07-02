@@ -15,7 +15,7 @@ const CtaSection = () => {
           beauty needs. Book your first appointment today.
         </p>
         <Button variant="gold" size="xl" asChild>
-          <Link href="/salons">
+          <Link href="/become-salon-owner">
             Get Started
             <ArrowRight className="w-5 h-5 ml-2" />
           </Link>
