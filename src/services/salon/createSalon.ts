@@ -12,15 +12,18 @@ export const createSalon = async (
     // 1. Extract Simple Fields
     const rawData = {
       name: formData.get("name") as string,
-      description: formData.get("description") as string,
+      description: (formData.get("description") as string) || "",
       phone: formData.get("phone") as string,
-      email: formData.get("email") as string,
-      website: formData.get("website") as string,
+      email: (formData.get("email") as string) || "",
+      website: (formData.get("website") as string) || "",
       address: formData.get("address") as string,
+      division: formData.get("division") as string,
+      district: formData.get("district") as string,
+      area: formData.get("area") as string,
       city: formData.get("city") as string,
-      state: formData.get("state") as string,
+      state: (formData.get("state") as string) || "",
       country: formData.get("country") as string,
-      zipCode: formData.get("zipCode") as string,
+      zipCode: (formData.get("zipCode") as string) || "",
     };
 
     // 2. Extract Complex Fields (JSON parsed from hidden inputs)
@@ -48,6 +51,12 @@ export const createSalon = async (
     });
 
     const result = await response.json();
+    if (!result.success && result.errorDetails) {
+      return {
+        ...result,
+        message: `${result.message}: ${JSON.stringify(result.errorDetails)}`
+      };
+    }
     return result;
   } catch (error: any) {
     if (error?.digest?.startsWith("NEXT_REDIRECT")) {

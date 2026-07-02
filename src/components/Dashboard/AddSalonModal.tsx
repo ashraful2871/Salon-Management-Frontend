@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { createSalon } from "@/services/salon/createSalon";
 import { toast } from "sonner";
+import { BANGLADESH_LOCATIONS } from "@/constants/bangladesh-locations";
 
 /* ---------------- Types ---------------- */
 
@@ -60,6 +61,9 @@ export type AddSalonPayload = {
   email: string;
   website: string;
   address: string;
+  division: string;
+  district: string;
+  area: string;
   city: string;
   state: string;
   country: string;
@@ -119,6 +123,9 @@ export default function AddSalonModal({
     email: "",
     website: "",
     address: "",
+    division: "",
+    district: "",
+    area: "",
     city: "",
     state: "",
     country: "Bangladesh",
@@ -146,6 +153,9 @@ export default function AddSalonModal({
           email: "",
           website: "",
           address: "",
+          division: "",
+          district: "",
+          area: "",
           city: "",
           state: "",
           country: "Bangladesh",
@@ -219,10 +229,10 @@ export default function AddSalonModal({
     form.phone.trim() &&
     form.email.trim() &&
     form.address.trim() &&
-    form.city.trim() &&
-    form.state.trim() &&
-    form.country.trim() &&
-    form.zipCode.trim();
+    form.division.trim() &&
+    form.district.trim() &&
+    form.area.trim() &&
+    form.country.trim();
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -363,41 +373,81 @@ export default function AddSalonModal({
                   </Field>
                 </div>
 
-                <Field label="City *">
-                  <Input
-                    name="city" // ✅ Added name
-                    value={form.city}
-                    onChange={(e) => update("city", e.target.value)}
-                    placeholder="Dhaka"
-                  />
+                <Field label="Division *">
+                  <select
+                    name="division"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={form.division}
+                    onChange={(e) => {
+                      setForm((prev) => ({
+                        ...prev,
+                        division: e.target.value,
+                        district: "", // reset district and area when division changes
+                        area: "",
+                        city: e.target.value, // keep city synced for backward compatibility
+                      }));
+                    }}
+                  >
+                    <option value="">Select Division</option>
+                    {BANGLADESH_LOCATIONS.map((loc) => (
+                      <option key={loc.division} value={loc.division}>
+                        {loc.division}
+                      </option>
+                    ))}
+                  </select>
                 </Field>
 
-                <Field label="State/Division *">
-                  <Input
-                    name="state" // ✅ Added name
-                    value={form.state}
-                    onChange={(e) => update("state", e.target.value)}
-                    placeholder="Dhaka Division"
-                  />
+                <Field label="District *">
+                  <select
+                    name="district"
+                    disabled={!form.division}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={form.district}
+                    onChange={(e) => {
+                      setForm((prev) => ({
+                        ...prev,
+                        district: e.target.value,
+                        area: "", // reset area when district changes
+                      }));
+                    }}
+                  >
+                    <option value="">Select District</option>
+                    {BANGLADESH_LOCATIONS.find(
+                      (l) => l.division === form.division,
+                    )?.districts.map((d) => (
+                      <option key={d.district} value={d.district}>
+                        {d.district}
+                      </option>
+                    ))}
+                  </select>
                 </Field>
 
-                <Field label="Country *">
-                  <Input
-                    name="country" // ✅ Added name
-                    value={form.country}
-                    onChange={(e) => update("country", e.target.value)}
-                    placeholder="Bangladesh"
-                  />
+                <Field label="Area *">
+                  <select
+                    name="area"
+                    disabled={!form.district}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={form.area}
+                    onChange={(e) => update("area", e.target.value)}
+                  >
+                    <option value="">Select Area</option>
+                    {BANGLADESH_LOCATIONS.find(
+                      (l) => l.division === form.division,
+                    )
+                      ?.districts.find((d) => d.district === form.district)
+                      ?.areas.map((a) => (
+                        <option key={a} value={a}>
+                          {a}
+                        </option>
+                      ))}
+                  </select>
                 </Field>
 
-                <Field label="Zip Code *">
-                  <Input
-                    name="zipCode" // ✅ Added name
-                    value={form.zipCode}
-                    onChange={(e) => update("zipCode", e.target.value)}
-                    placeholder="1212"
-                  />
-                </Field>
+                {/* Hidden fields to satisfy schema if needed */}
+                <input type="hidden" name="city" value={form.city} />
+                <input type="hidden" name="state" value={form.division} />
+                <input type="hidden" name="country" value={form.country} />
+                <input type="hidden" name="zipCode" value="0000" />
               </div>
             </motion.div>
 
