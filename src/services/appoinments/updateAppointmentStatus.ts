@@ -5,14 +5,15 @@ import { serverFetch } from "@/lib/server-fetch";
 
 export const updateAppointmentStatus = async (
   id: string,
-  status: string
+  status: string,
+  staffId?: string
 ): Promise<any> => {
   try {
     const response = await serverFetch.patch(`/appointments/${id}/status`, {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, ...(staffId && { staffId }) }),
     });
 
     const result = await response.json();

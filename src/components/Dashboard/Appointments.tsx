@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/dialog";
 import { updateAppointmentStatus } from "@/services/appoinments/updateAppointmentStatus";
 import { cancelAppointment } from "@/services/appoinments/cancelAppointment";
+import { getStaffBySalon } from "@/services/staff/getStaffBySalon";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -123,12 +124,21 @@ const getInitials = (name?: string) => {
 
 const Appointments = ({
   appointments = [],
+  userRole = "GUEST",
 }: {
   appointments: ApiAppointment[];
+  userRole?: string;
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [cancelId, setCancelId] = useState<string | null>(null);
+  
+  // Assign Staff State
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [staffList, setStaffList] = useState<any[]>([]);
+  const [selectedStaff, setSelectedStaff] = useState("");
+  const [assigningAppointment, setAssigningAppointment] = useState<{ id: string, salonId: string, currentStatus: string } | null>(null);
+
   const [isPending, startTransition] = useTransition();
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [selectedDate, setSelectedDate] = useState<string | null>(null); // null = all dates
@@ -163,6 +173,7 @@ const Appointments = ({
         duration,
         status: (apt?.status || "PENDING").toLowerCase(),
         rawStatus: apt?.status || "PENDING",
+        salonId: apt?.salon?.id,
         salonName: apt?.salon?.name,
         counterName: apt?.counter?.name,
         staffName: apt?.staff?.user?.name,
@@ -237,6 +248,34 @@ const Appointments = ({
       } else {
         toast.error(res?.message || "Failed to cancel appointment");
         setCancelId(null);
+      }
+    });
+  };
+
+  const handleOpenAssignModal = async (appointmentId: string, salonId: string, currentStatus: string) => {
+    setAssigningAppointment({ id: appointmentId, salonId, currentStatus });
+    setAssignModalOpen(true);
+    setStaffList([]); // Reset before fetch
+    const res = await getStaffBySalon(salonId);
+    if (res?.success && res.data) {
+      setStaffList(res.data);
+    } else {
+      toast.error("Failed to fetch staff list");
+    }
+  };
+
+  const handleAssignStaff = () => {
+    if (!assigningAppointment || !selectedStaff) return;
+    startTransition(async () => {
+      const statusToSet = assigningAppointment.currentStatus === "PENDING" ? "CONFIRMED" : assigningAppointment.currentStatus;
+      const res = await updateAppointmentStatus(assigningAppointment.id, statusToSet, selectedStaff);
+      if (res?.success) {
+        toast.success("Staff assigned successfully");
+        setAssignModalOpen(false);
+        setSelectedStaff("");
+        router.refresh();
+      } else {
+        toast.error(res?.message || "Failed to assign staff");
       }
     });
   };
@@ -607,6 +646,14 @@ const Appointments = ({
                                   Confirm
                                 </DropdownMenuItem>
                               )}
+                              {userRole === "SALON_OWNER" && (appointment.rawStatus === "PENDING" || appointment.rawStatus === "CONFIRMED") && (
+                                <DropdownMenuItem
+                                  onClick={() => handleOpenAssignModal(appointment.id, appointment.salonId, appointment.rawStatus)}
+                                >
+                                  <User className="mr-2 h-4 w-4 text-blue-500" />
+                                  Assign Staff
+                                </DropdownMenuItem>
+                              )}
                               {(appointment.rawStatus === "PENDING" ||
                                 appointment.rawStatus === "CONFIRMED") && (
                                 <DropdownMenuItem
@@ -689,6 +736,68 @@ const Appointments = ({
             >
               {isPending ? "Cancelling..." : "Cancel Appointment"}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Staff Dialog */}
+      <Dialog
+        open={assignModalOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAssignModalOpen(false);
+            setSelectedStaff("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[425px] overflow-hidden rounded-2xl p-0">
+          <div className="p-6 pb-4 border-b shrink-0">
+            <DialogHeader>
+              <DialogTitle className="text-xl">Assign Staff</DialogTitle>
+              <DialogDescription className="text-muted-foreground mt-2">
+                Select a staff member to assign to this appointment.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="p-6 bg-background space-y-4 shrink-0">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Select Staff</label>
+              <Select value={selectedStaff} onValueChange={setSelectedStaff}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a staff member" />
+                </SelectTrigger>
+                <SelectContent>
+                  {staffList.map((staff) => (
+                    <SelectItem key={staff.id} value={staff.id}>
+                      {staff.user?.name || "Unknown"} ({staff.designation || "Staff"})
+                    </SelectItem>
+                  ))}
+                  {staffList.length === 0 && (
+                    <div className="p-2 text-sm text-muted-foreground text-center">
+                      No staff found or loading...
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setAssignModalOpen(false)}
+                disabled={isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                className="bg-primary text-white"
+                onClick={handleAssignStaff}
+                disabled={isPending || !selectedStaff}
+              >
+                {isPending ? "Assigning..." : "Assign Staff"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
