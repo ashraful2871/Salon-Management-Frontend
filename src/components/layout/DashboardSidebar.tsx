@@ -28,7 +28,7 @@ const menuItems = [
     icon: LayoutDashboard,
     label: "Dashboard",
     path: "/dashboard",
-    allowedRoles: ["SALON_OWNER", "STAFF", "ADMIN", "CUSTOMER"],
+    allowedRoles: ["SALON_OWNER", "STAFF", "ADMIN", "CUSTOMER", "AGENT"],
   },
   {
     icon: Calendar,
@@ -40,7 +40,7 @@ const menuItems = [
     icon: Users,
     label: "Customers",
     path: "/dashboard/customers",
-    allowedRoles: ["SALON_OWNER", "STAFF", "ADMIN"], // Customers shouldn't see this
+    allowedRoles: ["SALON_OWNER", "STAFF", "ADMIN", "AGENT"], // Customers shouldn't see this
   },
   {
     icon: Package,
@@ -61,10 +61,16 @@ const menuItems = [
     allowedRoles: ["ADMIN"], // Only for Super Admins
   },
   {
+    icon: Users,
+    label: "Agents",
+    path: "/dashboard/admin/agents",
+    allowedRoles: ["ADMIN"],
+  },
+  {
     icon: Settings,
     label: "Settings",
     path: "/dashboard/settings",
-    allowedRoles: ["SALON_OWNER", "STAFF", "ADMIN", "CUSTOMER"],
+    allowedRoles: ["SALON_OWNER", "STAFF", "ADMIN", "CUSTOMER", "AGENT"],
   },
   {
     icon: Scissors,
@@ -76,7 +82,7 @@ const menuItems = [
     icon: Store,
     label: "Approval Salon",
     path: "/dashboard/approval-salon",
-    allowedRoles: ["ADMIN"],
+    allowedRoles: ["ADMIN", "AGENT"],
   },
   {
     icon: Scissors,
