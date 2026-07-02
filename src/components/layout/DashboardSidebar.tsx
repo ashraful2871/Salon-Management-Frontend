@@ -73,6 +73,12 @@ const menuItems = [
     allowedRoles: ["ADMIN"],
   },
   {
+    icon: Store,
+    label: "Approval Salon",
+    path: "/dashboard/approval-salon",
+    allowedRoles: ["ADMIN"],
+  },
+  {
     icon: Scissors,
     label: "Applications Status",
     path: "/dashboard/applications-status",

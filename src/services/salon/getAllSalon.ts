@@ -3,7 +3,9 @@ import { serverFetch } from "@/lib/server-fetch";
 
 export const getAllSalon = async () => {
   try {
-    const response = await serverFetch.get("/salons");
+    const response = await serverFetch.get("/salons", {
+      next: { tags: ["salons"] },
+    });
 
     const result = await response.json();
     return result;
