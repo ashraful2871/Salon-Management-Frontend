@@ -136,12 +136,15 @@ export default function AddSalonModal({
 
   const [imageUrl, setImageUrl] = React.useState("");
 
+  const processedStateRef = React.useRef(state);
+
   // ✅ Watch for Server Action Success
   useEffect(() => {
-    if (!state) return;
+    if (!state || state === processedStateRef.current) return;
+    processedStateRef.current = state;
 
-    if (state?.success) {
-      toast.success(state?.message || "Salon Created Successfully");
+    if (state.success) {
+      toast.success(state.message || "Salon Created Successfully");
       onCreate(state.data); // Pass data back to parent if needed
       setOpen(false);
       // Reset form (defer to avoid cascading renders)
@@ -165,7 +168,7 @@ export default function AddSalonModal({
         });
         setImageUrl("");
       }, 0);
-    } else if (!state.success) {
+    } else {
       toast.error(state.message || "Failed to create Salon");
     }
   }, [state, setOpen, onCreate]);

@@ -22,7 +22,15 @@ export const ownerApplyForm = async (
     });
     const result = await res.json();
 
-    console.log(result);
+    if (!res.ok) {
+      return { success: false, message: result.message || "Failed to submit application." };
+    }
+
+    return {
+      success: true,
+      message: result.message || "Application submitted successfully",
+      data: result.data,
+    };
   } catch (error: any) {
     if (error?.digest?.startsWith("NEXT_REDIRECT")) {
       throw error;

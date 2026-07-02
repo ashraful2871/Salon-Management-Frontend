@@ -1,6 +1,7 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useActionState } from "react";
+import React, { useActionState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import {
   ArrowRight,
@@ -85,6 +86,20 @@ function Field({
 
 const ApplyForm = () => {
   const [state, formAction, isPending] = useActionState(ownerApplyForm, null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const processedStateRef = useRef(state);
+
+  useEffect(() => {
+    if (!state || state === processedStateRef.current) return;
+    processedStateRef.current = state;
+
+    if (state.success) {
+      toast.success(state.message || "Application submitted successfully!");
+      formRef.current?.reset();
+    } else {
+      toast.error(state.message || "Failed to submit application.");
+    }
+  }, [state]);
 
   return (
     <section id="apply" className="py-20 bg-background">
@@ -203,7 +218,7 @@ const ApplyForm = () => {
               </CardHeader>
 
               <CardContent>
-                <form action={formAction} className="space-y-6">
+                <form ref={formRef} action={formAction} className="space-y-6">
                   <div className="grid sm:grid-cols-2 gap-4">
                     <Field
                       label="Business Name"
