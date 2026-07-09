@@ -113,6 +113,11 @@ const getTodayKey = (): keyof OperatingHours => {
   ] as const;
   return map[now.getDay()];
 };
+const isValidUrl = (url: any) => {
+  if (typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  return trimmed !== "" && trimmed !== "null" && trimmed !== "undefined" && (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("/") || trimmed.startsWith("data:"));
+};
 
 const SalonDetails = ({ salon }: { salon: any }) => {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
@@ -146,9 +151,17 @@ const SalonDetails = ({ salon }: { salon: any }) => {
     }
     setReviewModalOpen(false);
   };
-  const heroImage =
-    salon?.images?.[0] ||
-    "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&h=700&fit=crop";
+  const fallbackHeroImage = "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&h=700&fit=crop";
+  const imgStr = salon?.images?.[0]?.trim();
+  const heroImage = (
+    imgStr &&
+    imgStr !== "" &&
+    imgStr !== "null" &&
+    imgStr !== "undefined" &&
+    (imgStr.startsWith("http://") || imgStr.startsWith("https://") || imgStr.startsWith("/") || imgStr.startsWith("data:"))
+  )
+    ? imgStr
+    : fallbackHeroImage;
 
   const openNow = useMemo(
     () => isOpenNow(salon?.operatingHours),
@@ -383,7 +396,7 @@ const SalonDetails = ({ salon }: { salon: any }) => {
                           <div>
                             <div className="flex items-center gap-3">
                               <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                                {m?.user?.profilePhoto ? (
+                                {isValidUrl(m?.user?.profilePhoto) ? (
                                   <Image
                                     src={m.user.profilePhoto}
                                     alt={m?.user?.name || "Staff"}

@@ -52,6 +52,7 @@ const NavbarClient = ({ user }: NavbarClientProps) => {
   const navLinks = [
     { href: "/", label: "Home" },
     { href: "/salons", label: "Salons" },
+    { href: "/ai-suggestions", label: "AI Match" },
     { href: "/about", label: "About" },
     { href: "/contact", label: "Contact" },
   ];
