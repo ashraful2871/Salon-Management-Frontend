@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { BANGLADESH_LOCATIONS } from "@/constants/bangladesh-locations";
+import SalonCard from "../Shared/SalonCard";
 
 
 
@@ -157,10 +158,17 @@ const Salons = ({ allSalons }: { allSalons: Salon[] }) => {
   /** ✅ Normalize your API data into the same fields your UI already expects */
   const normalizedSalons = useMemo(() => {
     return (allSalons || []).map((salon) => {
-      const firstImage =
-        salon.images?.[0] ||
-        // fallback placeholder (keeps design stable even if images: [])
-        "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&fit=crop";
+      const fallbackImage = "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&fit=crop";
+      const img = salon.images?.[0]?.trim();
+      const firstImage = (
+        img && 
+        img !== "" && 
+        img !== "null" && 
+        img !== "undefined" &&
+        (img.startsWith("http://") || img.startsWith("https://") || img.startsWith("/") || img.startsWith("data:"))
+      ) 
+        ? img 
+        : fallbackImage;
 
       const services = (salon.services || [])
         .filter((s) => s?.isActive !== false)
@@ -352,69 +360,7 @@ const Salons = ({ allSalons }: { allSalons: Salon[] }) => {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredSalons.map((salon, index) => (
-              <motion.div
-                key={salon.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card className="overflow-hidden group cursor-pointer h-full">
-                  <div className="relative h-48 overflow-hidden">
-                    <Image
-                      src={salon.image}
-                      alt={salon.name}
-                      width={600}
-                      height={400}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                    <div className="absolute top-3 right-3">
-                      <Badge
-                        variant={salon.openNow ? "default" : "destructive"}
-                        className={salon.openNow ? "bg-primary" : "text-white"}
-                      >
-                        <Clock className="h-3 w-3 mr-1" />
-                        {salon.openNow ? "Open Now" : "Closed"}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="text-xl">{salon.name}</CardTitle>
-                      <div className="flex items-center gap-1 text-sm">
-                        <Star className="h-4 w-4 fill-gold text-gold" />
-                        <span className="font-semibold">{salon.rating}</span>
-                        <span className="text-muted-foreground">
-                          ({salon.reviews})
-                        </span>
-                      </div>
-                    </div>
-                    <CardDescription className="flex items-center gap-1">
-                      <MapPin className="h-4 w-4" />
-                      {salon.location}
-                    </CardDescription>
-                  </CardHeader>
-
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {salon.services.map((service) => (
-                        <Badge
-                          key={service}
-                          variant="secondary"
-                          className="font-normal"
-                        >
-                          {service}
-                        </Badge>
-                      ))}
-                    </div>
-                    <Link href={`/salons/${salon.id}`}>
-                      <Button className="w-full cursor-pointer">
-                        Book Appointment
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              </motion.div>
+              <SalonCard key={salon.id} salon={salon} index={index} />
             ))}
           </div>
         </div>

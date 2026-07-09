@@ -179,6 +179,20 @@ export default function Store({
   const dummyImage =
     "https://i.ibb.co/jZWzbYnM/lindsay-cash-Md-Dha-Fsn-CQ-unsplash.jpg";
 
+  const getValidImage = (url?: string | null) => {
+    if (!url) return dummyImage;
+    const trimmed = url.trim();
+    if (
+      trimmed === "" || 
+      trimmed === "null" || 
+      trimmed === "undefined" ||
+      !(trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("/") || trimmed.startsWith("data:"))
+    ) {
+      return dummyImage;
+    }
+    return trimmed;
+  };
+
   // ✅ default select first salon
   React.useEffect(() => {
     if (!selectedId && salons.length > 0) {
@@ -328,7 +342,7 @@ export default function Store({
                                 <Image
                                   width={60}
                                   height={60}
-                                  src={salon.images[0] || dummyImage}
+                                  src={getValidImage(salon.images?.[0])}
                                   alt={salon.name}
                                   className="h-11 w-11 rounded-lg object-cover border"
                                 />
@@ -553,10 +567,8 @@ export default function Store({
                                           width={40}
                                           height={40}
                                           // Safe fallback for staff images too
-                                          src={
-                                            st.user.profilePhoto || dummyImage
-                                          }
-                                          alt={st.user.name}
+                                          src={getValidImage(st?.user?.profilePhoto)}
+                                          alt={st?.user?.name || ""}
                                           className="h-10 w-10 rounded-full object-cover border"
                                         />
 
