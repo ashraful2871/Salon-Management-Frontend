@@ -5,7 +5,7 @@ import { Suspense } from "react";
 export default async function SalonsStorePage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
   const resolvedSearchParams = await searchParams;
   
