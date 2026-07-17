@@ -3,9 +3,17 @@ import { getCookie } from "@/services/auth/cookiesHandler";
 const BACKEND_API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
+export type FetchCacheStrategy = {
+  next?: {
+    revalidate?: number | false;
+    tags?: string[];
+  };
+  cache?: "force-cache" | "no-store";
+};
+
 const serverFetchHelper = async (
   endPoint: string,
-  options: RequestInit,
+  options: RequestInit & FetchCacheStrategy,
 ): Promise<Response> => {
   const { headers, ...restOptions } = options;
   const accessToken = await getCookie("accessToken");
@@ -21,22 +29,33 @@ const serverFetchHelper = async (
 };
 
 export const serverFetch = {
-  get: async (endPoint: string, options: RequestInit = {}): Promise<Response> =>
+  get: (
+    endPoint: string,
+    options: RequestInit & FetchCacheStrategy = {},
+  ): Promise<Response> =>
     serverFetchHelper(endPoint, { ...options, method: "GET" }),
 
-  post: async (endPoint: string, options: RequestInit = {}): Promise<Response> =>
+  post: (
+    endPoint: string,
+    options: RequestInit & FetchCacheStrategy = {},
+  ): Promise<Response> =>
     serverFetchHelper(endPoint, { ...options, method: "POST" }),
 
-  put: async (endPoint: string, options: RequestInit = {}): Promise<Response> =>
-    serverFetchHelper(endPoint, { ...options, method: "PUT" }),
-  patch: async (
+  put: (
     endPoint: string,
-    options: RequestInit = {},
+    options: RequestInit & FetchCacheStrategy = {},
+  ): Promise<Response> =>
+    serverFetchHelper(endPoint, { ...options, method: "PUT" }),
+
+  patch: (
+    endPoint: string,
+    options: RequestInit & FetchCacheStrategy = {},
   ): Promise<Response> =>
     serverFetchHelper(endPoint, { ...options, method: "PATCH" }),
-  delete: async (
+
+  delete: (
     endPoint: string,
-    options: RequestInit = {},
+    options: RequestInit & FetchCacheStrategy = {},
   ): Promise<Response> =>
     serverFetchHelper(endPoint, { ...options, method: "DELETE" }),
 };

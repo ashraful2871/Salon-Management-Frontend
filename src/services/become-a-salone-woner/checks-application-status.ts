@@ -1,25 +1,26 @@
 import { serverFetch } from "@/lib/server-fetch";
+import type { ApiResponse, ApplicationData } from "@/lib/api-types";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export const checkApplicationsStatus = async () => {
-  try {
-    const response = await serverFetch.get("/become-salon-owner/me", {
-      next: { tags: ["applications-status"] },
-    });
+export const checkApplicationsStatus =
+  async (): Promise<ApiResponse<ApplicationData>> => {
+    try {
+      const response = await serverFetch.get("/become-salon-owner/me", {
+        next: {
+          revalidate: 30,
+          tags: ["applications-status"],
+        },
+      });
 
-    const result = await response.json();
-    return result;
-  } catch (error: any) {
-    {
-      console.log(error);
+      const result: ApiResponse<ApplicationData> = await response.json();
+      return result;
+    } catch (error) {
+      console.error("checkApplicationsStatus error:", error);
       return {
         success: false,
-        message: `${
+        message:
           process.env.NODE_ENV === "development"
-            ? error.message
-            : "Something went wrong"
-        }`,
+            ? (error as Error).message
+            : "Failed to check application status.",
       };
     }
-  }
-};
+  };

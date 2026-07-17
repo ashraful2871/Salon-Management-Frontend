@@ -24,3 +24,11 @@
 - [ ] Audit all interactive elements (buttons, inputs, cards) to ensure they have satisfying, snappy hover and focus states using Tailwind transitions.
 - [ ] Validate responsive design across all breakpoints (mobile, tablet, desktop) ensuring no horizontal scrolling or broken grids.
 - [ ] Run strict TypeScript checks to ensure no type errors were introduced during the UI overhaul.
+
+## Phase 5: API Integration, Caching, & Bug Fixes
+
+- [ ] Audit the codebase for existing UI/Logic bugs and apply fixes.
+- [ ] Implement API data fetching using Next.js Server Components and native `fetch` caching strategies (e.g., `force-cache` or `revalidate`).
+- [ ] Build and integrate Loading Skeletons (using Tailwind CSS) to display while data is being fetched, ensuring a smooth user experience.
+- [ ] Implement robust error boundary handling and fallback UIs for failed API requests.
+- [ ] Ensure all API responses are strictly typed with TypeScript interfaces.

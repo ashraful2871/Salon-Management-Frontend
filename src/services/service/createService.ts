@@ -1,14 +1,15 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { serverFetch } from "@/lib/server-fetch";
+import type { ApiResponse, SalonService } from "@/lib/api-types";
+import { revalidateTag } from "next/cache";
 
 export const createService = async (
-  _currentState: any,
-  formData: any,
-): Promise<any> => {
+  _currentState: ApiResponse<SalonService> | null,
+  formData: FormData,
+): Promise<ApiResponse<SalonService>> => {
   try {
-    const payload = {
+    const payload: Record<string, unknown> = {
       name: formData.get("name") as string,
       description: formData.get("description") as string,
       category: formData.get("category") as string,
@@ -19,33 +20,36 @@ export const createService = async (
 
     const imagesRaw = formData.get("images") as string;
     const images = imagesRaw ? JSON.parse(imagesRaw) : [];
-    
+
     if (images.length > 0) {
-      (payload as any).images = images;
+      payload.images = images;
     }
 
     const response = await serverFetch.post("/services", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
-    const result = await response.json();
+    const result: ApiResponse<SalonService> = await response.json();
+
+    if (result.success) {
+      revalidateTag("services", "seconds");
+      revalidateTag("my-services", "seconds");
+    }
+
     return result;
-  } catch (error: any) {
-    if (error?.digest?.startsWith("NEXT_REDIRECT")) {
+  } catch (error) {
+    if ((error as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) {
       throw error;
     }
-    console.log(error);
+    console.error("createService error:", error);
     return {
       success: false,
-      message: `${
+      message:
         process.env.NODE_ENV === "development"
-          ? error.message
-          : "Failed to create service."
-      }`,
+          ? (error as Error).message
+          : "Failed to create service.",
     };
   }
 };

@@ -1,25 +1,36 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { serverFetch } from "@/lib/server-fetch";
+import type { ApiResponse } from "@/lib/api-types";
+import { revalidateTag } from "next/cache";
 
-export const cancelAppointment = async (id: string): Promise<any> => {
+export const cancelAppointment = async (
+  id: string,
+): Promise<ApiResponse<null>> => {
   try {
     const response = await serverFetch.delete(`/appointments/${id}`, {
       method: "DELETE",
     });
 
-    const result = await response.json();
+    const result: ApiResponse<null> = await response.json();
+
+    if (result.success) {
+      revalidateTag("appointments", "seconds");
+      revalidateTag("my-appointments", "seconds");
+    }
+
     return result;
-  } catch (error: any) {
-    console.log(error);
+  } catch (error) {
+    if ((error as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) {
+      throw error;
+    }
+    console.error("cancelAppointment error:", error);
     return {
       success: false,
-      message: `${
+      message:
         process.env.NODE_ENV === "development"
-          ? error.message
-          : "Failed to cancel appointment."
-      }`,
+          ? (error as Error).message
+          : "Failed to cancel appointment.",
     };
   }
 };

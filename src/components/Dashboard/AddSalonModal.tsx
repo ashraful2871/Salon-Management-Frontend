@@ -145,7 +145,7 @@ export default function AddSalonModal({
 
     if (state.success) {
       toast.success(state.message || "Salon Created Successfully");
-      onCreate(state.data); // Pass data back to parent if needed
+      onCreate(state.data as unknown as AddSalonPayload); // Pass data back to parent if needed
       setOpen(false);
       // Reset form (defer to avoid cascading renders)
       setTimeout(() => {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import Dashboard from "@/components/Dashboard/Dashboard";
 import { getUserRoles } from "@/services/get-roles/getUserRoles";
 import {
@@ -6,7 +7,6 @@ import {
   getCustomerDashboardStats,
 } from "@/services/dashboard/getDashboardStats";
 
-// ✅ Force dynamic rendering for real-time dashboard stats
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -25,10 +25,7 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <Dashboard
-        dashboardData={dashboardData?.data ?? dashboardData}
-        userRole={userRole ?? "GUEST"}
-      />
+      <Dashboard dashboardData={dashboardData as any} userRole={userRole ?? "GUEST"} />
     </div>
   );
 }

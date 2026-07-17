@@ -1,25 +1,33 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { serverFetch } from "@/lib/server-fetch";
+import type { ApiResponse, Appointment } from "@/lib/api-types";
 
-export const getMyAppointments = async (salonId?: string, status?: string) => {
+export const getMyAppointments = async (
+  salonId?: string,
+  status?: string,
+): Promise<ApiResponse<Appointment[]>> => {
   try {
-    let url = "/appointments/my-appointments?";
-    if (salonId) url += `salonId=${salonId}&`;
-    if (status) url += `status=${status}&`;
+    const params = new URLSearchParams();
+    if (salonId) params.set("salonId", salonId);
+    if (status) params.set("status", status);
 
-    const response = await serverFetch.get(url);
+    const url = `/appointments/my-appointments?${params.toString()}`;
+    const response = await serverFetch.get(url, {
+      next: {
+        revalidate: 30,
+        tags: ["my-appointments"],
+      },
+    });
 
-    const result = await response.json();
+    const result: ApiResponse<Appointment[]> = await response.json();
     return result;
-  } catch (error: any) {
-    console.log(error);
+  } catch (error) {
+    console.error("getMyAppointments error:", error);
     return {
       success: false,
-      message: `${
+      message:
         process.env.NODE_ENV === "development"
-          ? error.message
-          : "Something went wrong"
-      }`,
+          ? (error as Error).message
+          : "Failed to load appointments.",
     };
   }
 };

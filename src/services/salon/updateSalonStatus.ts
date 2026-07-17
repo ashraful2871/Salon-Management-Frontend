@@ -1,22 +1,29 @@
 "use server";
+
 import { serverFetch } from "@/lib/server-fetch";
 import { revalidateTag } from "next/cache";
+import type { ApiResponse } from "@/lib/api-types";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export const updateSalonStatus = async (id: string, status: string) => {
+export const updateSalonStatus = async (
+  id: string,
+  status: string,
+): Promise<ApiResponse<null>> => {
   try {
     const res = await serverFetch.patch(`/salons/${id}/status`, {
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     });
 
-    const result = await res.json();
-    revalidateTag("salons", "default");
+    const result: ApiResponse<null> = await res.json();
+
+    if (result.success) {
+      revalidateTag("salons", "seconds");
+      revalidateTag(`salon-${id}`, "seconds");
+    }
+
     return result;
-  } catch (error: any) {
-    if (error?.digest?.startsWith("NEXT_REDIRECT")) {
+  } catch (error) {
+    if ((error as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) {
       throw error;
     }
 
@@ -24,11 +31,10 @@ export const updateSalonStatus = async (id: string, status: string) => {
 
     return {
       success: false,
-      message: `${
+      message:
         process.env.NODE_ENV === "development"
-          ? error.message
-          : "Failed to update salon status. Please try again."
-      }`,
+          ? (error as Error).message
+          : "Failed to update salon status. Please try again.",
     };
   }
 };
