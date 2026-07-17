@@ -47,9 +47,18 @@
 
   --color-gold: var(--gold);
   --color-gold-light: var(--gold-light);
+  --color-gold-dark: var(--gold-dark);
+
+  --color-cream: var(--cream);
+  --color-cream-dark: var(--cream-dark);
+
+  --color-charcoal: var(--charcoal);
+  --color-charcoal-light: var(--charcoal-light);
 
   --color-rose: var(--rose);
   --color-rose-light: var(--rose-light);
+
+  --font-family-serif: "Playfair Display", serif;
 }
 
 :root {
