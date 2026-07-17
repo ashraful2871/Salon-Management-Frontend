@@ -1,25 +1,26 @@
-# Salon Management Frontend - UI Update Plan
+# Salon Management Frontend - Premium UI/UX Update Plan
 
-## Phase 1: Global Design System & Configuration
+## Phase 1: Advanced Design System & Theming
 
-- [x] Define the new color palette, spacing, and typography in `tailwind.config.ts`.
-- [ ] Update global CSS variables in the main stylesheet (e.g., `src/app/globals.css`).
-- [ ] Validate `components.json` to ensure UI component library configurations (like shadcn/ui) align with the new design.
+- [x] Implement a premium typography scale (e.g., modern sans-serif for headings, highly legible font for body) in `tailwind.config.ts`.
+- [x] Define a sophisticated color palette (primary, secondary, accent, and muted backgrounds) with dark-mode support.
+- [x] Add custom Tailwind utilities for modern effects (glassmorphism blur, soft drop-shadows, gradient text).
 
-## Phase 2: Layout & Navigation
+## Phase 2: High-End Navigation & Layout
 
-- [ ] Refactor the main layout wrapper (`src/app/layout.tsx`) for the new responsive structure.
-- [ ] Redesign the global Navigation/Header component.
-- [ ] Redesign the global Footer component.
+- [ ] Build a sticky, glassmorphism Header with smooth transition effects on scroll.
+- [ ] Design a modern, animated mobile hamburger menu with staggered link reveals.
+- [ ] Create a spacious, visually balanced global Footer with organized link columns and social icons.
 
-## Phase 3: Core Page Updates (Iterative)
+## Phase 3: "Figma-Grade" Landing Page (`src/app/page.tsx`)
 
-- [x] Overhaul the Home/Landing page UI (`src/app/page.tsx`). - Build a Hero Section with a clean banner, strong headline, and CTA buttons. - Build a Services section using a CSS Grid layout with pixel-perfect cards. - Build a Testimonials section with subtle background shading.
-- [ ] Update the Services/Booking flow interfaces.
-- [ ] Update the Customer Dashboard view.
+- [x] Build an immersive Hero Section featuring a professional video background or a highly polished, transparent-background graphic asset extraction, paired with gradient text and glowing CTA buttons.
+- [x] Implement a "Bento Box" style CSS Grid for the Services section, using hover-scale effects and crisp iconography.
+- [x] Create an asymmetrical, visually engaging Testimonials/Social Proof carousel.
+- [ ] Add scroll-triggered reveal animations (fade-in-up) for all major page sections.
 
-## Phase 4: Polish & Type Verification
+## Phase 4: Polish, Animations & Experience
 
-- [ ] Run type checks across all updated `.tsx` files to ensure no TypeScript interfaces were broken during the UI changes.
-- [ ] Audit all new Tailwind classes for mobile-first responsiveness.
-- [ ] Verify interactive states (hover, focus, active).
+- [ ] Audit all interactive elements (buttons, inputs, cards) to ensure they have satisfying, snappy hover and focus states using Tailwind transitions.
+- [ ] Validate responsive design across all breakpoints (mobile, tablet, desktop) ensuring no horizontal scrolling or broken grids.
+- [ ] Run strict TypeScript checks to ensure no type errors were introduced during the UI overhaul.
