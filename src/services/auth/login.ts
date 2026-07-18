@@ -1,7 +1,5 @@
-import { parse } from "cookie";
 import { setCookie } from "./cookiesHandler";
-import jwt, { JwtPayload } from "jsonwebtoken";
-import { getDefaultDashboardRoute, UserRole } from "./auth-utils";
+import type { UserRole } from "./auth-utils";
 import { redirect } from "next/navigation";
 import type { ApiResponse } from "@/lib/api-types";
 
@@ -11,8 +9,6 @@ export const loginUser = async (
 ): Promise<ApiResponse<{ message: string }>> => {
   try {
     const redirectTo = formData.get("redirect");
-    let accessTokenObject: Record<string, string | undefined> | null = null;
-    let refreshTokenObject: Record<string, string | undefined> | null = null;
 
     const payload = {
       email: formData.get("email"),
@@ -26,60 +22,55 @@ export const loginUser = async (
     });
 
     const result = await res.json();
-    const setCookieHeaders = res.headers.getSetCookie();
-
-    if (setCookieHeaders && setCookieHeaders.length > 0) {
-      for (const cookie of setCookieHeaders) {
-        const parsedCookie = parse(cookie);
-        if (parsedCookie["accessToken"]) {
-          accessTokenObject = parsedCookie;
-        }
-        if (parsedCookie["refreshToken"]) {
-          refreshTokenObject = parsedCookie;
-        }
-      }
-    } else {
-      throw new Error("No Set-Cookie headers found");
-    }
-
-    if (!accessTokenObject) {
-      throw new Error("Access token cookie not found");
-    }
-    if (!refreshTokenObject) {
-      throw new Error("Refresh token cookie not found");
-    }
-
-    await setCookie("accessToken", accessTokenObject.accessToken ?? "", {
-      secure: true,
-      httpOnly: true,
-      maxAge: parseInt(accessTokenObject[" Max-Age"] ?? "") || 7 * 24 * 60 * 60,
-      path: accessTokenObject.Path || "/",
-      sameSite: (accessTokenObject.SameSite as "none") || "none",
-    });
-
-    await setCookie("refreshToken", refreshTokenObject.refreshToken ?? "", {
-      secure: true,
-      httpOnly: true,
-      maxAge: parseInt(refreshTokenObject[" Max-Age"] ?? "") || 90 * 24 * 60 * 60,
-      path: refreshTokenObject.Path || "/",
-      sameSite: (refreshTokenObject.SameSite as "none") || "none",
-    });
-
-    const verifyToken = jwt.verify(
-      accessTokenObject.accessToken!,
-      process.env.JWT_SECRET as string,
-    ) as JwtPayload;
-
-    const userRole: UserRole = verifyToken.role;
 
     if (!result.success) {
       throw new Error(result.message || "Login failed");
     }
 
+    let accessToken: string | undefined;
+    let refreshToken: string | undefined;
+
+    const setCookieHeaders = res.headers.getSetCookie();
+    if (setCookieHeaders && setCookieHeaders.length > 0) {
+      for (const cookie of setCookieHeaders) {
+        const parts = cookie.split(";")[0];
+        const [name, ...rest] = parts.split("=");
+        const value = rest.join("=");
+        if (name?.trim() === "accessToken") accessToken = value;
+        if (name?.trim() === "refreshToken") refreshToken = value;
+      }
+    }
+
+    if (!accessToken && result.data?.accessToken) {
+      accessToken = result.data.accessToken;
+    }
+    if (!refreshToken && result.data?.refreshToken) {
+      refreshToken = result.data.refreshToken;
+    }
+
+    if (!accessToken) throw new Error("Access token not found in response");
+    if (!refreshToken) throw new Error("Refresh token not found in response");
+
+    await setCookie("accessToken", accessToken, {
+      secure: true,
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60,
+      path: "/",
+      sameSite: "lax",
+    });
+
+    await setCookie("refreshToken", refreshToken, {
+      secure: true,
+      httpOnly: true,
+      maxAge: 90 * 24 * 60 * 60,
+      path: "/",
+      sameSite: "lax",
+    });
+
     if (redirectTo) {
-      // Redirect logic can be re-enabled with proper role validation
+      redirect(redirectTo as string);
     } else {
-      redirect(`${getDefaultDashboardRoute(userRole)}?loggedIn=true`);
+      redirect("/?loggedIn=true");
     }
 
     return result;

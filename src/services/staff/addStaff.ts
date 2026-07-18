@@ -26,6 +26,7 @@ export const addStaff = async (
     const result: ApiResponse<null> = await res.json();
 
     if (result.success) {
+      revalidateTag("my-salons", "seconds");
       revalidateTag(`staff-${staffData.salonId}`, "seconds");
     }
 

@@ -16,6 +16,7 @@ export const approveApplication = async (
 
     if (result.success) {
       revalidateTag("salon-applications", "seconds");
+      revalidateTag("salons", "seconds");
     }
 
     return result;

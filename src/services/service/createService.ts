@@ -36,6 +36,7 @@ export const createService = async (
     if (result.success) {
       revalidateTag("services", "seconds");
       revalidateTag("my-services", "seconds");
+      revalidateTag("my-salons", "seconds");
     }
 
     return result;

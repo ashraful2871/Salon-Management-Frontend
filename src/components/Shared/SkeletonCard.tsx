@@ -1,5 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function StatsCardSkeleton() {
   return (
@@ -245,5 +247,100 @@ export function SalonDetailSkeleton() {
         </div>
       </section>
     </div>
+  );
+}
+
+/* ---- New skeletons needed by the task ---- */
+
+export function SkeletonTable({ rows = 5, cols = 5 }: { rows?: number; cols?: number }) {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4">
+          {Array.from({ length: cols }).map((_, j) => (
+            <Skeleton key={j} className="h-6 flex-1" />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function SkeletonList({ items = 5 }: { items?: number }) {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: items }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/2" />
+          </div>
+          <Skeleton className="h-8 w-20 rounded-md" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function SkeletonStat() {
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-12 w-12 rounded-xl" />
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-16" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function SkeletonForm({ fields = 4 }: { fields?: number }) {
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-64" />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {Array.from({ length: fields }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-10 w-full rounded-md" />
+            </div>
+          ))}
+          <Skeleton className="h-10 w-32 rounded-md" />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export function SkeletonError({
+  message = "Something went wrong",
+  onRetry,
+}: {
+  message?: string;
+  onRetry?: () => void;
+}) {
+  return (
+    <Card className="border-destructive/30">
+      <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
+        <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
+          <XCircle className="h-6 w-6 text-destructive" />
+        </div>
+        <p className="text-muted-foreground text-sm text-center max-w-md">{message}</p>
+        {onRetry && (
+          <Button variant="outline" size="sm" onClick={onRetry}>
+            Try Again
+          </Button>
+        )}
+      </CardContent>
+    </Card>
   );
 }

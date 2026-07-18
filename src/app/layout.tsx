@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import { Suspense } from "react";
 import LoginSuccessToast from "@/components/Shared/LoginSuccessToast";
 import LogoutSuccessToast from "@/components/Shared/LogoutSuccessToast";
+import { RouteProgressBar } from "@/components/Shared/RouteProgressBar";
 
 const playfairDisplay = Playfair_Display({
   subsets: ["latin"],
@@ -32,6 +33,7 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <LoginSuccessToast />
           <LogoutSuccessToast />
+          <RouteProgressBar />
         </Suspense>
       </body>
     </html>

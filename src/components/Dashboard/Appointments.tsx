@@ -45,8 +45,8 @@ import {
 import { updateAppointmentStatus } from "@/services/appoinments/updateAppointmentStatus";
 import { cancelAppointment } from "@/services/appoinments/cancelAppointment";
 import { getStaffBySalon } from "@/services/staff/getStaffBySalon";
-import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { showResultToast } from "@/components/Shared/showResultToast";
 
 type ApiAppointment = any;
 
@@ -228,12 +228,8 @@ const Appointments = ({
   const handleStatusUpdate = (appointmentId: string, newStatus: string) => {
     startTransition(async () => {
       const res = await updateAppointmentStatus(appointmentId, newStatus);
-      if (res?.success) {
-        toast.success(`Appointment ${newStatus.toLowerCase().replace("_", " ")} successfully`);
-        router.refresh();
-      } else {
-        toast.error(res?.message || "Failed to update status");
-      }
+      showResultToast(res, `Appointment ${newStatus.toLowerCase().replace("_", " ")} successfully`, "Failed to update status");
+      router.refresh();
     });
   };
 
@@ -241,14 +237,9 @@ const Appointments = ({
     if (!cancelId) return;
     startTransition(async () => {
       const res = await cancelAppointment(cancelId);
-      if (res?.success) {
-        toast.success("Appointment cancelled successfully");
-        setCancelId(null);
-        router.refresh();
-      } else {
-        toast.error(res?.message || "Failed to cancel appointment");
-        setCancelId(null);
-      }
+      showResultToast(res, "Appointment cancelled successfully", "Failed to cancel appointment");
+      setCancelId(null);
+      router.refresh();
     });
   };
 
@@ -260,7 +251,7 @@ const Appointments = ({
     if (res?.success && res.data) {
       setStaffList(res.data);
     } else {
-      toast.error("Failed to fetch staff list");
+      showResultToast({ success: false, message: "Failed to fetch staff list" });
     }
   };
 
@@ -269,14 +260,10 @@ const Appointments = ({
     startTransition(async () => {
       const statusToSet = assigningAppointment.currentStatus === "PENDING" ? "CONFIRMED" : assigningAppointment.currentStatus;
       const res = await updateAppointmentStatus(assigningAppointment.id, statusToSet, selectedStaff);
-      if (res?.success) {
-        toast.success("Staff assigned successfully");
-        setAssignModalOpen(false);
-        setSelectedStaff("");
-        router.refresh();
-      } else {
-        toast.error(res?.message || "Failed to assign staff");
-      }
+      showResultToast(res, "Staff assigned successfully", "Failed to assign staff");
+      setAssignModalOpen(false);
+      setSelectedStaff("");
+      router.refresh();
     });
   };
 

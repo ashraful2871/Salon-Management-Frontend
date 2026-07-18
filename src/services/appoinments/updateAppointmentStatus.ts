@@ -20,6 +20,7 @@ export const updateAppointmentStatus = async (
     if (result.success) {
       revalidateTag("appointments", "seconds");
       revalidateTag("my-appointments", "seconds");
+      revalidateTag("dashboard-stats", "seconds");
     }
 
     return result;

@@ -13,6 +13,7 @@ export const deleteStaff = async (id: string): Promise<ApiResponse<null>> => {
     const result: ApiResponse<null> = await response.json();
 
     if (result.success) {
+      revalidateTag("my-salons", "seconds");
       revalidateTag("staff", "seconds");
     }
 
