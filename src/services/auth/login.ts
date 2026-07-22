@@ -1,19 +1,14 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-"use server";
-
-import { parse } from "cookie";
 import { setCookie } from "./cookiesHandler";
-import jwt, { JwtPayload } from "jsonwebtoken";
-import { getDefaultDashboardRoute, UserRole } from "./auth-utils";
+import type { UserRole } from "./auth-utils";
 import { redirect } from "next/navigation";
+import type { ApiResponse } from "@/lib/api-types";
+
 export const loginUser = async (
-  _currentState: any,
-  formData: any
-): Promise<any> => {
+  _currentState: ApiResponse<{ message: string }> | null,
+  formData: FormData,
+): Promise<ApiResponse<{ message: string }>> => {
   try {
     const redirectTo = formData.get("redirect");
-    let accessTokenObject: null | any = null;
-    let refreshTokenObject: null | any = null;
 
     const payload = {
       email: formData.get("email"),
@@ -22,95 +17,74 @@ export const loginUser = async (
 
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+
     const result = await res.json();
+
+    if (!result.success) {
+      throw new Error(result.message || "Login failed");
+    }
+
+    let accessToken: string | undefined;
+    let refreshToken: string | undefined;
+
     const setCookieHeaders = res.headers.getSetCookie();
     if (setCookieHeaders && setCookieHeaders.length > 0) {
-      setCookieHeaders.forEach((cookie: string) => {
-        const parsedCookie = parse(cookie);
-        if (parsedCookie["accessToken"]) {
-          accessTokenObject = parsedCookie;
-        }
-        if (parsedCookie["refreshToken"]) {
-          refreshTokenObject = parsedCookie;
-        }
-      });
-    } else {
-      throw new Error("No Set-Cookie headers found");
-    }
-    if (!accessTokenObject) {
-      throw new Error("Access token cookie not found");
-    }
-    if (!refreshTokenObject) {
-      throw new Error("Refresh token cookie not found");
+      for (const cookie of setCookieHeaders) {
+        const parts = cookie.split(";")[0];
+        const [name, ...rest] = parts.split("=");
+        const value = rest.join("=");
+        if (name?.trim() === "accessToken") accessToken = value;
+        if (name?.trim() === "refreshToken") refreshToken = value;
+      }
     }
 
-    await setCookie("accessToken", accessTokenObject.accessToken, {
+    if (!accessToken && result.data?.accessToken) {
+      accessToken = result.data.accessToken;
+    }
+    if (!refreshToken && result.data?.refreshToken) {
+      refreshToken = result.data.refreshToken;
+    }
+
+    if (!accessToken) throw new Error("Access token not found in response");
+    if (!refreshToken) throw new Error("Refresh token not found in response");
+
+    await setCookie("accessToken", accessToken, {
       secure: true,
       httpOnly: true,
-      maxAge:
-        parseInt(accessTokenObject[" Max-Age"]) || 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: accessTokenObject.Path || "/",
-      sameSite: accessTokenObject.SameSite || "none",
+      maxAge: 7 * 24 * 60 * 60,
+      path: "/",
+      sameSite: "lax",
     });
 
-    await setCookie("refreshToken", refreshTokenObject.refreshToken, {
+    await setCookie("refreshToken", refreshToken, {
       secure: true,
       httpOnly: true,
-      maxAge:
-        parseInt(refreshTokenObject[" Max-Age"]) || 90 * 24 * 60 * 60 * 1000, // 90 days
-      path: refreshTokenObject.Path || "/",
-      sameSite: refreshTokenObject.SameSite || "none",
+      maxAge: 90 * 24 * 60 * 60,
+      path: "/",
+      sameSite: "lax",
     });
-
-    const verifyToken: JwtPayload | string = jwt.verify(
-      accessTokenObject.accessToken,
-      process.env.JWT_SECRET as string
-    );
-
-    if (typeof verifyToken === "string") {
-      throw new Error("Invalid token");
-    }
-
-    if (typeof verifyToken === "string") {
-      throw new Error("Invalid token");
-    }
-
-    const userRole: UserRole = verifyToken.role;
-
-    if (!result.success) {
-      throw new Error(result.message || "Login failed");
-    }
-    if (!result.success) {
-      throw new Error(result.message || "Login failed");
-    }
 
     if (redirectTo) {
-      // const requestedPath = redirectTo.toString();
-      // if (isValidRedirectForRole(requestedPath, userRole)) {
-      //   redirect(requestedPath);
-      // } else {
-      //   redirect(`${getDefaultDashboardRoute(userRole)}?loggedIn=true`);
-      // }
+      redirect(redirectTo as string);
     } else {
-      redirect(`${getDefaultDashboardRoute(userRole)}?loggedIn=true`);
+      redirect("/?loggedIn=true");
     }
-  } catch (error: any) {
-    if (error?.digest?.startsWith("NEXT_REDIRECT")) {
+
+    return result;
+  } catch (error) {
+    if ((error as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) {
       throw error;
     }
-    console.log(error);
+    console.error("loginUser error:", error);
     return {
       success: false,
-      message: `${
+      message:
         process.env.NODE_ENV === "development"
-          ? error.message
-          : "Login Failed. You might have entered incorrect email or password."
-      }`,
+          ? (error as Error).message
+          : "Login Failed. You might have entered incorrect email or password.",
     };
   }
 };

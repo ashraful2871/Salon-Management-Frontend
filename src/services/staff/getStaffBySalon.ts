@@ -1,22 +1,27 @@
-"use server";
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { serverFetch } from "@/lib/server-fetch";
+import type { ApiResponse, StaffMember } from "@/lib/api-types";
 
-export const getStaffBySalon = async (salonId: string) => {
+export const getStaffBySalon = async (
+  salonId: string,
+): Promise<ApiResponse<StaffMember[]>> => {
   try {
-    const response = await serverFetch.get(`/staff?salonId=${salonId}`);
+    const response = await serverFetch.get(`/staff?salonId=${salonId}`, {
+      next: {
+        revalidate: 60,
+        tags: [`staff-${salonId}`],
+      },
+    });
 
-    const result = await response.json();
+    const result: ApiResponse<StaffMember[]> = await response.json();
     return result;
-  } catch (error: any) {
-    console.log(error);
+  } catch (error) {
+    console.error("getStaffBySalon error:", error);
     return {
       success: false,
-      message: `${
+      message:
         process.env.NODE_ENV === "development"
-          ? error.message
-          : "Something went wrong"
-      }`,
+          ? (error as Error).message
+          : "Failed to load staff.",
     };
   }
 };

@@ -1,15 +1,32 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
-import { AddSalonPayload } from "@/components/Dashboard/AddSalonModal";
 import { serverFetch } from "@/lib/server-fetch";
+import type { ApiResponse, Salon } from "@/lib/api-types";
+import { revalidateTag } from "next/cache";
+
+interface CreateSalonPayload {
+  name: string;
+  description?: string;
+  phone: string;
+  email?: string;
+  website?: string;
+  address: string;
+  division: string;
+  district: string;
+  area: string;
+  city: string;
+  state?: string;
+  country: string;
+  zipCode?: string;
+  images: string[];
+  operatingHours: Record<string, { open: string; close: string }>;
+}
 
 export const createSalon = async (
-  _currentState: any,
-  formData: any,
-): Promise<any> => {
+  _currentState: ApiResponse<Salon> | null,
+  formData: FormData,
+): Promise<ApiResponse<Salon>> => {
   try {
-    // 1. Extract Simple Fields
     const rawData = {
       name: formData.get("name") as string,
       description: (formData.get("description") as string) || "",
@@ -26,50 +43,49 @@ export const createSalon = async (
       zipCode: (formData.get("zipCode") as string) || "",
     };
 
-    // 2. Extract Complex Fields (JSON parsed from hidden inputs)
     const imagesRaw = formData.get("images") as string;
     const hoursRaw = formData.get("operatingHours") as string;
 
     const images = imagesRaw ? JSON.parse(imagesRaw) : [];
     const operatingHours = hoursRaw ? JSON.parse(hoursRaw) : {};
 
-    // 3. Construct Final Payload
-    const payload: AddSalonPayload = {
+    const payload: CreateSalonPayload = {
       ...rawData,
       images,
       operatingHours,
     };
 
-    // 4. Perform your DB logic here (Simulated delay)
-
     const response = await serverFetch.post("/salons", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
-    const result = await response.json();
+    const result: ApiResponse<Salon> = await response.json();
+
+    if (result.success) {
+      revalidateTag("salons", "seconds");
+      revalidateTag("my-salons", "seconds");
+    }
+
     if (!result.success && result.errorDetails) {
       return {
         ...result,
-        message: `${result.message}: ${JSON.stringify(result.errorDetails)}`
+        message: `${result.message}: ${JSON.stringify(result.errorDetails)}`,
       };
     }
     return result;
-  } catch (error: any) {
-    if (error?.digest?.startsWith("NEXT_REDIRECT")) {
+  } catch (error) {
+    if ((error as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) {
       throw error;
     }
-    console.log(error);
+    console.error("createSalon error:", error);
     return {
       success: false,
-      message: `${
+      message:
         process.env.NODE_ENV === "development"
-          ? error.message
-          : "Login Failed. You might have entered incorrect email or password."
-      }`,
+          ? (error as Error).message
+          : "Failed to create salon. Please check your input.",
     };
   }
 };

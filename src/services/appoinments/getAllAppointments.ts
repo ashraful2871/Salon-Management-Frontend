@@ -1,21 +1,26 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { serverFetch } from "@/lib/server-fetch";
+import type { ApiResponse, Appointment } from "@/lib/api-types";
 
-export const getAllAppointments = async () => {
-  try {
-    const response = await serverFetch.get("/appointments");
+export const getAllAppointments =
+  async (): Promise<ApiResponse<Appointment[]>> => {
+    try {
+      const response = await serverFetch.get("/appointments", {
+        next: {
+          revalidate: 30,
+          tags: ["appointments"],
+        },
+      });
 
-    const result = await response.json();
-    return result;
-  } catch (error: any) {
-    console.log(error);
-    return {
-      success: false,
-      message: `${
-        process.env.NODE_ENV === "development"
-          ? error.message
-          : "Something went wrong"
-      }`,
-    };
-  }
-};
+      const result: ApiResponse<Appointment[]> = await response.json();
+      return result;
+    } catch (error) {
+      console.error("getAllAppointments error:", error);
+      return {
+        success: false,
+        message:
+          process.env.NODE_ENV === "development"
+            ? (error as Error).message
+            : "Failed to load appointments.",
+      };
+    }
+  };

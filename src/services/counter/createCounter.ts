@@ -1,6 +1,8 @@
 "use server";
 
 import { serverFetch } from "@/lib/server-fetch";
+import { revalidateTag } from "next/cache";
+import type { ApiResponse } from "@/lib/api-types";
 
 export type AddCounterPayload = {
   name: string;
@@ -8,7 +10,10 @@ export type AddCounterPayload = {
   salonId: string;
 };
 
-export const createCounter = async (prevState: any, formData: FormData) => {
+export const createCounter = async (
+  _prevState: ApiResponse<null> | null,
+  formData: FormData,
+): Promise<ApiResponse<null>> => {
   try {
     const payload: AddCounterPayload = {
       name: formData.get("name") as string,
@@ -24,23 +29,24 @@ export const createCounter = async (prevState: any, formData: FormData) => {
       body: JSON.stringify(payload),
     });
 
-    const result = await response.json();
+    const result: ApiResponse<null> = await response.json();
 
-    if (!response.ok) {
-      return {
-        success: false,
-        message: result.message || "Failed to create counter",
-      };
+    if (result.success) {
+      revalidateTag("my-salons", "seconds");
     }
 
-    return {
-      success: true,
-      message: result.message || "Counter created successfully",
-    };
-  } catch (error: any) {
+    return result;
+  } catch (error) {
+    if ((error as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) {
+      throw error;
+    }
+    console.error("createCounter error:", error);
     return {
       success: false,
-      message: error.message || "An unexpected error occurred",
+      message:
+        process.env.NODE_ENV === "development"
+          ? (error as Error).message
+          : "Failed to create counter.",
     };
   }
 };

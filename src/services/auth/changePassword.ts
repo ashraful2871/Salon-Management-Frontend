@@ -1,31 +1,26 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-"use server";
-
 import { serverFetch } from "@/lib/server-fetch";
+import type { ApiResponse } from "@/lib/api-types";
 
 export const changePassword = async (
   oldPassword: string,
-  newPassword: string
-): Promise<any> => {
+  newPassword: string,
+): Promise<ApiResponse<null>> => {
   try {
     const response = await serverFetch.post("/auth/change-password", {
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ oldPassword, newPassword }),
     });
 
-    const result = await response.json();
+    const result: ApiResponse<null> = await response.json();
     return result;
-  } catch (error: any) {
-    console.log(error);
+  } catch (error) {
+    console.error("changePassword error:", error);
     return {
       success: false,
-      message: `${
+      message:
         process.env.NODE_ENV === "development"
-          ? error.message
-          : "Failed to change password."
-      }`,
+          ? (error as Error).message
+          : "Failed to change password.",
     };
   }
 };

@@ -63,9 +63,9 @@ type Salon = {
   city?: string | null;
   state?: string | null;
   zipCode?: string | null;
-  images?: string[]; // may be empty
+  images?: string[];
   operatingHours?: OperatingHours;
-  status?: "ACTIVE" | "INACTIVE";
+  status?: "ACTIVE" | "INACTIVE" | "PENDING";
   rating?: number;
   totalReviews?: number;
   services?: SalonService[];

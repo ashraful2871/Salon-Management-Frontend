@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@config "../../tailwind.config.ts";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -47,9 +48,18 @@
 
   --color-gold: var(--gold);
   --color-gold-light: var(--gold-light);
+  --color-gold-dark: var(--gold-dark);
+
+  --color-cream: var(--cream);
+  --color-cream-dark: var(--cream-dark);
+
+  --color-charcoal: var(--charcoal);
+  --color-charcoal-light: var(--charcoal-light);
 
   --color-rose: var(--rose);
   --color-rose-light: var(--rose-light);
+
+  --font-family-serif: "Playfair Display", serif;
 }
 
 :root {
@@ -214,18 +224,6 @@
 
   .bg-gradient-rose {
     background: var(--gradient-rose);
-  }
-
-  .shadow-soft {
-    box-shadow: var(--shadow-soft);
-  }
-
-  .shadow-card {
-    box-shadow: var(--shadow-card);
-  }
-
-  .shadow-glow {
-    box-shadow: var(--shadow-glow);
   }
 
   .text-balance {

@@ -1,22 +1,28 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { serverFetch } from "@/lib/server-fetch";
+import type { ApiResponse, SalonService } from "@/lib/api-types";
 
-export const getAllServices = async (salonId?: string) => {
+export const getAllServices = async (
+  salonId?: string,
+): Promise<ApiResponse<SalonService[]>> => {
   try {
     const url = salonId ? `/services?salonId=${salonId}` : "/services";
-    const response = await serverFetch.get(url);
+    const response = await serverFetch.get(url, {
+      next: {
+        revalidate: 60,
+        tags: ["services"],
+      },
+    });
 
-    const result = await response.json();
+    const result: ApiResponse<SalonService[]> = await response.json();
     return result;
-  } catch (error: any) {
-    console.log(error);
+  } catch (error) {
+    console.error("getAllServices error:", error);
     return {
       success: false,
-      message: `${
+      message:
         process.env.NODE_ENV === "development"
-          ? error.message
-          : "Something went wrong"
-      }`,
+          ? (error as Error).message
+          : "Failed to load services.",
     };
   }
 };

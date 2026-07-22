@@ -1,9 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useMemo, useState } from "react";
-import { toast } from "sonner";
+import { useMemo, useState, useOptimistic, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { showResultToast } from "@/components/Shared/showResultToast";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -74,17 +74,23 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
 
   const [selected, setSelected] = useState<Salon | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  const [optimisticSalons, updateOptimisticSalons] = useOptimistic(
+    salons,
+    (state, { id, newStatus }: { id: string; newStatus: SalonStatus }) =>
+      state.map((s) => (s.id === id ? { ...s, status: newStatus } : s)),
+  );
 
   /* ---------------- Stats ---------------- */
-  const total = salons.length;
-  const pending = salons.filter((s) => s.status === "PENDING_APPROVAL").length;
-  const active = salons.filter((s) => s.status === "ACTIVE").length;
-  const rejected = salons.filter((s) => s.status === "REJECTED").length;
+  const total = optimisticSalons.length;
+  const pending = optimisticSalons.filter((s) => s.status === "PENDING_APPROVAL").length;
+  const active = optimisticSalons.filter((s) => s.status === "ACTIVE").length;
+  const rejected = optimisticSalons.filter((s) => s.status === "REJECTED").length;
 
   /* ---------------- Filtering ---------------- */
   const filteredSalons = useMemo(() => {
-    return salons.filter((item) => {
+    return optimisticSalons.filter((item) => {
       const searchStr = searchTerm.toLowerCase();
       const matchesSearch =
         item.name?.toLowerCase().includes(searchStr) ||
@@ -98,7 +104,7 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
 
       return matchesSearch && matchesStatus;
     });
-  }, [salons, searchTerm, statusFilter]);
+  }, [optimisticSalons, searchTerm, statusFilter]);
 
   /* ---------------- UI helpers ---------------- */
 
@@ -122,19 +128,16 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
   /* ---------------- Actions ---------------- */
 
   const handleStatusChange = async (id: string, newStatus: SalonStatus) => {
-    setIsUpdating(true);
-    const res = await updateSalonStatus(id, newStatus);
-    
-    if (res?.success) {
-      toast.success(res.message || "Salon status updated successfully!");
-      if (selected?.id === id) {
-        setSelected({ ...selected, status: newStatus });
-      }
-      router.refresh();
-    } else {
-      toast.error(res?.message || "Failed to update salon status.");
+    updateOptimisticSalons({ id, newStatus });
+    if (selected?.id === id) {
+      setSelected({ ...selected, status: newStatus });
     }
-    setIsUpdating(false);
+
+    startTransition(async () => {
+      const res = await updateSalonStatus(id, newStatus);
+      showResultToast(res, "Salon status updated successfully!", "Failed to update salon status.");
+      router.refresh();
+    });
   };
 
   return (
@@ -335,7 +338,7 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
                             <Button
                               size="sm"
                               className="bg-sage text-white hover:opacity-90 font-semibold"
-                              disabled={isUpdating}
+                              disabled={isPending}
                               onClick={() => handleStatusChange(salon.id, "ACTIVE")}
                             >
                               Approve
@@ -442,7 +445,7 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
                   {selected.status !== "ACTIVE" && (
                     <Button
                       className="bg-sage text-white hover:opacity-90 font-semibold"
-                      disabled={isUpdating}
+                      disabled={isPending}
                       onClick={() => handleStatusChange(selected.id, "ACTIVE")}
                     >
                       Set Active
@@ -451,7 +454,7 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
                   {selected.status !== "INACTIVE" && (
                      <Button
                        variant="outline"
-                       disabled={isUpdating}
+                       disabled={isPending}
                        onClick={() => handleStatusChange(selected.id, "INACTIVE")}
                        className="font-semibold"
                      >
@@ -461,7 +464,7 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
                   {selected.status !== "REJECTED" && (
                     <Button
                       variant="destructive"
-                      disabled={isUpdating}
+                      disabled={isPending}
                       onClick={() => handleStatusChange(selected.id, "REJECTED")}
                       className="text-white font-semibold"
                     >
