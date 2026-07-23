@@ -11,6 +11,24 @@ import { toast } from "sonner";
 const LoginForm = () => {
   const [state, formAction, isPending] = useActionState(loginUser, null);
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const fillCredentials = (role: "admin" | "owner" | "user" | "staff") => {
+    if (role === "admin") {
+      setEmail("admin@salon.com");
+      setPassword("admin123456");
+    } else if (role === "owner") {
+      setEmail("owner@example.com");
+      setPassword("123456");
+    } else if (role === "user") {
+      setEmail("ash@gmail.com");
+      setPassword("123456");
+    } else if (role === "staff") {
+      setEmail("staff@gmail.com");
+      setPassword("staff123456");
+    }
+  };
 
   // Show error toast when login fails
   useEffect(() => {
@@ -42,6 +60,57 @@ const LoginForm = () => {
             </p>
           </div>
 
+          <div className="mb-8 p-5 bg-primary/5 border border-primary/20 rounded-xl shadow-sm">
+            <h3 className="text-sm font-semibold text-primary mb-1 flex items-center gap-2">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20">
+                <Scissors className="h-3 w-3" />
+              </span>
+              Demo Access
+            </h3>
+            <p className="text-xs text-muted-foreground mb-4 ml-7">
+              Quickly test the platform by selecting a role below. Credentials
+              will auto-fill.
+            </p>
+            <div className="flex flex-wrap gap-2 ml-7">
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={() => fillCredentials("admin")}
+                className="flex-1 text-xs h-8 cursor-pointer"
+              >
+                Admin
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => fillCredentials("owner")}
+                className="flex-1 text-xs h-8 border-2 border-primary cursor-pointer"
+              >
+                Owner
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fillCredentials("user")}
+                className="flex-1 text-xs h-8 border-2 border-primary  cursor-pointer"
+              >
+                User
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fillCredentials("staff")}
+                className="flex-1 text-xs h-8 border-2 border-primary  cursor-pointer"
+              >
+                Staff
+              </Button>
+            </div>
+          </div>
+
           <form action={formAction} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
@@ -53,6 +122,8 @@ const LoginForm = () => {
                   id="email"
                   name="email"
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="john@example.com"
                   className="pl-10"
                   required
@@ -77,6 +148,8 @@ const LoginForm = () => {
                   id="password"
                   name="password"
                   type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className="pl-10 pr-10"
                   required
