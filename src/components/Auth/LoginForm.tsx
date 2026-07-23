@@ -14,7 +14,7 @@ const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const fillCredentials = (role: "admin" | "owner" | "user") => {
+  const fillCredentials = (role: "admin" | "owner" | "user" | "staff") => {
     if (role === "admin") {
       setEmail("admin@salon.com");
       setPassword("admin123456");
@@ -24,6 +24,9 @@ const LoginForm = () => {
     } else if (role === "user") {
       setEmail("ash@gmail.com");
       setPassword("123456");
+    } else if (role === "staff") {
+      setEmail("staff@gmail.com");
+      setPassword("staff123456");
     }
   };
 
@@ -95,6 +98,15 @@ const LoginForm = () => {
                 className="flex-1 text-xs h-8 border-2 border-primary  cursor-pointer"
               >
                 User
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fillCredentials("staff")}
+                className="flex-1 text-xs h-8 border-2 border-primary  cursor-pointer"
+              >
+                Staff
               </Button>
             </div>
           </div>
