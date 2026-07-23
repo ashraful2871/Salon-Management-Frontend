@@ -1,24 +1,27 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-"use server";
-
 import { serverFetch } from "@/lib/server-fetch";
+import type { ApiResponse, Salon } from "@/lib/api-types";
 
-export const getSalonById = async (id: string) => {
+export const getSalonById = async (
+  id: string,
+): Promise<ApiResponse<Salon>> => {
   try {
-    const response = await serverFetch.get(`/salons/${id}`);
+    const response = await serverFetch.get(`/salons/${id}`, {
+      next: {
+        revalidate: 60,
+        tags: [`salon-${id}`, "salons"],
+      },
+    });
 
-    const result = await response.json();
-
+    const result: ApiResponse<Salon> = await response.json();
     return result;
-  } catch (error: any) {
-    console.log(error);
+  } catch (error) {
+    console.error("getSalonById error:", error);
     return {
       success: false,
-      message: `${
+      message:
         process.env.NODE_ENV === "development"
-          ? error.message
-          : "Something went wrong"
-      }`,
+          ? (error as Error).message
+          : "Failed to load salon.",
     };
   }
 };

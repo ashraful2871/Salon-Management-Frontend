@@ -1,14 +1,16 @@
-import { serverFetch } from "@/lib/server-fetch";
+"use server";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { serverFetch } from "@/lib/server-fetch";
+import { revalidateTag } from "next/cache";
+import type { ApiResponse, Salon } from "@/lib/api-types";
+
 export const updateSalon = async (
-  _currentState: any,
-  formData: any,
-): Promise<any> => {
+  _currentState: ApiResponse<Salon> | null,
+  formData: FormData,
+): Promise<ApiResponse<Salon>> => {
   try {
     const salonId = formData.get("id") as string;
 
-    // 1. Extract Simple Fields
     const rawData = {
       name: formData.get("name") as string,
       website: formData.get("website") as string,
@@ -21,44 +23,41 @@ export const updateSalon = async (
       zipCode: formData.get("zipCode") as string,
     };
 
-    // 2. Extract Complex Fields (JSON from hidden inputs)
     const operatingHours = JSON.parse(
       (formData.get("operatingHours") as string) || "{}",
     );
 
-    // Construct Payload
     const payload = {
       ...rawData,
       operatingHours,
     };
 
-    console.log("🔥 Server Action Processing Update for:", salonId);
-    console.log("📦 Payload:", payload);
-
     const response = await serverFetch.patch(`/salons/${salonId}`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
-    const result = await response.json();
-    console.log("📦 Response:", result);
-    return;
+    const result: ApiResponse<Salon> = await response.json();
+
+    if (result.success) {
+      revalidateTag("salons", "seconds");
+      revalidateTag(`salon-${salonId}`, "seconds");
+      revalidateTag("my-salons", "seconds");
+    }
+
     return result;
-  } catch (error: any) {
-    if (error?.digest?.startsWith("NEXT_REDIRECT")) {
+  } catch (error) {
+    if ((error as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) {
       throw error;
     }
-    console.log(error);
+    console.error("updateSalon error:", error);
     return {
       success: false,
-      message: `${
+      message:
         process.env.NODE_ENV === "development"
-          ? error.message
-          : "Update Failed. Please check your input and try again."
-      }`,
+          ? (error as Error).message
+          : "Update Failed. Please check your input and try again.",
     };
   }
 };

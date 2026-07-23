@@ -31,8 +31,8 @@ import {
 } from "@/components/ui/dialog";
 import AddServiceModal from "./AddServiceModal";
 import { deleteService } from "@/services/service/deleteService";
-import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { showResultToast } from "@/components/Shared/showResultToast";
 
 export default function Services({
   servicesResponse,
@@ -67,14 +67,9 @@ export default function Services({
 
     startTransition(async () => {
       const res = await deleteService(deleteServiceId);
-      if (res?.success) {
-        toast.success("Service deleted successfully");
-        setDeleteServiceId(null);
-        router.refresh();
-      } else {
-        toast.error(res?.message || "Failed to delete service");
-        setDeleteServiceId(null);
-      }
+      showResultToast(res, "Service deleted successfully", "Failed to delete service");
+      setDeleteServiceId(null);
+      router.refresh();
     });
   };
 

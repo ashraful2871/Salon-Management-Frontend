@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import ApprovalSalon from "@/components/ApprovalSalon/ApprovalSalon";
 import { getAllSalon } from "@/services/salon/getAllSalon";
 import { Metadata } from "next";
@@ -9,15 +10,10 @@ export const metadata: Metadata = {
 
 export default async function ApprovalSalonPage() {
   const response = await getAllSalon();
-  
-  // Since the API returns { data: Salon[], meta: {...}, success: boolean }
-  // We need to pass the data array to the component.
-  // We will default to empty array if data is missing.
-  const salons = response?.data || [];
 
   return (
     <div className="p-6">
-      <ApprovalSalon salons={salons} />
+      <ApprovalSalon salons={(response?.data ?? []) as any} />
     </div>
   );
 }

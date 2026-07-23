@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { serverFetch } from "@/lib/server-fetch";
+import type { ApiResponse, User } from "@/lib/api-types";
 
 export const getAllUsers = async (query?: {
   page?: number;
@@ -7,7 +7,7 @@ export const getAllUsers = async (query?: {
   searchTerm?: string;
   role?: string;
   status?: string;
-}) => {
+}): Promise<ApiResponse<User[]>> => {
   try {
     const params = new URLSearchParams();
     if (query?.page) params.set("page", String(query.page));
@@ -17,19 +17,23 @@ export const getAllUsers = async (query?: {
     if (query?.status) params.set("status", query.status);
 
     const url = `/users${params.toString() ? `?${params.toString()}` : ""}`;
-    const response = await serverFetch.get(url);
+    const response = await serverFetch.get(url, {
+      next: {
+        revalidate: 60,
+        tags: ["users"],
+      },
+    });
 
-    const result = await response.json();
+    const result: ApiResponse<User[]> = await response.json();
     return result;
-  } catch (error: any) {
-    console.log(error);
+  } catch (error) {
+    console.error("getAllUsers error:", error);
     return {
       success: false,
-      message: `${
+      message:
         process.env.NODE_ENV === "development"
-          ? error.message
-          : "Something went wrong"
-      }`,
+          ? (error as Error).message
+          : "Failed to load users.",
     };
   }
 };

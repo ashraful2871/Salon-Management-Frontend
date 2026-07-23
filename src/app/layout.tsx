@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Playfair_Display } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "sonner";
 import { Suspense } from "react";
 import LoginSuccessToast from "@/components/Shared/LoginSuccessToast";
 import LogoutSuccessToast from "@/components/Shared/LogoutSuccessToast";
+import { RouteProgressBar } from "@/components/Shared/RouteProgressBar";
+import { AppToaster } from "@/components/Shared/AppToaster";
 
 const playfairDisplay = Playfair_Display({
   subsets: ["latin"],
@@ -27,11 +28,12 @@ export default function RootLayout({
     <html lang="en" className={` ${playfairDisplay.className}`}>
       <body className={`antialiased `}>
         {children}
-        <Toaster position="bottom-right" richColors />
+        <AppToaster />
 
         <Suspense fallback={null}>
           <LoginSuccessToast />
           <LogoutSuccessToast />
+          <RouteProgressBar />
         </Suspense>
       </body>
     </html>

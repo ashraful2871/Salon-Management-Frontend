@@ -1,42 +1,47 @@
-import { serverFetch } from "@/lib/server-fetch";
+"use server";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { serverFetch } from "@/lib/server-fetch";
+import type { ApiResponse } from "@/lib/api-types";
+import { revalidateTag } from "next/cache";
+
 export const addStaff = async (
-  _currentState: any,
-  formData: any,
-): Promise<any> => {
+  _currentState: ApiResponse<null> | null,
+  formData: FormData,
+): Promise<ApiResponse<null>> => {
   try {
     const staffData = {
-      salonId: formData.get("salonId"),
-      email: formData.get("email"),
-      speciality: formData.get("speciality"),
+      salonId: formData.get("salonId")?.toString(),
+      email: formData.get("email")?.toString(),
+      speciality: formData.get("speciality")?.toString(),
       experience: Number(formData.get("experience")),
-      bio: formData.get("bio"),
+      bio: formData.get("bio")?.toString(),
     };
 
     const res = await serverFetch.post("/staff", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(staffData),
     });
 
-    const result = await res.json();
-    console.log(result);
+    const result: ApiResponse<null> = await res.json();
+
+    if (result.success) {
+      revalidateTag("my-salons", "seconds");
+      revalidateTag(`staff-${staffData.salonId}`, "seconds");
+    }
+
     return result;
-  } catch (error: any) {
-    if (error?.digest?.startsWith("NEXT_REDIRECT")) {
+  } catch (error) {
+    if ((error as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) {
       throw error;
     }
-    console.log(error);
+    console.error("addStaff error:", error);
     return {
       success: false,
-      message: `${
+      message:
         process.env.NODE_ENV === "development"
-          ? error.message
-          : "Login Failed. You might have entered incorrect email or password."
-      }`,
+          ? (error as Error).message
+          : "Failed to add staff member.",
     };
   }
 };

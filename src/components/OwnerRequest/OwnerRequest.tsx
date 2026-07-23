@@ -1,7 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useOptimistic, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { showResultToast } from "@/components/Shared/showResultToast";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -81,6 +83,7 @@ export default function OwnerRequest({
 }: {
   applicationsResponse: ApplicationsResponse;
 }) {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "ALL" | "PENDING" | "APPROVED" | "REJECTED"
@@ -88,24 +91,31 @@ export default function OwnerRequest({
 
   const [selected, setSelected] = useState<SalonOwnerApplication | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const applications = applicationsResponse?.data ?? [];
 
+  const [optimisticApps, updateOptimisticApps] = useOptimistic(
+    applications,
+    (state, { id, status }: { id: string; status: ApplicationStatus }) =>
+      state.map((a) => (a.id === id ? { ...a, applicationStatus: status } : a)),
+  );
+
   /* ---------------- Stats ---------------- */
-  const total = applications.length;
-  const pending = applications.filter(
+  const total = optimisticApps.length;
+  const pending = optimisticApps.filter(
     (a) => a.applicationStatus === "PENDING",
   ).length;
-  const approved = applications.filter(
+  const approved = optimisticApps.filter(
     (a) => a.applicationStatus === "APPROVED",
   ).length;
-  const rejected = applications.filter(
+  const rejected = optimisticApps.filter(
     (a) => a.applicationStatus === "REJECTED",
   ).length;
 
   /* ---------------- Filtering ---------------- */
   const filteredApplications = useMemo(() => {
-    return applications.filter((item) => {
+    return optimisticApps.filter((item) => {
       const matchesSearch =
         item.businessName?.toLowerCase().includes(searchTerm?.toLowerCase()) ||
         item.user.name?.toLowerCase().includes(searchTerm?.toLowerCase()) ||
@@ -117,7 +127,7 @@ export default function OwnerRequest({
 
       return matchesSearch && matchesStatus;
     });
-  }, [applications, searchTerm, statusFilter]);
+  }, [optimisticApps, searchTerm, statusFilter]);
 
   /* ---------------- UI helpers ---------------- */
 
@@ -155,13 +165,29 @@ export default function OwnerRequest({
   /* ---------------- Actions (UI only - connect API later) ---------------- */
 
   const handleApprove = async (id: string) => {
-    await approveApplication(id);
+    updateOptimisticApps({ id, status: "APPROVED" });
+    if (selected?.id === id) {
+      setSelected({ ...selected, applicationStatus: "APPROVED" });
+    }
+
+    startTransition(async () => {
+      const res = await approveApplication(id);
+      showResultToast(res, "Application approved successfully!", "Failed to approve application.");
+      router.refresh();
+    });
   };
 
   const handleReject = async (id: string) => {
-    // ✅ Connect your backend endpoint here
-    // await fetch(`/api/v1/salon-owner/applications/${id}/reject`, { method: "PATCH" })
-    console.log("Reject:", id);
+    updateOptimisticApps({ id, status: "REJECTED" });
+    if (selected?.id === id) {
+      setSelected({ ...selected, applicationStatus: "REJECTED" });
+    }
+
+    startTransition(async () => {
+      const res = await approveApplication(id);
+      showResultToast(res, "Application rejected successfully!", "Failed to reject application.");
+      router.refresh();
+    });
   };
 
   return (
@@ -368,7 +394,7 @@ export default function OwnerRequest({
                           <Button
                             size="sm"
                             className="bg-sage text-white hover:opacity-90 font-semibold"
-                            disabled={app.applicationStatus !== "PENDING"}
+                            disabled={app.applicationStatus !== "PENDING" || isPending}
                             onClick={() => handleApprove(app.id)}
                           >
                             Approve
@@ -477,14 +503,14 @@ export default function OwnerRequest({
                 <div className="flex gap-2 justify-end">
                   <Button
                     className="bg-sage text-white hover:opacity-90 font-semibold"
-                    disabled={selected.applicationStatus !== "PENDING"}
+                    disabled={selected.applicationStatus !== "PENDING" || isPending}
                     onClick={() => handleApprove(selected.id)}
                   >
                     Approve
                   </Button>
                   <Button
                     variant="destructive"
-                    disabled={selected.applicationStatus !== "PENDING"}
+                    disabled={selected.applicationStatus !== "PENDING" || isPending}
                     onClick={() => handleReject(selected.id)}
                     className="text-white font-semibold"
                   >

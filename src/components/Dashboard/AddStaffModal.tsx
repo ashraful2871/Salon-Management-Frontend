@@ -67,7 +67,7 @@ export default function AddStaffModal({
 
     if (state?.success) {
       toast.success(state?.message || "Staff Added Successfully");
-      onCreate(state.data); // Pass data back if you want
+      onCreate(state.data as unknown as AddStaffPayload); // Pass data back if you want
       setOpen(false);
 
       // Reset (same pattern you used)

@@ -1,10 +1,13 @@
-import { serverFetch } from "@/lib/server-fetch";
+"use server";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { serverFetch } from "@/lib/server-fetch";
+import type { ApiResponse, Appointment } from "@/lib/api-types";
+import { revalidateTag } from "next/cache";
+
 export const bookingAppointment = async (
-  _currentState: any,
-  formData: any,
-): Promise<any> => {
+  _currentState: ApiResponse<Appointment> | null,
+  formData: FormData,
+): Promise<ApiResponse<Appointment>> => {
   try {
     const appointmentData = {
       salonId: formData.get("salonId")?.toString(),
@@ -18,27 +21,29 @@ export const bookingAppointment = async (
 
     const res = await serverFetch.post("/appointments", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(appointmentData),
     });
 
-    const result = await res.json();
-    console.log(result);
+    const result: ApiResponse<Appointment> = await res.json();
+
+    if (result.success) {
+      revalidateTag("appointments", "seconds");
+      revalidateTag("my-appointments", "seconds");
+    }
+
     return result;
-  } catch (error: any) {
-    if (error?.digest?.startsWith("NEXT_REDIRECT")) {
+  } catch (error) {
+    if ((error as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) {
       throw error;
     }
-    console.log(error);
+    console.error("bookingAppointment error:", error);
     return {
       success: false,
-      message: `${
+      message:
         process.env.NODE_ENV === "development"
-          ? error.message
-          : "Login Failed. You might have entered incorrect email or password."
-      }`,
+          ? (error as Error).message
+          : "Failed to book appointment.",
     };
   }
 };

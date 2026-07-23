@@ -1,25 +1,34 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { serverFetch } from "@/lib/server-fetch";
+import type { ApiResponse } from "@/lib/api-types";
+import { revalidateTag } from "next/cache";
 
-export const deleteService = async (id: string): Promise<any> => {
+export const deleteService = async (
+  id: string,
+): Promise<ApiResponse<null>> => {
   try {
     const response = await serverFetch.delete(`/services/${id}`, {
       method: "DELETE",
     });
 
-    const result = await response.json();
+    const result: ApiResponse<null> = await response.json();
+
+    if (result.success) {
+      revalidateTag("services", "seconds");
+      revalidateTag("my-services", "seconds");
+      revalidateTag("my-salons", "seconds");
+    }
+
     return result;
-  } catch (error: any) {
-    console.log(error);
+  } catch (error) {
+    console.error("deleteService error:", error);
     return {
       success: false,
-      message: `${
+      message:
         process.env.NODE_ENV === "development"
-          ? error.message
-          : "Failed to delete service."
-      }`,
+          ? (error as Error).message
+          : "Failed to delete service.",
     };
   }
 };
