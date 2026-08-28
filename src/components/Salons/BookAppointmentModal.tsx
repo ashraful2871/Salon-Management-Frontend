@@ -6,7 +6,9 @@ import { motion } from "framer-motion";
 import { useActionState } from "react";
 import { Button } from "../ui/button";
 import { bookingAppointment } from "@/services/appoinments/book-appoiments";
+import { getSlots } from "@/services/slots/slot-api";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 type CounterItem = {
   id: string;
@@ -57,8 +59,6 @@ const BookAppointmentModal = ({
     null,
   );
 
-  console.log(state);
-
   const services = useMemo(
     () => (salon?.services || []).filter((s) => s?.isActive !== false),
     [salon?.services],
@@ -73,9 +73,12 @@ const BookAppointmentModal = ({
     counterId: "",
     serviceId: "",
     appointmentDate: "",
-    startTime: "",
+    slotId: "",
     notes: "",
   });
+
+  const [slots, setSlots] = useState<any[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -93,9 +96,10 @@ const BookAppointmentModal = ({
           counterId: "",
           serviceId: "",
           appointmentDate: "",
-          startTime: "",
+          slotId: "",
           notes: "",
         });
+        setSlots([]);
         setErrors({});
       }, 0);
     } else if (state?.success === false) {
@@ -103,7 +107,24 @@ const BookAppointmentModal = ({
     }
   }, [state, onClose]);
 
-  if (!open) return null;
+  useEffect(() => {
+    if (form.appointmentDate && salon?.id) {
+      setLoadingSlots(true);
+      getSlots({ salonId: salon.id, date: form.appointmentDate, status: "AVAILABLE" })
+        .then((res) => {
+          if (res?.success) {
+            setSlots(res.data);
+          } else {
+            setSlots([]);
+          }
+        })
+        .finally(() => setLoadingSlots(false));
+    } else {
+      setSlots([]);
+    }
+    // Reset slot when date changes
+    setField("slotId", "");
+  }, [form.appointmentDate, salon?.id]);
 
   const setField = (key: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -115,13 +136,14 @@ const BookAppointmentModal = ({
     if (!form.counterId) nextErrors.counterId = "Counter is required";
     if (!form.serviceId) nextErrors.serviceId = "Service is required";
     if (!form.appointmentDate)
-      nextErrors.appointmentDate = "Appointment date is required";
-    if (!form.startTime) nextErrors.startTime = "Start time is required";
+      nextErrors.appointmentDate = "Date is required";
+    if (!form.slotId) nextErrors.slotId = "Slot is required";
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
 
-  // client-side guard before submit
+  if (!open) return null;
+
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     const ok = validate();
     if (!ok) e.preventDefault();
@@ -136,9 +158,9 @@ const BookAppointmentModal = ({
           initial={{ opacity: 0, y: 12, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.2 }}
-          className="w-full max-w-2xl rounded-2xl border bg-background shadow-xl"
+          className="w-full max-w-2xl rounded-2xl border bg-background shadow-xl flex flex-col max-h-[90vh]"
         >
-          <div className="flex items-center justify-between border-b px-5 py-4">
+          <div className="flex items-center justify-between border-b px-5 py-4 shrink-0">
             <div>
               <h3 className="text-lg font-semibold">Book Appointment</h3>
               <p className="text-sm text-muted-foreground">
@@ -150,13 +172,11 @@ const BookAppointmentModal = ({
             </Button>
           </div>
 
-          {/* ✅ FORM ACTION */}
-          <form action={formAction} onSubmit={handleFormSubmit}>
-            {/* hidden salonId */}
-            <input type="hidden" name="salonId" value={salon.id} />
+          <form action={formAction} onSubmit={handleFormSubmit} className="flex flex-col flex-1 overflow-hidden">
+            <input type="hidden" name="salonId" value={salon?.id} />
+            <input type="hidden" name="slotId" value={form.slotId} />
 
-            <div className="p-5 space-y-5 max-h-[80vh] overflow-y-auto">
-              {/* Counter + Date */}
+            <div className="p-5 space-y-5 overflow-y-auto flex-1">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium">Counter *</label>
@@ -172,7 +192,6 @@ const BookAppointmentModal = ({
                         {counter.name}
                         {counter.code ? ` (${counter.code})` : ""}
                       </option>
-                      //
                     ))}
                   </select>
                   {errors.counterId && (
@@ -181,45 +200,6 @@ const BookAppointmentModal = ({
                     </p>
                   )}
                 </div>
-
-                <div>
-                  <label className="text-sm font-medium">Date *</label>
-                  <input
-                    name="appointmentDate"
-                    type="date"
-                    min={new Date().toISOString().split("T")[0]}
-                    className="mt-2 w-full h-10 rounded-md border bg-background px-3 text-sm"
-                    value={form.appointmentDate}
-                    onChange={(e) =>
-                      setField("appointmentDate", e.target.value)
-                    }
-                  />
-                  {errors.appointmentDate && (
-                    <p className="mt-1 text-xs text-red-500">
-                      {errors.appointmentDate}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Time + Service */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Time *</label>
-                  <input
-                    name="startTime"
-                    type="time"
-                    className="mt-2 w-full h-10 rounded-md border bg-background px-3 text-sm"
-                    value={form.startTime}
-                    onChange={(e) => setField("startTime", e.target.value)}
-                  />
-                  {errors.startTime && (
-                    <p className="mt-1 text-xs text-red-500">
-                      {errors.startTime}
-                    </p>
-                  )}
-                </div>
-
                 <div>
                   <label className="text-sm font-medium">Service *</label>
                   <select
@@ -249,28 +229,76 @@ const BookAppointmentModal = ({
                 </div>
               </div>
 
+              <div>
+                <label className="text-sm font-medium">Date *</label>
+                <input
+                  type="date"
+                  min={new Date().toISOString().split("T")[0]}
+                  className="mt-2 w-full h-10 rounded-md border bg-background px-3 text-sm"
+                  value={form.appointmentDate}
+                  onChange={(e) => setField("appointmentDate", e.target.value)}
+                />
+                {errors.appointmentDate && (
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.appointmentDate}
+                  </p>
+                )}
+              </div>
 
+              {form.appointmentDate && (
+                <div>
+                  <label className="text-sm font-medium">Available Slots *</label>
+                  {loadingSlots ? (
+                    <div className="mt-2 text-sm text-muted-foreground">Loading slots...</div>
+                  ) : slots.length === 0 ? (
+                    <div className="mt-2 text-sm text-muted-foreground bg-muted p-4 rounded-md text-center">
+                      No available slots for this date.
+                    </div>
+                  ) : (
+                    <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                      {slots.map((slot) => (
+                        <button
+                          key={slot.id}
+                          type="button"
+                          onClick={() => setField("slotId", slot.id)}
+                          className={cn(
+                            "px-3 py-2 border rounded-md text-sm transition-colors text-center",
+                            form.slotId === slot.id 
+                              ? "bg-primary text-primary-foreground border-primary" 
+                              : "bg-background hover:bg-muted"
+                          )}
+                        >
+                          {slot.startTime}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {errors.slotId && (
+                    <p className="mt-1 text-xs text-red-500">
+                      {errors.slotId}
+                    </p>
+                  )}
+                </div>
+              )}
 
-              {/* Notes */}
               <div>
                 <label className="text-sm font-medium">Notes (Optional)</label>
                 <textarea
                   name="notes"
-                  className="mt-2 w-full min-h-[100px] rounded-md border bg-background px-3 py-2 text-sm"
+                  className="mt-2 w-full min-h-[80px] rounded-md border bg-background px-3 py-2 text-sm"
                   placeholder="Write any preferences..."
                   value={form.notes}
                   onChange={(e) => setField("notes", e.target.value)}
                 />
               </div>
 
-
             </div>
 
-            <div className="flex items-center justify-end gap-3 border-t px-5 py-4">
+            <div className="flex items-center justify-end gap-3 border-t px-5 py-4 shrink-0">
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isPending}>
+              <Button type="submit" disabled={isPending || (form.appointmentDate !== "" && slots.length === 0)}>
                 {isPending ? "Booking..." : "Confirm Booking"}
               </Button>
             </div>

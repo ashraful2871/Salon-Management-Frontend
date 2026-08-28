@@ -37,6 +37,12 @@ const menuItems = [
     allowedRoles: ["SALON_OWNER", "STAFF", "CUSTOMER"],
   },
   {
+    icon: Calendar,
+    label: "Slot Management",
+    path: "/dashboard/slots",
+    allowedRoles: ["SALON_OWNER"],
+  },
+  {
     icon: Users,
     label: "Customers",
     path: "/dashboard/customers",

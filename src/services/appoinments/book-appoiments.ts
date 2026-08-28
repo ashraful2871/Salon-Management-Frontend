@@ -14,8 +14,7 @@ export const bookingAppointment = async (
       serviceId: formData.get("serviceId")?.toString(),
       staffId: formData.get("staffId")?.toString(),
       counterId: formData.get("counterId")?.toString(),
-      appointmentDate: formData.get("appointmentDate")?.toString(),
-      startTime: formData.get("startTime")?.toString(),
+      slotId: formData.get("slotId")?.toString(),
       notes: formData.get("notes")?.toString() || undefined,
     };
 
