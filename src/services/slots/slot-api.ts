@@ -11,7 +11,7 @@ export const createBulkSlots = async (payload: any) => {
     });
     const data = await response.json();
     if (data.success) {
-      revalidateTag("slots");
+      revalidateTag("slots", "max");
     }
     return data;
   } catch (error) {
@@ -44,7 +44,7 @@ export const updateSlotStatus = async (slotId: string, status: string) => {
     });
     const data = await response.json();
     if (data.success) {
-      revalidateTag("slots");
+      revalidateTag("slots", "max");
     }
     return data;
   } catch (error) {
@@ -57,7 +57,7 @@ export const deleteSlot = async (slotId: string) => {
     const response = await serverFetch.delete(`/slots/${slotId}`);
     const data = await response.json();
     if (data.success) {
-      revalidateTag("slots");
+      revalidateTag("slots", "max");
     }
     return data;
   } catch (error) {
