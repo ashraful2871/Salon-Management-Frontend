@@ -60,6 +60,8 @@
   --color-rose-light: var(--rose-light);
 
   --font-family-serif: "Playfair Display", serif;
+  --font-heading: "Teko", sans-serif;
+  --font-body: "Inter", sans-serif;
 }
 
 :root {
@@ -207,7 +209,7 @@
   h4,
   h5,
   h6 {
-    @apply font-serif;
+    @apply font-heading;
   }
 
   .gradient-hero {
