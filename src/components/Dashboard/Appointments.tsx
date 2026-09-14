@@ -152,11 +152,24 @@ const Appointments = ({
     return () => clearInterval(interval);
   }, [router]);
 
-  // ✅ normalize API -> UI
   const normalized = useMemo(() => {
     return (appointments || []).map((apt) => {
       const date = toYMD(apt.appointmentDate);
-      const customerName = apt?.customer?.name || "Unknown";
+      const name = apt?.customer?.name?.trim();
+      const email = apt?.customer?.email?.trim();
+      
+      let customerName = "Unknown";
+      if (name && name !== "User" && name !== "Unknown") {
+        customerName = name;
+        // If they want email as well, we can append it or just use it as fallback.
+        // The user said "if the user name is not applicabble so pleaseshow here the user email as well not the show user demo name"
+        // Let's just use email if name is missing or demo-like, else just use name. But actually we can return both.
+      } else if (email) {
+        customerName = email;
+      }
+      
+      const customerEmail = email || "";
+
       const serviceName = apt?.service?.name || "Service";
       const duration =
         typeof apt?.service?.duration === "number"
@@ -168,6 +181,7 @@ const Appointments = ({
         id: apt.id,
         date,
         customer: customerName,
+        customerEmail: customerEmail,
         service: serviceName,
         time,
         duration,
@@ -559,7 +573,10 @@ const Appointments = ({
 
                       <div>
                         <p className="font-medium">{appointment.customer}</p>
-                        <p className="text-sm text-muted-foreground">
+                        {appointment.customerEmail && appointment.customerEmail !== appointment.customer && (
+                          <p className="text-xs text-muted-foreground">{appointment.customerEmail}</p>
+                        )}
+                        <p className="text-sm text-muted-foreground mt-0.5">
                           {appointment.service}
                           {appointment.salonName
                             ? ` • ${appointment.salonName}`
