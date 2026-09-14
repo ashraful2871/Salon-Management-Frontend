@@ -60,7 +60,7 @@ const RegisterForm = () => {
               Start Your Journey
             </h2>
             <p className="text-lg text-primary-foreground/80 max-w-md">
-              Join thousands of salon owners who trust Glamour to manage their
+              Join thousands of salon owners who trust SalonKhuji to manage their
               business and grow their clientele.
             </p>
           </div>
@@ -75,7 +75,7 @@ const RegisterForm = () => {
               <Scissors className="w-5 h-5 text-primary-foreground" />
             </div>
             <span className="font-display text-xl font-semibold text-foreground">
-              Glamour
+              SalonKhuji
             </span>
           </Link>
 

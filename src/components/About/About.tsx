@@ -81,7 +81,7 @@ export default function About() {
               <span className="text-primary">Beauty Experience</span>
             </h1>
             <p className="text-lg text-muted-foreground">
-              We started Glamour with a simple mission: make it easy for
+              We started SalonKhuji with a simple mission: make it easy for
               everyone to discover and book amazing salon services. Today, we
               are proud to connect thousands of clients with top-rated salons
               every day.
@@ -120,12 +120,12 @@ export default function About() {
               </h2>
               <div className="space-y-4 text-muted-foreground">
                 <p>
-                  Glamour was born from a frustrating experience. Our founder,
+                  SalonKhuji was born from a frustrating experience. Our founder,
                   Sarah, spent hours trying to find a reliable salon in a new
                   city. She realized there had to be a better way.
                 </p>
                 <p>
-                  In 2020, we launched Glamour with just 10 partner salons.
+                  In 2020, we launched SalonKhuji with just 10 partner salons.
                   Today, we work with over 500 salons across 10+ cities, helping
                   thousands of clients look and feel their best every day.
                 </p>
@@ -159,7 +159,7 @@ export default function About() {
               Our Values
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              These principles guide everything we do at Glamour
+              These principles guide everything we do at SalonKhuji
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -192,7 +192,7 @@ export default function About() {
               Meet Our Team
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              The passionate people behind Glamour
+              The passionate people behind SalonKhuji
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">

@@ -33,7 +33,7 @@ const PageFeatures = () => {
         <div className="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
           <div className="animate-slide-up">
             <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-6">
-              Why partner with Glamour?
+              Why partner with SalonKhuji?
             </h2>
 
             <div className="grid gap-4">

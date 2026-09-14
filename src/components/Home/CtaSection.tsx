@@ -31,7 +31,7 @@ const CtaSection = () => {
           </h2>
 
           <p className="text-lg text-cream/60 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Join thousands of satisfied customers who trust Glamour for their
+            Join thousands of satisfied customers who trust SalonKhuji for their
             beauty needs. Book your first appointment today and experience the
             difference.
           </p>

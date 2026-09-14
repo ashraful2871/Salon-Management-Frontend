@@ -14,7 +14,7 @@ const playfairDisplay = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Stylish Salon - Beauty Services Management",
+  title: "SalonKhuji - Beauty Services Management",
   description:
     "Find and book the best salons in your area. Manage your salon appointments, customers, and services with ease.",
 };
