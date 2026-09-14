@@ -9,7 +9,7 @@ const contactInfo = [
   {
     icon: Mail,
     title: "Email Us",
-    value: "hello@glamour.com",
+    value: "hello@salonkhuji.com",
     description: "We respond within 24 hours",
   },
   {

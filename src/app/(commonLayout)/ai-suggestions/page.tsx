@@ -1,7 +1,7 @@
 import AiSearchInterface from "@/components/AI-Suggestions/AiSearchInterface";
 
 export const metadata = {
-  title: "AI Salon Match | Glamour",
+  title: "AI Salon Match | SalonKhuji",
   description: "Find your perfect salon with our AI-powered suggestions.",
 };
 
