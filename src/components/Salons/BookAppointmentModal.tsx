@@ -24,6 +24,7 @@ type ServiceItem = {
   price?: number;
   duration?: number;
   isActive?: boolean;
+  category?: string;
 };
 
 type StaffItem = {
@@ -108,9 +109,9 @@ const BookAppointmentModal = ({
   }, [state, onClose]);
 
   useEffect(() => {
-    if (form.appointmentDate && salon?.id) {
+    if (form.appointmentDate && salon?.id && form.serviceId) {
       setLoadingSlots(true);
-      getSlots({ salonId: salon.id, date: form.appointmentDate, status: "AVAILABLE" })
+      getSlots({ salonId: salon.id, date: form.appointmentDate, status: "AVAILABLE", serviceId: form.serviceId })
         .then((res) => {
           if (res?.success) {
             setSlots(res.data);
@@ -122,9 +123,9 @@ const BookAppointmentModal = ({
     } else {
       setSlots([]);
     }
-    // Reset slot when date changes
+    // Reset slot when date or service changes
     setField("slotId", "");
-  }, [form.appointmentDate, salon?.id]);
+  }, [form.appointmentDate, salon?.id, form.serviceId]);
 
   const setField = (key: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));

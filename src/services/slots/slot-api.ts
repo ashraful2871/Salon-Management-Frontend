@@ -19,12 +19,13 @@ export const createBulkSlots = async (payload: any) => {
   }
 };
 
-export const getSlots = async (params: { salonId?: string; date?: string; status?: string }) => {
+export const getSlots = async (params: { salonId?: string; date?: string; status?: string; serviceId?: string }) => {
   try {
     const searchParams = new URLSearchParams();
     if (params.salonId) searchParams.append("salonId", params.salonId);
     if (params.date) searchParams.append("date", params.date);
     if (params.status) searchParams.append("status", params.status);
+    if (params.serviceId) searchParams.append("serviceId", params.serviceId);
 
     const response = await serverFetch.get(`/slots?${searchParams.toString()}`, {
       next: { tags: ["slots"] },
@@ -62,5 +63,21 @@ export const deleteSlot = async (slotId: string) => {
     return data;
   } catch (error) {
     return { success: false, message: "Failed to delete slot" };
+  }
+};
+
+export const deleteBulkSlots = async (slotIds: string[]) => {
+  try {
+    const response = await serverFetch.post("/slots/bulk-delete", {
+      body: JSON.stringify({ slotIds }),
+      headers: { "Content-Type": "application/json" },
+    });
+    const data = await response.json();
+    if (data.success) {
+      revalidateTag("slots", "max");
+    }
+    return data;
+  } catch (error) {
+    return { success: false, message: "Failed to delete slots in bulk" };
   }
 };
