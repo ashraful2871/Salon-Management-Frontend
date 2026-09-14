@@ -13,7 +13,7 @@ const Footer = () => {
               <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-xl">S</span>
               </div>
-              <span className="text-xl font-bold">Stylish Salon</span>
+              <span className="text-xl font-bold">SalonKhuji</span>
             </div>
             <p className="text-gray-400 mb-4 max-w-md">
               Your trusted partner for finding the best salons and managing your beauty appointments. 
@@ -110,7 +110,7 @@ const Footer = () => {
 
         {/* Bottom Bar */}
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; {currentYear} Stylish Salon. All rights reserved.</p>
+          <p>&copy; {currentYear} SalonKhuji. All rights reserved.</p>
         </div>
       </div>
     </footer>
