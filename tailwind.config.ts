@@ -5,22 +5,7 @@ const config = {
   theme: {
     extend: {
       colors: {
-        ["text-body"]: "#6a6a6a",
-        smoke: {
-          DEFAULT: "#2a2a2a",
-          50: "#fafafa",
-          100: "#f5f5f5",
-          200: "#e5e5e5",
-          300: "#d4d4d4",
-          400: "#a3a3a3",
-          500: "#737373",
-          600: "#525252",
-          700: "#404040",
-          800: "#2a2a2a",
-          900: "#1a1a1a",
-        },
         primary: {
-          DEFAULT: "#be8644",
           50: "oklch(97.32% 0.034 113.58)",
           100: "oklch(94.41% 0.037 107.68)",
           200: "oklch(88.73% 0.052 100.67)",
@@ -32,9 +17,7 @@ const config = {
           800: "oklch(39.45% 0.108 75.89)",
           900: "oklch(31.22% 0.085 74.63)",
           950: "oklch(23.45% 0.062 73.12)",
-        },
-        secondary: {
-          DEFAULT: "#ffffff",
+          DEFAULT: "oklch(64.66% 0.153 81.54)",
         },
         accent: {
           rose: "oklch(0.76 0.11 20)",
@@ -44,7 +27,7 @@ const config = {
           gold: "oklch(64.66% 0.153 81.54)",
           "gold-light": "oklch(83.54% 0.083 90.58)",
           "gold-dark": "oklch(54.6% 0.132 81.09)",
-          DEFAULT: "#f8f3ec",
+          DEFAULT: "oklch(0.76 0.11 20)",
         },
         cream: {
           50: "oklch(99% 0.01 113.58)",
@@ -70,8 +53,7 @@ const config = {
       },
       fontFamily: {
         display: ["Playfair Display", "Georgia", "serif"],
-        heading: ["Teko", "sans-serif"],
-        body: ["Inter", "system-ui", "-apple-system", "sans-serif"],
+        body: ["system-ui", "-apple-system", "sans-serif"],
       },
       fontSize: {
         "display-xl": ["4.5rem", { lineHeight: "1.1", fontWeight: "700" }],
