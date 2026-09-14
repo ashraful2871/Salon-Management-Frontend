@@ -52,8 +52,8 @@ const config = {
         },
       },
       fontFamily: {
-        display: ["Playfair Display", "Georgia", "serif"],
-        body: ["system-ui", "-apple-system", "sans-serif"],
+        display: ["var(--font-display)", "system-ui", "sans-serif"],
+        body: ["var(--font-body)", "system-ui", "sans-serif"],
       },
       fontSize: {
         "display-xl": ["4.5rem", { lineHeight: "1.1", fontWeight: "700" }],
@@ -75,11 +75,22 @@ const config = {
         elevated: "0 20px 60px -12px oklch(0% 0 0 / 0.15)",
         "inner-glow": "inset 0 2px 4px 0 oklch(100% 0 0 / 0.06)",
         glow: "0 0 25px -5px oklch(64.66% 0.153 81.54 / 0.4)",
+        premium:
+          "0 20px 40px -10px oklch(0% 0 0 / 0.2), inset 0 1px 0 0 oklch(100% 0 0 / 0.1)",
       },
       borderRadius: {
         "2xl": "1rem",
         "3xl": "1.5rem",
         "4xl": "2rem",
+      },
+      keyframes: {
+        marquee: {
+          "0%": { transform: "translateX(0%)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
+      },
+      animation: {
+        marquee: "marquee 50s linear infinite",
       },
       backdropBlur: {
         xs: "2px",

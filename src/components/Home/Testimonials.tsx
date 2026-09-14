@@ -1,4 +1,4 @@
-import { Star, Quote } from "lucide-react";
+import { Star, Quote, ChevronRight } from "lucide-react";
 
 interface Testimonial {
   name: string;
@@ -33,7 +33,7 @@ const testimonials: Testimonial[] = [
 
 function StarRating({ rating }: { rating: number }) {
   return (
-    <div className="flex gap-1">
+    <div className="flex gap-1.5">
       {Array.from({ length: rating }).map((_, i) => (
         <Star key={i} className="w-4 h-4 fill-gold text-gold" />
       ))}
@@ -44,38 +44,44 @@ function StarRating({ rating }: { rating: number }) {
 function QuoteCard({
   testimonial,
   featured = false,
+  index,
 }: {
   testimonial: Testimonial;
   featured?: boolean;
+  index: number;
 }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl bg-white/[0.06] backdrop-blur-xl border border-white/10 shadow-soft hover:shadow-glow hover:border-gold/30 transition-all duration-500 ${
-        featured ? "p-8 lg:p-10" : "p-6 lg:p-8"
+      className={`relative overflow-hidden rounded-[2rem] bg-white border border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-500 group ${
+        featured ? "p-10 lg:p-12 md:col-span-2" : "p-8 lg:p-10"
       }`}
     >
-      <Quote className="absolute top-4 right-4 w-8 h-8 text-gold/10" />
-      <div className="relative z-10">
-        <StarRating rating={testimonial.rating} />
-        <p
-          className={`text-cream/80 leading-relaxed mt-4 mb-6 ${
-            featured ? "text-base lg:text-lg" : "text-sm"
-          }`}
-        >
-          &ldquo;{testimonial.content}&rdquo;
-        </p>
-        <div className="flex items-center gap-3 pt-4 border-t border-white/10">
-          <div className="w-10 h-10 rounded-full bg-gradient-gold flex items-center justify-center text-white font-semibold text-sm shrink-0">
-            {testimonial.name
-              .split(" ")
-              .map((n) => n[0])
-              .join("")}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary/5 to-transparent rounded-bl-[100px] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+      
+      <div className="relative z-10 flex flex-col h-full justify-between">
+        <div>
+          <div className="flex items-start justify-between mb-8">
+            <StarRating rating={testimonial.rating} />
+            <Quote className="w-8 h-8 text-slate-200 group-hover:text-primary/20 transition-colors duration-500" />
+          </div>
+          <p
+            className={`text-slate-600 leading-relaxed font-medium ${
+              featured ? "text-xl lg:text-2xl" : "text-lg"
+            }`}
+          >
+            "{testimonial.content}"
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-4 pt-8 mt-8 border-t border-slate-100">
+          <div className="w-12 h-12 rounded-full border-2 border-slate-100 overflow-hidden relative shadow-sm">
+            <img src={`https://i.pravatar.cc/150?img=${index + 20}`} alt={testimonial.name} className="w-full h-full object-cover" />
           </div>
           <div>
-            <p className="font-semibold text-cream text-sm">
+            <p className="font-bold font-display text-slate-900 text-lg">
               {testimonial.name}
             </p>
-            <p className="text-cream/50 text-xs">{testimonial.role}</p>
+            <p className="text-primary font-semibold text-sm">{testimonial.role}</p>
           </div>
         </div>
       </div>
@@ -85,33 +91,34 @@ function QuoteCard({
 
 const Testimonials = () => {
   return (
-    <section className="py-24 bg-gradient-to-b from-charcoal to-[#1a1a1a] relative overflow-hidden">
-      <div className="absolute -top-32 -right-32 w-64 h-64 bg-rose/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-gold/5 rounded-full blur-3xl pointer-events-none" />
+    <section className="py-32 bg-slate-50 relative overflow-hidden border-t border-slate-200">
+      <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-rose/10 rounded-full blur-[150px] mix-blend-multiply pointer-events-none" />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="text-center mb-16">
-          <span className="text-sm font-semibold text-gold uppercase tracking-widest">
-            Testimonials
-          </span>
-          <h2 className="text-3xl md:text-4xl font-bold text-cream mt-3 mb-4">
-            What Our Clients Say
-          </h2>
-          <p className="text-cream/60 max-w-2xl mx-auto">
-            Hear from thousands of satisfied customers who trust us for their
-            beauty needs.
-          </p>
+        <div className="flex flex-col md:flex-row items-center justify-between mb-16 gap-8">
+          <div>
+            <span className="inline-block py-1 px-3 rounded-full bg-white border border-slate-200 text-xs font-bold text-primary uppercase tracking-widest mb-4 shadow-sm">
+              Real Stories
+            </span>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black font-display text-slate-900 tracking-tight">
+              What Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-gold">Clients Say</span>
+            </h2>
+          </div>
+          <div className="hidden md:flex items-center gap-4">
+              <button className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-slate-50 hover:text-primary hover:border-primary/20 transition-all shadow-sm">
+                  <ChevronRight className="w-6 h-6 rotate-180" />
+              </button>
+              <button className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary-600 transition-all shadow-premium">
+                  <ChevronRight className="w-6 h-6" />
+              </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="md:col-span-2 lg:col-span-2">
-            <QuoteCard testimonial={testimonials[0]} featured />
-          </div>
-          <div>
-            <QuoteCard testimonial={testimonials[1]} />
-          </div>
+          <QuoteCard testimonial={testimonials[0]} featured index={0} />
+          <QuoteCard testimonial={testimonials[1]} index={1} />
           <div className="md:col-span-2 lg:col-span-3">
-            <QuoteCard testimonial={testimonials[2]} />
+            <QuoteCard testimonial={testimonials[2]} index={2} />
           </div>
         </div>
       </div>
