@@ -75,7 +75,8 @@ const config = {
         elevated: "0 20px 60px -12px oklch(0% 0 0 / 0.15)",
         "inner-glow": "inset 0 2px 4px 0 oklch(100% 0 0 / 0.06)",
         glow: "0 0 25px -5px oklch(64.66% 0.153 81.54 / 0.4)",
-        premium: "0 20px 40px -10px oklch(0% 0 0 / 0.2), inset 0 1px 0 0 oklch(100% 0 0 / 0.1)",
+        premium:
+          "0 20px 40px -10px oklch(0% 0 0 / 0.2), inset 0 1px 0 0 oklch(100% 0 0 / 0.1)",
       },
       borderRadius: {
         "2xl": "1rem",
@@ -84,12 +85,12 @@ const config = {
       },
       keyframes: {
         marquee: {
-          '0%': { transform: 'translateX(0%)' },
-          '100%': { transform: 'translateX(-50%)' },
-        }
+          "0%": { transform: "translateX(0%)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
       },
       animation: {
-        marquee: 'marquee 25s linear infinite',
+        marquee: "marquee 50s linear infinite",
       },
       backdropBlur: {
         xs: "2px",
