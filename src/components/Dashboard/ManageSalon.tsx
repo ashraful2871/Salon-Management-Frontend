@@ -107,6 +107,21 @@ const formatTime = (time: string) => {
   return `${hour12}:${String(mm).padStart(2, "0")} ${suffix}`;
 };
 
+const getValidImage = (url?: string | null) => {
+  const dummyImage = "https://i.ibb.co/jZWzbYnM/lindsay-cash-Md-Dha-Fsn-CQ-unsplash.jpg";
+  if (!url) return dummyImage;
+  const trimmed = url.trim();
+  if (
+    trimmed === "" || 
+    trimmed === "null" || 
+    trimmed === "undefined" ||
+    !(trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("/") || trimmed.startsWith("data:"))
+  ) {
+    return dummyImage;
+  }
+  return trimmed;
+};
+
 const getStatusBadge = (status: string) => {
   switch (status) {
     case "APPROVED":
@@ -175,10 +190,7 @@ export default function ManageSalon({ initialData }: { initialData: any }) {
         <div className="relative h-48 w-full rounded-2xl overflow-hidden bg-muted">
           {/* Cover Image Logic */}
           <Image
-            src={
-              salon.images[0] ||
-              "https://i.ibb.co/jZWzbYnM/lindsay-cash-Md-Dha-Fsn-CQ-unsplash.jpg"
-            }
+            src={getValidImage(salon?.images?.[0])}
             alt="Salon Cover"
             fill
             className="object-cover"
@@ -204,10 +216,10 @@ export default function ManageSalon({ initialData }: { initialData: any }) {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="edit">Edit Details</TabsTrigger>
             <TabsTrigger value="staff">
-              Staff ({salon.staff.length})
+              Staff ({salon?.staff?.length || 0})
             </TabsTrigger>
             <TabsTrigger value="counters">
-              Counters ({salon.counters?.length || 0})
+              Counters ({salon?.counters?.length || 0})
             </TabsTrigger>
           </TabsList>
 
@@ -238,17 +250,17 @@ export default function ManageSalon({ initialData }: { initialData: any }) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard
               label="Total Rating"
-              value={salon.rating.toFixed(1)}
+              value={salon?.rating?.toFixed(1) || "0.0"}
               icon={<Star className="w-4 h-4 text-gold fill-gold" />}
             />
             <StatCard
               label="Reviews"
-              value={salon.totalReviews}
+              value={salon?.totalReviews || 0}
               icon={<Users className="w-4 h-4 text-primary" />}
             />
             <StatCard
               label="Staff Members"
-              value={salon.staff.length}
+              value={salon?.staff?.length || 0}
               icon={<Users className="w-4 h-4 text-sage" />}
             />
             <StatCard
@@ -305,7 +317,7 @@ export default function ManageSalon({ initialData }: { initialData: any }) {
                 <CardContent className="p-0">
                   <div className="divide-y">
                     {daysOrder.map((day) => {
-                      const hours = salon.operatingHours[day];
+                      const hours = salon?.operatingHours?.[day];
                       return (
                         <div
                           key={day}
@@ -485,7 +497,7 @@ export default function ManageSalon({ initialData }: { initialData: any }) {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {daysOrder.map((day) => {
-                        const hours = salon.operatingHours[day];
+                        const hours = salon?.operatingHours?.[day];
                         return (
                           <div
                             key={day}
@@ -558,20 +570,20 @@ export default function ManageSalon({ initialData }: { initialData: any }) {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {salon.staff.map((member) => (
+                {(salon?.staff || []).map((member) => (
                   <div
                     key={member.id}
                     className="flex items-center justify-between p-4 border rounded-xl hover:bg-muted/20 transition-colors"
                   >
                     <div className="flex items-center gap-4">
                       <Avatar className="h-12 w-12">
-                        <AvatarImage src={member.user.profilePhoto || ""} />
+                        <AvatarImage src={member?.user?.profilePhoto || ""} />
                         <AvatarFallback>
-                          {member.user.name.charAt(0)}
+                          {member?.user?.name?.charAt(0) || "U"}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-semibold">{member.user.name}</p>
+                        <p className="font-semibold">{member?.user?.name || "Unknown Staff"}</p>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <span>{member.speciality}</span>
                           <span>•</span>
