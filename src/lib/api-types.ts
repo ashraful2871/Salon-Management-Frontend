@@ -61,6 +61,8 @@ export type Salon = {
     staff: number;
     reviews: number;
   };
+  depositMinor?: number;
+  cancellationWindowMin?: number;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -70,7 +72,7 @@ export type SalonService = {
   name: string;
   description?: string | null;
   category?: string | null;
-  price?: number | null;
+  priceMinor?: number | null;
   duration?: number | null;
   images?: string[];
   isActive?: boolean;
@@ -112,7 +114,7 @@ export type Appointment = {
     id: string;
     name: string;
     duration?: number;
-    price?: number;
+    priceMinor?: number;
   };
   salon?: {
     id: string;

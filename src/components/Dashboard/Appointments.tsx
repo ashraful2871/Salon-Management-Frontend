@@ -139,6 +139,10 @@ const Appointments = ({
   const [selectedStaff, setSelectedStaff] = useState("");
   const [assigningAppointment, setAssigningAppointment] = useState<{ id: string, salonId: string, currentStatus: string } | null>(null);
 
+  // Collect Modal State
+  const [collectModalOpen, setCollectModalOpen] = useState(false);
+  const [collectingAppointment, setCollectingAppointment] = useState<any>(null);
+
   const [isPending, startTransition] = useTransition();
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [selectedDate, setSelectedDate] = useState<string | null>(null); // null = all dates
@@ -674,15 +678,13 @@ const Appointments = ({
                               )}
                               {appointment.rawStatus === "IN_PROGRESS" && (
                                 <DropdownMenuItem
-                                  onClick={() =>
-                                    handleStatusUpdate(
-                                      appointment.id,
-                                      "COMPLETED"
-                                    )
-                                  }
+                                  onClick={() => {
+                                    setCollectingAppointment(appointment);
+                                    setCollectModalOpen(true);
+                                  }}
                                 >
                                   <CheckCircle2 className="mr-2 h-4 w-4 text-primary" />
-                                  Complete
+                                  Complete & Collect
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuItem
@@ -800,6 +802,85 @@ const Appointments = ({
                 disabled={isPending || !selectedStaff}
               >
                 {isPending ? "Assigning..." : "Assign Staff"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Complete & Collect Dialog */}
+      <Dialog
+        open={collectModalOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCollectModalOpen(false);
+            setCollectingAppointment(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[425px] overflow-hidden rounded-2xl p-0">
+          <div className="p-6 pb-4 border-b shrink-0 bg-primary/5">
+            <DialogHeader>
+              <DialogTitle className="text-xl flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-primary" />
+                Complete & Collect
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground mt-2">
+                Review and complete the appointment for {collectingAppointment?.customer}.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="p-6 bg-background space-y-4 shrink-0">
+            {collectingAppointment && (
+              <div className="space-y-4">
+                <div className="bg-muted/50 p-4 rounded-lg border space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Service</span>
+                    <span className="font-medium">{collectingAppointment.service}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm font-bold text-primary border-t pt-2 mt-2">
+                    <span>Amount to Collect</span>
+                    <span>Confirm with customer</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 pt-2">
+                  <Button variant="outline" className="flex flex-col h-auto py-3 gap-1">
+                    <span className="text-xl">💵</span>
+                    <span className="text-xs">Cash</span>
+                  </Button>
+                  <Button variant="outline" className="flex flex-col h-auto py-3 gap-1">
+                    <span className="text-xl">📱</span>
+                    <span className="text-xs">bKash</span>
+                  </Button>
+                  <Button variant="outline" className="flex flex-col h-auto py-3 gap-1">
+                    <span className="text-xl">💳</span>
+                    <span className="text-xs">Card</span>
+                  </Button>
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end gap-3 pt-4 border-t mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCollectModalOpen(false)}
+                disabled={isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                className="bg-primary text-white"
+                onClick={() => {
+                  if (collectingAppointment) {
+                    handleStatusUpdate(collectingAppointment.id, "COMPLETED");
+                    setCollectModalOpen(false);
+                  }
+                }}
+                disabled={isPending}
+              >
+                {isPending ? "Completing..." : "Complete Booking"}
               </Button>
             </div>
           </div>

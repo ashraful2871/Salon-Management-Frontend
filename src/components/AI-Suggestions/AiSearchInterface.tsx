@@ -11,6 +11,7 @@ import {
   searchAiSuggestions,
   type AiSalonMatch,
 } from "@/services/ai/searchAiSuggestions";
+import { formatBDT } from "@/lib/money";
 
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&fit=crop";
@@ -73,7 +74,7 @@ const SalonMatchCard = ({
   const services = Array.isArray(salon.services) ? salon.services : [];
 
   const prices = services
-    .map((s) => Number(s?.price))
+    .map((s) => Number(s?.priceMinor))
     .filter((p) => Number.isFinite(p));
 
   const similarity = Number(salon.similarity);
@@ -92,7 +93,7 @@ const SalonMatchCard = ({
           )}
           {prices.length > 0 && (
             <span className="text-xs text-muted-foreground">
-              from BDT {Math.min(...prices).toLocaleString()} &middot;{" "}
+              from {formatBDT(Math.min(...prices))} &middot;{" "}
               {services.length} service{services.length === 1 ? "" : "s"}
             </span>
           )}

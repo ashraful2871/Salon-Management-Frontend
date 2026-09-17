@@ -37,15 +37,19 @@ Read these once before writing any code. Every one of them exists because breaki
 3. **`Wallet.balance` is a cache.** It must always equal the sum of its transactions. Add a reconciliation job that alerts on drift.
 4. **Every write path takes an idempotency key.** SSLCommerz retries IPNs. A double-credited top-up is money you gave away.
 5. **Lock before you read a balance you're about to change.** `SELECT … FOR UPDATE` inside a transaction. Two concurrent bookings must not both pass the same balance check.
-6. **Never trust a gateway callback body.** Verify the signature *and* independently re-query SSLCommerz's validation API before crediting anything.
+6. **Never trust a gateway callback body.** Verify the signature _and_ independently re-query SSLCommerz's validation API before crediting anything.
 7. **Balance can never go negative.** Enforce it in the database, not just the application.
 8. **Held ≠ spent.** Track `balance` and `heldBalance` separately. Available = `balance - heldBalance`.
 
 ---
 
-# Phase P1 — Foundations
+---
 
-*No gateway yet. Get the money primitives right first.*
+# 🛠️ PART 1: BACKEND IMPLEMENTATION
+
+## Phase P1 (Backend) — Foundations
+
+_No gateway yet. Get the money primitives right first._
 
 ### Step P1.1 — Prerequisite: close the payment hole
 
@@ -58,6 +62,7 @@ Do [FIXING.md Step F1.2](./FIXING.md) first if you have not. Do not build on top
 Every money column changes type. Do it now, while you have almost no data.
 
 **`service.prisma`**
+
 ```prisma
 model Service {
   // price Float   ← remove
@@ -67,6 +72,7 @@ model Service {
 ```
 
 **`payment.prisma`**
+
 ```prisma
 model Payment {
   // amount Float  ← remove
@@ -95,24 +101,10 @@ Add one shared formatter and use it everywhere — never format inline:
 ```ts
 // Salon-Management-Server/src/app/utils/money.ts
 export const toMinor = (taka: number) => Math.round(taka * 100);
-export const toTaka  = (minor: number) => minor / 100;
+export const toTaka = (minor: number) => minor / 100;
 export const formatBDT = (minor: number) =>
   `৳${(minor / 100).toLocaleString("en-BD", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 ```
-
-Mirror it in `Salon-Management-Frontend/src/lib/money.ts`.
-
-**Then fix every read site.** Search and update:
-```bash
-grep -rn "\.price\b" src/ | grep -v node_modules
-grep -rn "\.amount\b" src/ | grep -v node_modules
-```
-Known sites: `appointment.service.ts:157` (email template), `payment.service.ts:35`, `dashboardStats.service.ts` (revenue aggregation), and on the frontend `BookAppointmentModal.tsx:212` and every card that prints `৳{price}`.
-
-**Verify:** a ৳150 service reads back as exactly `15000`; the dashboard revenue total matches what it showed before the migration.
-**Commit:** `refactor(money): store all amounts as integer poisha`
-
----
 
 ### Step P1.3 — Wallet schema
 
@@ -198,8 +190,8 @@ This is the most important function in the payment system. Every money movement 
 type MutateArgs = {
   userId: string;
   type: WalletTxType;
-  amount: number;          // SIGNED poisha
-  holdDelta?: number;      // SIGNED poisha change to heldBalance
+  amount: number; // SIGNED poisha
+  holdDelta?: number; // SIGNED poisha change to heldBalance
   description: string;
   referenceType?: string;
   referenceId?: string;
@@ -214,7 +206,7 @@ const mutate = async (args: MutateArgs, tx?: Prisma.TransactionClient) => {
       const existing = await db.walletTransaction.findUnique({
         where: { idempotencyKey: args.idempotencyKey },
       });
-      if (existing) return existing;          // safe replay, no double-apply
+      if (existing) return existing; // safe replay, no double-apply
     }
 
     // 2. Lock the wallet row. Everything after this is serialised per user.
@@ -226,11 +218,12 @@ const mutate = async (args: MutateArgs, tx?: Prisma.TransactionClient) => {
 
     // 3. Compute and check.
     const newBalance = wallet.balance + args.amount;
-    const newHeld    = wallet.heldBalance + (args.holdDelta ?? 0);
+    const newHeld = wallet.heldBalance + (args.holdDelta ?? 0);
 
-    if (newBalance < 0)   throw new ApiError(400, "Insufficient wallet balance");
-    if (newHeld < 0)      throw new ApiError(400, "Invalid hold release");
-    if (newHeld > newBalance) throw new ApiError(400, "Insufficient available balance");
+    if (newBalance < 0) throw new ApiError(400, "Insufficient wallet balance");
+    if (newHeld < 0) throw new ApiError(400, "Invalid hold release");
+    if (newHeld > newBalance)
+      throw new ApiError(400, "Insufficient available balance");
 
     // 4. Write both sides together.
     await db.wallet.update({
@@ -256,7 +249,9 @@ const mutate = async (args: MutateArgs, tx?: Prisma.TransactionClient) => {
 
   // Join the caller's transaction if there is one — a booking must hold the
   // deposit and create the appointment atomically.
-  return tx ? run(tx) : prisma.$transaction(run, { isolationLevel: "Serializable" });
+  return tx
+    ? run(tx)
+    : prisma.$transaction(run, { isolationLevel: "Serializable" });
 };
 ```
 
@@ -267,33 +262,49 @@ const getAvailableBalance = (w: Wallet) => w.balance - w.heldBalance;
 
 const holdDeposit = (userId, amountMinor, appointmentId) =>
   mutate({
-    userId, type: "DEPOSIT_HOLD", amount: 0, holdDelta: amountMinor,
+    userId,
+    type: "DEPOSIT_HOLD",
+    amount: 0,
+    holdDelta: amountMinor,
     description: `Booking deposit held`,
-    referenceType: "APPOINTMENT", referenceId: appointmentId,
+    referenceType: "APPOINTMENT",
+    referenceId: appointmentId,
     idempotencyKey: `hold:${appointmentId}`,
   });
 
 const releaseDeposit = (userId, amountMinor, appointmentId) =>
   mutate({
-    userId, type: "DEPOSIT_RELEASE", amount: 0, holdDelta: -amountMinor,
+    userId,
+    type: "DEPOSIT_RELEASE",
+    amount: 0,
+    holdDelta: -amountMinor,
     description: `Deposit released — booking cancelled in time`,
-    referenceType: "APPOINTMENT", referenceId: appointmentId,
+    referenceType: "APPOINTMENT",
+    referenceId: appointmentId,
     idempotencyKey: `release:${appointmentId}`,
   });
 
 const applyDeposit = (userId, amountMinor, appointmentId) =>
   mutate({
-    userId, type: "DEPOSIT_APPLIED", amount: -amountMinor, holdDelta: -amountMinor,
+    userId,
+    type: "DEPOSIT_APPLIED",
+    amount: -amountMinor,
+    holdDelta: -amountMinor,
     description: `Deposit applied to your bill`,
-    referenceType: "APPOINTMENT", referenceId: appointmentId,
+    referenceType: "APPOINTMENT",
+    referenceId: appointmentId,
     idempotencyKey: `apply:${appointmentId}`,
   });
 
 const forfeitDeposit = (userId, amountMinor, appointmentId) =>
   mutate({
-    userId, type: "DEPOSIT_FORFEIT", amount: -amountMinor, holdDelta: -amountMinor,
+    userId,
+    type: "DEPOSIT_FORFEIT",
+    amount: -amountMinor,
+    holdDelta: -amountMinor,
     description: `Deposit forfeited — marked as no-show`,
-    referenceType: "APPOINTMENT", referenceId: appointmentId,
+    referenceType: "APPOINTMENT",
+    referenceId: appointmentId,
     idempotencyKey: `forfeit:${appointmentId}`,
   });
 ```
@@ -311,11 +322,11 @@ Create the wallet lazily on first access (`getOrCreateWallet(userId)`), so exist
 
 `src/app/modules/Wallet/wallet.routes.ts`:
 
-| Method | Path | Auth | Purpose |
-|---|---|---|---|
-| `GET` | `/wallet/me` | any authed | balance, heldBalance, available |
-| `GET` | `/wallet/me/transactions?page&limit&type` | any authed | paginated ledger |
-| `POST` | `/wallet/admin/adjust` | `ADMIN` | manual credit/debit, **reason required** |
+| Method | Path                                      | Auth       | Purpose                                  |
+| ------ | ----------------------------------------- | ---------- | ---------------------------------------- |
+| `GET`  | `/wallet/me`                              | any authed | balance, heldBalance, available          |
+| `GET`  | `/wallet/me/transactions?page&limit&type` | any authed | paginated ledger                         |
+| `POST` | `/wallet/admin/adjust`                    | `ADMIN`    | manual credit/debit, **reason required** |
 
 `/wallet/admin/adjust` is how you test the entire deposit flow before the gateway exists. It must log to an audit trail and require a non-empty reason.
 
@@ -324,33 +335,9 @@ Create the wallet lazily on first access (`getOrCreateWallet(userId)`), so exist
 
 ---
 
-### Step P1.6 — Wallet UI
+## Phase P2 (Backend) — SSLCommerz top-up
 
-New page `src/app/(dashboardLayout)/dashboard/wallet/page.tsx`:
-
-```
-┌────────────────────────────────────────┐
-│  Available          ৳470               │
-│  Held (1 booking)   ৳30                │
-│  ─────────────────────────────         │
-│  Total              ৳500               │
-│              [ + Add Money ]           │
-├────────────────────────────────────────┤
-│  16 Sep  Deposit held — Glamour  −৳30  │
-│  14 Sep  Top up via bKash       +৳500  │
-└────────────────────────────────────────┘
-```
-
-Services in `src/services/wallet/`: `getMyWallet.ts`, `getTransactions.ts`. Add a **Wallet** entry to `DashboardSidebar.tsx` `menuItems` for `["CUSTOMER", "SALON_OWNER", "STAFF", "ADMIN"]`. Show available balance in the navbar for customers.
-
-**Verify:** the page shows the admin-credited ৳500 and its transaction row.
-**Commit:** `feat(wallet): customer wallet page`
-
----
-
-# Phase P2 — SSLCommerz top-up
-
-*Now money enters the system from outside.*
+_Now money enters the system from outside._
 
 ### Step P2.1 — Merchant account and config
 
@@ -402,7 +389,11 @@ export interface PaymentProvider {
   }>;
 
   verifySignature(payload: Record<string, string>): boolean;
-  refund(gatewayRef: string, amountMinor: number, reason: string): Promise<{ ok: boolean; refundRef?: string }>;
+  refund(
+    gatewayRef: string,
+    amountMinor: number,
+    reason: string,
+  ): Promise<{ ok: boolean; refundRef?: string }>;
 }
 ```
 
@@ -479,7 +470,7 @@ async validate(valId: string) {
 
 ### Step P2.4 — PaymentIntent schema
 
-A top-up needs a record that exists *before* the customer leaves for the gateway.
+A top-up needs a record that exists _before_ the customer leaves for the gateway.
 
 ```prisma
 model PaymentIntent {
@@ -519,22 +510,30 @@ enum IntentStatus  { INITIATED  PENDING  SUCCESS  FAILED  CANCELLED  EXPIRED }
 
 ```ts
 const initiateTopup = async (userId: string, amountMinor: number) => {
-  if (amountMinor < 10000)   throw new ApiError(400, "Minimum top-up is ৳100");
-  if (amountMinor > 5000000) throw new ApiError(400, "Maximum top-up is ৳50,000");
+  if (amountMinor < 10000) throw new ApiError(400, "Minimum top-up is ৳100");
+  if (amountMinor > 5000000)
+    throw new ApiError(400, "Maximum top-up is ৳50,000");
 
   const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
 
   const intent = await prisma.paymentIntent.create({
     data: {
       transactionId: `TOPUP-${Date.now()}-${randomBytes(4).toString("hex")}`,
-      userId, purpose: "WALLET_TOPUP", amountMinor, status: "INITIATED",
+      userId,
+      purpose: "WALLET_TOPUP",
+      amountMinor,
+      status: "INITIATED",
     },
   });
 
   const session = await provider.initSession({
     transactionId: intent.transactionId,
     amountMinor,
-    customer: { name: user.name, email: user.email, phone: user.phone ?? "01700000000" },
+    customer: {
+      name: user.name,
+      email: user.email,
+      phone: user.phone ?? "01700000000",
+    },
     purpose: "WALLET_TOPUP",
   });
 
@@ -543,13 +542,12 @@ const initiateTopup = async (userId: string, amountMinor: number) => {
     data: { status: "PENDING", sessionKey: session.sessionKey },
   });
 
-  return { redirectUrl: session.redirectUrl, transactionId: intent.transactionId };
+  return {
+    redirectUrl: session.redirectUrl,
+    transactionId: intent.transactionId,
+  };
 };
 ```
-
-Preset amounts in the UI: **৳200 · ৳500 · ৳1000 · ৳2000 · custom**. Nudge ৳500 — roughly three haircuts, the right habit-forming size.
-
----
 
 ### Step P2.6 — The IPN webhook (the part that must be bulletproof)
 
@@ -564,7 +562,10 @@ const handleIpn = catchAsync(async (req, res) => {
 
   // 1. Signature check — proves it came from SSLCommerz
   if (!provider.verifySignature(payload)) {
-    logger.warn({ tran_id: payload.tran_id }, "IPN signature verification failed");
+    logger.warn(
+      { tran_id: payload.tran_id },
+      "IPN signature verification failed",
+    );
     return;
   }
 
@@ -589,8 +590,12 @@ const handleIpn = catchAsync(async (req, res) => {
   // 4. Amount tamper check — the gateway amount MUST match what we asked for
   if (result.amountMinor !== intent.amountMinor) {
     logger.error(
-      { intentId: intent.id, expected: intent.amountMinor, got: result.amountMinor },
-      "IPN amount mismatch — possible tampering"
+      {
+        intentId: intent.id,
+        expected: intent.amountMinor,
+        got: result.amountMinor,
+      },
+      "IPN amount mismatch — possible tampering",
     );
     await markIntentFailed(intent.transactionId, "Amount mismatch");
     return;
@@ -601,22 +606,27 @@ const handleIpn = catchAsync(async (req, res) => {
     await tx.paymentIntent.update({
       where: { id: intent.id },
       data: {
-        status: "SUCCESS", gatewayRef: result.gatewayRef,
-        method: result.method, rawResponse: result.raw as any,
+        status: "SUCCESS",
+        gatewayRef: result.gatewayRef,
+        method: result.method,
+        rawResponse: result.raw as any,
         completedAt: new Date(),
       },
     });
 
     if (intent.purpose === "WALLET_TOPUP") {
-      await WalletService.mutate({
-        userId: intent.userId,
-        type: "TOPUP",
-        amount: intent.amountMinor,
-        description: `Top-up via ${result.method ?? "SSLCommerz"}`,
-        referenceType: "TOPUP",
-        referenceId: intent.id,
-        idempotencyKey: `topup:${intent.transactionId}`,   // ← the replay guard
-      }, tx);
+      await WalletService.mutate(
+        {
+          userId: intent.userId,
+          type: "TOPUP",
+          amount: intent.amountMinor,
+          description: `Top-up via ${result.method ?? "SSLCommerz"}`,
+          referenceType: "TOPUP",
+          referenceId: intent.id,
+          idempotencyKey: `topup:${intent.transactionId}`, // ← the replay guard
+        },
+        tx,
+      );
     }
   });
 
@@ -632,14 +642,17 @@ const handleIpn = catchAsync(async (req, res) => {
 
 ```ts
 router.post("/sslcz/success", (req, res) =>
-  res.redirect(`${FRONTEND}/dashboard/wallet?topup=processing&tran=${req.body.tran_id}`));
-router.post("/sslcz/fail",    (req, res) => res.redirect(`${FRONTEND}/dashboard/wallet?topup=failed`));
-router.post("/sslcz/cancel",  (req, res) => res.redirect(`${FRONTEND}/dashboard/wallet?topup=cancelled`));
+  res.redirect(
+    `${FRONTEND}/dashboard/wallet?topup=processing&tran=${req.body.tran_id}`,
+  ),
+);
+router.post("/sslcz/fail", (req, res) =>
+  res.redirect(`${FRONTEND}/dashboard/wallet?topup=failed`),
+);
+router.post("/sslcz/cancel", (req, res) =>
+  res.redirect(`${FRONTEND}/dashboard/wallet?topup=cancelled`),
+);
 ```
-
-The wallet page polls `GET /wallet/topup/:transactionId/status` for a few seconds, since the IPN may land slightly after the redirect.
-
----
 
 ### Step P2.7 — Reconciliation job
 
@@ -648,6 +661,7 @@ Intents that never get an IPN (browser closed mid-payment, gateway hiccup) must 
 Hourly: for every intent `PENDING` and older than 30 minutes, call `provider.validate()` by transaction id. Settle it either way. Alert if any intent has been pending more than 24 hours.
 
 **Verify the whole phase:**
+
 ```
 1. Top up ৳500 in sandbox → wallet shows ৳500, one TOPUP row
 2. Replay the same IPN body 5× → still ৳500, still one row
@@ -655,11 +669,12 @@ Hourly: for every intent `PENDING` and older than 30 minutes, call `provider.val
 4. POST directly to /sslcz/success with a fake tran_id → nothing credited
 5. Cancel at the gateway → intent CANCELLED, wallet unchanged
 ```
+
 **Commit:** `feat(payment): SSLCommerz wallet top-up with IPN verification`
 
 ---
 
-# Phase P3 — Deposits on booking
+## Phase P3 (Backend) — Deposits on booking
 
 ### Step P3.1 — Deposit policy per salon
 
@@ -674,10 +689,6 @@ model Salon {
 ```
 
 Resolution: `depositPercent` if set, else `depositMinor`; clamp to a platform min (৳20) and max (৳500). For high-ticket services (bridal, keratin) a percentage makes more sense than a flat fee.
-
-Add the controls to the owner's **Settings → Booking Policy** screen with plain-language copy: *"Customers pay ৳30 upfront to hold their slot. It comes off their bill when they arrive. If they don't show up, you keep ৳21."*
-
----
 
 ### Step P3.2 — Hold the deposit at booking time
 
@@ -707,7 +718,7 @@ const appointment = await prisma.$transaction(async (tx) => {
 });
 ```
 
-If the wallet has insufficient available balance the whole transaction rolls back — slot released, no appointment. Return a `402` the frontend turns into *"Add ৳30 to your wallet to confirm this booking"* with a top-up button.
+If the wallet has insufficient available balance the whole transaction rolls back — slot released, no appointment. Return a `402` the frontend turns into _"Add ৳30 to your wallet to confirm this booking"_ with a top-up button.
 
 ---
 
@@ -715,20 +726,226 @@ If the wallet has insufficient available balance the whole transaction rolls bac
 
 Wire into `updateAppointmentStatus` and `cancelAppointment`:
 
-| Transition | Action |
-|---|---|
-| → `CANCELLED` by customer, **before** the window closes | `releaseDeposit` — full amount back to available |
-| → `CANCELLED` by customer, **inside** the window | `forfeitDeposit` — split per `noShowSalonSharePct` |
-| → `CANCELLED` by salon or admin | `releaseDeposit` + optional `GOODWILL_CREDIT` |
-| → `COMPLETED` | `applyDeposit` — deposit comes off the bill |
-| → `NO_SHOW` | `forfeitDeposit` + `LedgerEntry` crediting the salon its share |
+| Transition                                              | Action                                                         |
+| ------------------------------------------------------- | -------------------------------------------------------------- |
+| → `CANCELLED` by customer, **before** the window closes | `releaseDeposit` — full amount back to available               |
+| → `CANCELLED` by customer, **inside** the window        | `forfeitDeposit` — split per `noShowSalonSharePct`             |
+| → `CANCELLED` by salon or admin                         | `releaseDeposit` + optional `GOODWILL_CREDIT`                  |
+| → `COMPLETED`                                           | `applyDeposit` — deposit comes off the bill                    |
+| → `NO_SHOW`                                             | `forfeitDeposit` + `LedgerEntry` crediting the salon its share |
 
 Guard rails:
+
 - Only the salon or an admin may set `NO_SHOW`, and only after `startsAt` has passed.
 - A no-show is **appealable for 48 hours** — the customer can dispute, an admin can reverse with an `ADJUSTMENT`. Publish this; it is what stops the mechanic feeling unfair.
 - Auto-`NO_SHOW` after a grace period (default 20 min) via a scheduled job, so owners don't have to remember.
 
 Every one of these is idempotent by appointment id, so a double-click or a retry cannot double-charge.
+
+---
+
+## Phase P4 (Backend) — Salon settlement
+
+### Step P4.1 — Commission rules
+
+```prisma
+model CommissionRule {
+  id             String   @id @default(uuid())
+  salonId        String?              // null = platform default
+  minAmountMinor Int      @default(0)
+  maxAmountMinor Int?
+  flatFeeMinor   Int?                 // e.g. 1000 = ৳10
+  percentBps     Int?                 // basis points. 800 = 8%
+  appliesTo      CommissionScope      // NEW_CUSTOMER | OFF_PEAK | ALL
+  isActive       Boolean  @default(true)
+}
+```
+
+Platform defaults:
+
+| Booking                     | Commission                         |
+| --------------------------- | ---------------------------------- |
+| Salon's own repeat customer | **0**                              |
+| New customer under ৳500     | flat ৳10                           |
+| New customer ৳500+          | 8%                                 |
+| Off-peak fill               | flat ৳10 or 5%, whichever is lower |
+
+> **The 0% on repeat customers rule is the reason salons will sign.** It changes your pitch from _"give me a cut of your business"_ to _"pay me only for money I brought you."_ Requires `Appointment.source` and a first-booking check against that salon — implement both here.
+
+---
+
+### Step P4.2 — Ledger entries
+
+Every completed booking writes a balanced set of rows:
+
+```prisma
+model LedgerEntry {
+  id            String      @id @default(uuid())
+  appointmentId String?
+  salonId       String?
+  account       LedgerAccount   // SALON_PAYABLE | PLATFORM_REVENUE | CUSTOMER_WALLET | GATEWAY_CLEARING
+  amountMinor   Int             // signed
+  description   String
+  payoutId      String?
+  createdAt     DateTime    @default(now())
+
+  @@index([salonId, createdAt])
+  @@index([payoutId])
+}
+```
+
+Example — a ৳105 off-peak cut, ৳30 deposit, ৳10 commission:
+
+| Account            | Amount  | Note                  |
+| ------------------ | ------- | --------------------- |
+| `SALON_PAYABLE`    | `+3000` | deposit owed to salon |
+| `PLATFORM_REVENUE` | `+1000` | commission            |
+| `SALON_PAYABLE`    | `−1000` | commission deducted   |
+
+Salon nets ৳20 from the platform; collects ৳75 cash at the counter. **Every appointment's entries must sum to zero across accounts** — that is your reconciliation test.
+
+---
+
+### Step P4.3 — Payouts
+
+```prisma
+model Payout {
+  id            String       @id @default(uuid())
+  salonId       String
+  periodStart   DateTime
+  periodEnd     DateTime
+  grossMinor    Int
+  commissionMinor Int
+  netMinor      Int
+  status        PayoutStatus  // PENDING | PROCESSING | PAID | FAILED
+  method        String?       // BKASH | BANK
+  reference     String?
+  paidAt        DateTime?
+}
+```
+
+- Weekly batch (configurable) rolls up unpaid `SALON_PAYABLE` entries per salon.
+
+# Phase P5 — Money notifications
+
+Wire `NotificationService` (see [FEATURE.md](./FEATURE.md)) to these events. **SMS is not optional in Bangladesh** — most customers never open email.
+
+| Event              | Channel     | Message                                                           |
+| ------------------ | ----------- | ----------------------------------------------------------------- |
+| Top-up success     | SMS + push  | `৳500 added. Balance ৳500.`                                       |
+| Booking confirmed  | SMS         | `Booked: Glamour, Tue 12:30. ৳30 deposit held, ৳75 due at salon.` |
+| T−2h reminder      | SMS + push  | `Your appointment is in 2 hours. Cancel free before 10:30.`       |
+| Cancelled in time  | push        | `৳30 returned to your wallet.`                                    |
+| Marked no-show     | SMS         | `৳30 deposit forfeited. Think this is wrong? Appeal within 48h.`  |
+| Completed          | push        | `Thanks! ৳15 cashback added. Rate your visit?`                    |
+| Owner: new booking | SMS         | `New booking: Rahim, Haircut, Tue 12:30.`                         |
+| Owner: payout sent | SMS + email | `৳2,450 sent to your bKash. Ref BK123.`                           |
+
+Pick a bulk BD SMS provider that supports Bengali (UTF-16) — check per-SMS cost carefully, since Bengali characters halve the per-segment character count and can double your cost.
+
+---
+
+## Done checklist (Backend)
+
+```
+P1  Foundations
+  □ P1.1  Payment security hole closed (FIXING.md F1.2)
+  □ P1.2  Money migrated to integer poisha (Schema + Utils)
+  □ P1.3  Wallet + WalletTransaction schema + CHECK constraints
+  □ P1.4  WalletService.mutate — locking + idempotency
+  □ P1.5  Wallet API
+
+P2  SSLCommerz
+  □ P2.1  Sandbox account + env config + IPN URL registered
+  □ P2.2  PaymentProvider interface
+  □ P2.3  SslCommerzProvider (init + validate + verifySignature)
+  □ P2.4  PaymentIntent schema
+  □ P2.5  Top-up initiation API
+  □ P2.6  IPN webhook — 5 defences
+  □ P2.7  Reconciliation job
+
+P3  Deposits
+  □ P3.1  Per-salon deposit policy schema
+  □ P3.2  Hold inside the booking transaction
+  □ P3.3  Release / apply / forfeit + 48h appeal
+
+P4  Settlement
+  □ P4.1  Commission rules (incl. 0% repeat customers)
+  □ P4.2  LedgerEntry
+  □ P4.3  Payout batch + admin queue
+
+P5  □ Money notifications over SMS + push
+```
+
+---
+
+---
+
+# 🖥️ PART 2: FRONTEND IMPLEMENTATION
+
+## Phase P1 (Frontend) — Foundations
+
+### Step P1.2 (Frontend) — Migrate money to integer poisha
+
+Mirror it in `Salon-Management-Frontend/src/lib/money.ts`.
+
+**Then fix every read site.** Search and update:
+
+```bash
+grep -rn "\.price\b" src/ | grep -v node_modules
+grep -rn "\.amount\b" src/ | grep -v node_modules
+```
+
+Known sites: `appointment.service.ts:157` (email template), `payment.service.ts:35`, `dashboardStats.service.ts` (revenue aggregation), and on the frontend `BookAppointmentModal.tsx:212` and every card that prints `৳{price}`.
+
+**Verify:** a ৳150 service reads back as exactly `15000`; the dashboard revenue total matches what it showed before the migration.
+**Commit:** `refactor(money): store all amounts as integer poisha`
+
+---
+
+### Step P1.6 — Wallet UI
+
+New page `src/app/(dashboardLayout)/dashboard/wallet/page.tsx`:
+
+```
+┌────────────────────────────────────────┐
+│  Available          ৳470               │
+│  Held (1 booking)   ৳30                │
+│  ─────────────────────────────         │
+│  Total              ৳500               │
+│              [ + Add Money ]           │
+├────────────────────────────────────────┤
+│  16 Sep  Deposit held — Glamour  −৳30  │
+│  14 Sep  Top up via bKash       +৳500  │
+└────────────────────────────────────────┘
+```
+
+Services in `src/services/wallet/`: `getMyWallet.ts`, `getTransactions.ts`. Add a **Wallet** entry to `DashboardSidebar.tsx` `menuItems` for `["CUSTOMER", "SALON_OWNER", "STAFF", "ADMIN"]`. Show available balance in the navbar for customers.
+
+**Verify:** the page shows the admin-credited ৳500 and its transaction row.
+**Commit:** `feat(wallet): customer wallet page`
+
+---
+
+## Phase P2 (Frontend) — SSLCommerz top-up
+
+### Step P2.5 (Frontend) — Top-up initiation UI
+
+Preset amounts in the UI: **৳200 · ৳500 · ৳1000 · ৳2000 · custom**. Nudge ৳500 — roughly three haircuts, the right habit-forming size.
+
+---
+
+### Step P2.6 (Frontend) — IPN Redirect polling
+
+The wallet page polls `GET /wallet/topup/:transactionId/status` for a few seconds, since the IPN may land slightly after the redirect.
+
+---
+
+## Phase P3 (Frontend) — Deposits on booking
+
+### Step P3.1 (Frontend) — Deposit policy per salon UI
+
+Add the controls to the owner's **Settings → Booking Policy** screen with plain-language copy: _"Customers pay ৳30 upfront to hold their slot. It comes off their bill when they arrive. If they don't show up, you keep ৳21."_
 
 ---
 
@@ -757,6 +974,7 @@ In the booking modal, above the Confirm button:
 Transparency here is the whole game. A hidden or surprising deposit destroys trust; a clearly explained one is accepted without friction.
 
 **Verify:**
+
 ```
 1. Book with ৳500 wallet → available ৳470, held ৳30
 2. Cancel 3h before   → available ৳500, held ৳0
@@ -764,91 +982,15 @@ Transparency here is the whole game. A hidden or surprising deposit destroys tru
 4. Book, mark no-show → balance ৳470, salon credited ৳21, platform ৳9
 5. Book with ৳10 wallet → 402 + top-up prompt, slot NOT consumed
 ```
+
 **Commit:** `feat(payment): booking deposits with hold, release, apply and forfeit`
 
 ---
 
-# Phase P4 — Salon settlement
+## Phase P4 (Frontend) — Salon settlement
 
-### Step P4.1 — Commission rules
+### Step P4.3 (Frontend) — Payouts UI
 
-```prisma
-model CommissionRule {
-  id             String   @id @default(uuid())
-  salonId        String?              // null = platform default
-  minAmountMinor Int      @default(0)
-  maxAmountMinor Int?
-  flatFeeMinor   Int?                 // e.g. 1000 = ৳10
-  percentBps     Int?                 // basis points. 800 = 8%
-  appliesTo      CommissionScope      // NEW_CUSTOMER | OFF_PEAK | ALL
-  isActive       Boolean  @default(true)
-}
-```
-
-Platform defaults:
-
-| Booking | Commission |
-|---|---|
-| Salon's own repeat customer | **0** |
-| New customer under ৳500 | flat ৳10 |
-| New customer ৳500+ | 8% |
-| Off-peak fill | flat ৳10 or 5%, whichever is lower |
-
-> **The 0% on repeat customers rule is the reason salons will sign.** It changes your pitch from *"give me a cut of your business"* to *"pay me only for money I brought you."* Requires `Appointment.source` and a first-booking check against that salon — implement both here.
-
----
-
-### Step P4.2 — Ledger entries
-
-Every completed booking writes a balanced set of rows:
-
-```prisma
-model LedgerEntry {
-  id            String      @id @default(uuid())
-  appointmentId String?
-  salonId       String?
-  account       LedgerAccount   // SALON_PAYABLE | PLATFORM_REVENUE | CUSTOMER_WALLET | GATEWAY_CLEARING
-  amountMinor   Int             // signed
-  description   String
-  payoutId      String?
-  createdAt     DateTime    @default(now())
-
-  @@index([salonId, createdAt])
-  @@index([payoutId])
-}
-```
-
-Example — a ৳105 off-peak cut, ৳30 deposit, ৳10 commission:
-
-| Account | Amount | Note |
-|---|---|---|
-| `SALON_PAYABLE` | `+3000` | deposit owed to salon |
-| `PLATFORM_REVENUE` | `+1000` | commission |
-| `SALON_PAYABLE` | `−1000` | commission deducted |
-
-Salon nets ৳20 from the platform; collects ৳75 cash at the counter. **Every appointment's entries must sum to zero across accounts** — that is your reconciliation test.
-
----
-
-### Step P4.3 — Payouts
-
-```prisma
-model Payout {
-  id            String       @id @default(uuid())
-  salonId       String
-  periodStart   DateTime
-  periodEnd     DateTime
-  grossMinor    Int
-  commissionMinor Int
-  netMinor      Int
-  status        PayoutStatus  // PENDING | PROCESSING | PAID | FAILED
-  method        String?       // BKASH | BANK
-  reference     String?
-  paidAt        DateTime?
-}
-```
-
-- Weekly batch (configurable) rolls up unpaid `SALON_PAYABLE` entries per salon.
 - Owner sees **Dashboard → Earnings**: this period, pending payout, history, per-booking breakdown.
 - Admin sees a payout queue, marks paid with a reference. Manual bKash/bank transfer is fine at launch — automate later.
 
@@ -883,60 +1025,26 @@ On complete: apply the deposit, record the `Payment` row with the real collected
 
 ---
 
-# Phase P5 — Money notifications
-
-Wire `NotificationService` (see [FEATURE.md](./FEATURE.md)) to these events. **SMS is not optional in Bangladesh** — most customers never open email.
-
-| Event | Channel | Message |
-|---|---|---|
-| Top-up success | SMS + push | `৳500 added. Balance ৳500.` |
-| Booking confirmed | SMS | `Booked: Glamour, Tue 12:30. ৳30 deposit held, ৳75 due at salon.` |
-| T−2h reminder | SMS + push | `Your appointment is in 2 hours. Cancel free before 10:30.` |
-| Cancelled in time | push | `৳30 returned to your wallet.` |
-| Marked no-show | SMS | `৳30 deposit forfeited. Think this is wrong? Appeal within 48h.` |
-| Completed | push | `Thanks! ৳15 cashback added. Rate your visit?` |
-| Owner: new booking | SMS | `New booking: Rahim, Haircut, Tue 12:30.` |
-| Owner: payout sent | SMS + email | `৳2,450 sent to your bKash. Ref BK123.` |
-
-Pick a bulk BD SMS provider that supports Bengali (UTF-16) — check per-SMS cost carefully, since Bengali characters halve the per-segment character count and can double your cost.
-
----
-
-## Done checklist
+## Done checklist (Frontend)
 
 ```
 P1  Foundations
-  □ P1.1  Payment security hole closed (FIXING.md F1.2)
-  □ P1.2  Money migrated to integer poisha
-  □ P1.3  Wallet + WalletTransaction schema + CHECK constraints
-  □ P1.4  WalletService.mutate — locking + idempotency
-  □ P1.5  Wallet API
+  □ P1.2  Frontend money utils + fix read sites
   □ P1.6  Wallet UI + sidebar entry
 
 P2  SSLCommerz
-  □ P2.1  Sandbox account + env config + IPN URL registered
-  □ P2.2  PaymentProvider interface
-  □ P2.3  SslCommerzProvider (init + validate + verifySignature)
-  □ P2.4  PaymentIntent schema
-  □ P2.5  Top-up initiation + UI
-  □ P2.6  IPN webhook — 5 defences
-  □ P2.7  Reconciliation job
+  □ P2.5  Top-up UI (Preset amounts)
+  □ P2.6  Wallet page polling
 
 P3  Deposits
-  □ P3.1  Per-salon deposit policy
-  □ P3.2  Hold inside the booking transaction
-  □ P3.3  Release / apply / forfeit + 48h appeal
+  □ P3.1  Booking Policy Settings UI
   □ P3.4  Customer-facing breakdown UI
 
 P4  Settlement
-  □ P4.1  Commission rules (incl. 0% repeat customers)
-  □ P4.2  LedgerEntry
-  □ P4.3  Payout batch + owner Earnings + admin queue
+  □ P4.3  Owner Earnings UI
   □ P4.4  Collect-at-salon screen
-
-P5  □ Money notifications over SMS + push
 ```
 
 **Go-live gate:** switch `SSLCZ_IS_LIVE=true` only when P1–P4 are green, the reconciliation job has run clean for 7 consecutive days, and you have manually verified one real ৳100 top-up with your own money.
 
-Next: [BOOKING.md](./BOOKING.md) — the booking engine and staff selection.
+<!-- Next: [BOOKING.md](./BOOKING.md) — the booking engine and staff selection. -->

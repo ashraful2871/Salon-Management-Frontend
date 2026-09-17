@@ -22,6 +22,7 @@ import { Separator } from "../ui/separator";
 import BookAppointmentModal from "./BookAppointmentModal";
 import ReviewModal from "./ReviewModal";
 import { getMyAppointments } from "@/services/appoinments/getMyAppointments";
+import { formatBDT } from "@/lib/money";
 
 type OperatingHour = { open: string; close: string };
 type OperatingHours = Partial<
@@ -364,9 +365,9 @@ const SalonDetails = ({ salon }: { salon: any }) => {
                         </div>
 
                         <div className="flex items-center justify-between sm:flex-col sm:items-end gap-3 shrink-0">
-                          {typeof s.price === "number" && (
+                          {typeof s.priceMinor === "number" && (
                             <p className="font-bold text-lg text-foreground">
-                              ৳{s.price}
+                              {formatBDT(s.priceMinor)}
                             </p>
                           )}
                         </div>

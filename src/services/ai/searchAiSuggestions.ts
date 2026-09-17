@@ -6,7 +6,7 @@ export interface AiSalonService {
   id: string;
   name: string;
   category: string;
-  price: number;
+  priceMinor: number;
   duration: number;
 }
 

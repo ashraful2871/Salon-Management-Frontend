@@ -3,6 +3,7 @@
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse, SalonService } from "@/lib/api-types";
 import { revalidateTag } from "next/cache";
+import { toMinor } from "@/lib/money";
 
 export const createService = async (
   _currentState: ApiResponse<SalonService> | null,
@@ -13,7 +14,7 @@ export const createService = async (
       name: formData.get("name") as string,
       description: formData.get("description") as string,
       category: formData.get("category") as string,
-      price: Number(formData.get("price")),
+      priceMinor: toMinor(Number(formData.get("price"))),
       duration: Number(formData.get("duration")),
       salonId: formData.get("salonId") as string,
     };
