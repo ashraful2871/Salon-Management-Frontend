@@ -3,10 +3,11 @@ export const registerUser = async (
   _currentState: unknown,
   formData: FormData,
 ): Promise<any> => {
+  let payload;
   try {
     const role = formData.get("isSalonOwner") ? "SALON_OWNER" : "CUSTOMER";
 
-    const payload = {
+    payload = {
       name: formData.get("name"),
       email: formData.get("email"),
       password: formData.get("password"),
@@ -25,12 +26,14 @@ export const registerUser = async (
       },
     );
 
-    return await res.json();
+    const result = await res.json();
+    return { ...result, inputs: payload };
   } catch (error) {
     console.error("registerUser error:", error);
     return {
       success: false,
       message: "Registration failed. Please try again.",
+      inputs: payload,
     };
   }
 };
