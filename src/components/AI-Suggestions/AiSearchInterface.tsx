@@ -40,6 +40,10 @@ const toCardSalon = (salon: AiSalonMatch) => {
     salon.address ||
     "Unknown";
 
+  const serviceNames = (Array.isArray(salon.services) ? salon.services : [])
+    .map((s) => s?.name)
+    .filter(Boolean) as string[];
+
   return {
     id: salon.id,
     name: salon.name,
@@ -47,11 +51,55 @@ const toCardSalon = (salon: AiSalonMatch) => {
     reviews: salon.totalReviews ?? 0,
     location,
     image: isUsableImage(img) ? (img as string) : FALLBACK_IMAGE,
-    services: salon.services?.length
-      ? salon.services.map((s) => s.name)
-      : ["Service"],
+    services: serviceNames.length ? serviceNames : ["Service"],
     openNow: false,
   };
+};
+
+/**
+ * Renders one match plus whatever extra detail the response happened to carry.
+ *
+ * `similarity` and `services` only exist on backends running the current AI
+ * search; an older deployment returns a bare row. Every field below is treated
+ * as optional so a stale backend degrades to a plain card instead of throwing.
+ */
+const SalonMatchCard = ({
+  salon,
+  index,
+}: {
+  salon: AiSalonMatch;
+  index: number;
+}) => {
+  const services = Array.isArray(salon.services) ? salon.services : [];
+
+  const prices = services
+    .map((s) => Number(s?.price))
+    .filter((p) => Number.isFinite(p));
+
+  const similarity = Number(salon.similarity);
+  const hasSimilarity = Number.isFinite(similarity);
+
+  return (
+    <div className="relative flex flex-col">
+      <SalonCard salon={toCardSalon(salon)} index={index} />
+
+      {(hasSimilarity || prices.length > 0) && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 px-1">
+          {hasSimilarity && (
+            <Badge variant="secondary" className="text-xs">
+              {Math.round(similarity * 100)}% match
+            </Badge>
+          )}
+          {prices.length > 0 && (
+            <span className="text-xs text-muted-foreground">
+              from BDT {Math.min(...prices).toLocaleString()} &middot;{" "}
+              {services.length} service{services.length === 1 ? "" : "s"}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default function AiSearchInterface() {
@@ -77,7 +125,10 @@ export default function AiSearchInterface() {
 
       if (response.success && response.data) {
         setAiResponse(response.data.aiResponse);
-        setSalons(response.data.salons ?? []);
+        // Defensive: an older backend may omit or reshape this.
+        setSalons(
+          Array.isArray(response.data.salons) ? response.data.salons : [],
+        );
         setSearchedFor(response.data.query ?? trimmed);
       } else {
         setError(response.message || "Failed to fetch AI suggestions.");
@@ -212,27 +263,7 @@ export default function AiSearchInterface() {
               </h3>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {salons.map((salon, index) => (
-                  <div key={salon.id} className="relative flex flex-col">
-                    <SalonCard salon={toCardSalon(salon)} index={index} />
-
-                    {/* What the vector search actually thought, and the cheapest
-                        way in — both come straight from the matched row. */}
-                    <div className="mt-2 flex flex-wrap items-center gap-2 px-1">
-                      <Badge variant="secondary" className="text-xs">
-                        {Math.round(salon.similarity * 100)}% match
-                      </Badge>
-                      {salon.services.length > 0 && (
-                        <span className="text-xs text-muted-foreground">
-                          from BDT{" "}
-                          {Math.min(
-                            ...salon.services.map((s) => s.price),
-                          ).toLocaleString()}{" "}
-                          &middot; {salon.services.length} service
-                          {salon.services.length === 1 ? "" : "s"}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                  <SalonMatchCard key={salon.id} salon={salon} index={index} />
                 ))}
               </div>
             </div>
