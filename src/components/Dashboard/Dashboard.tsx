@@ -6,16 +6,24 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowUpRight,
+  Banknote,
   Calendar,
+  CheckCircle2,
   Clock,
-  DollarSign,
   MoreHorizontal,
+  Package,
+  Percent,
+  PiggyBank,
+  Receipt,
+  Store,
   TrendingUp,
   Users,
-  Store,
-  Package,
+  Wallet,
 } from "lucide-react";
 import Link from "next/link";
+import { format } from "date-fns";
+import { formatBDT } from "@/lib/money";
+import EarningsTrend from "@/components/Earnings/EarningsTrend";
 
 const getStatusColor = (status: string) => {
   switch ((status || "").toLowerCase()) {
@@ -45,6 +53,16 @@ const formatTime12 = (hhmm?: string) => {
   return `${h12}:${mm} ${ampm}`;
 };
 
+/**
+ * Money arrives as poisha under `<name>Minor`. `formatBDT` divides by 100
+ * itself, so the taka twin `addTakaFields` adds alongside it must never be the
+ * thing that reaches this component — that renders every amount 100x too small.
+ */
+const money = (minor: unknown) => formatBDT(typeof minor === "number" ? minor : 0);
+
+const count = (value: unknown) =>
+  typeof value === "number" ? value.toLocaleString() : "0";
+
 const Dashboard = ({
   dashboardData,
   userRole,
@@ -52,9 +70,11 @@ const Dashboard = ({
   dashboardData: any;
   userRole: string;
 }) => {
-  // Build stats based on role
-  const stats = buildStats(dashboardData, userRole);
-  const recentAppointments = dashboardData?.recentAppointments || [];
+  const data = dashboardData ?? {};
+  const stats = buildStats(data, userRole);
+  const recentAppointments = data.recentAppointments || [];
+  const monthly = data.monthlyEarnings || [];
+  const showMoneyPanel = userRole === "ADMIN" || userRole === "SALON_OWNER";
 
   return (
     <div className="space-y-8">
@@ -70,12 +90,28 @@ const Dashboard = ({
             Welcome back! Here is what is happening today.
           </p>
         </div>
-        <Link href="/dashboard/appointments">
-          <Button>
-            <Calendar className="mr-2 h-4 w-4" />
-            View Schedule
-          </Button>
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          {userRole === "SALON_OWNER" && (
+            <Link href="/dashboard/earnings">
+              <Button variant="outline">
+                <Banknote className="mr-2 h-4 w-4" />
+                Earnings
+              </Button>
+            </Link>
+          )}
+          <Link href="/dashboard/wallet">
+            <Button variant="outline">
+              <Wallet className="mr-2 h-4 w-4" />
+              Wallet
+            </Button>
+          </Link>
+          <Link href="/dashboard/appointments">
+            <Button>
+              <Calendar className="mr-2 h-4 w-4" />
+              View Schedule
+            </Button>
+          </Link>
+        </div>
       </motion.div>
 
       {/* Stats Grid */}
@@ -87,7 +123,7 @@ const Dashboard = ({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
           >
-            <Card>
+            <Card className="h-full">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div
@@ -98,7 +134,7 @@ const Dashboard = ({
                   {stat.change && (
                     <div
                       className={`flex items-center gap-1 text-sm ${
-                        stat.trend === "up" ? "text-sage" : "text-destructive"
+                        stat.trend === "down" ? "text-destructive" : "text-sage"
                       }`}
                     >
                       <TrendingUp
@@ -113,12 +149,144 @@ const Dashboard = ({
                 <div className="mt-4">
                   <p className="text-2xl font-bold">{stat.value}</p>
                   <p className="text-sm text-muted-foreground">{stat.title}</p>
+                  {stat.hint && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {stat.hint}
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </motion.div>
         ))}
       </div>
+
+      {/* Money: the ledger view, for the two roles that have one */}
+      {showMoneyPanel && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="grid gap-6 lg:grid-cols-3"
+        >
+          <Card className="lg:col-span-2">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Earnings over the last 6 months</CardTitle>
+              {userRole === "SALON_OWNER" && (
+                <Link href="/dashboard/earnings">
+                  <Button variant="ghost" size="sm">
+                    Details
+                    <ArrowUpRight className="ml-1 h-4 w-4" />
+                  </Button>
+                </Link>
+              )}
+            </CardHeader>
+            <CardContent>
+              <EarningsTrend months={monthly} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {userRole === "ADMIN" ? "Platform ledger" : "Money in motion"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              {userRole === "ADMIN" ? (
+                <>
+                  <LedgerRow
+                    label="Booked through the platform"
+                    value={money(data.grossBookingsMinor)}
+                  />
+                  <LedgerRow
+                    label="Commission earned"
+                    value={money(data.totalRevenueMinor)}
+                    accent="text-sage"
+                  />
+                  <LedgerRow
+                    label="Earned by salons"
+                    value={money(data.salonEarningsMinor)}
+                  />
+                  <LedgerRow
+                    label="Owed to salons"
+                    value={money(data.salonPayableMinor)}
+                    accent="text-gold"
+                  />
+                  <LedgerRow
+                    label="Paid out"
+                    value={money(data.paidOutMinor)}
+                  />
+                  <LedgerRow
+                    label="Customer wallet float"
+                    value={money(data.walletFloatMinor)}
+                  />
+                  <LedgerRow
+                    label="Deposits held"
+                    value={money(data.depositsHeldMinor)}
+                  />
+                  <div className="space-y-1 border-t pt-3 text-xs text-muted-foreground">
+                    <p>This month: {money(data.monthRevenueMinor)} commission</p>
+                    <p>Today: {money(data.todayRevenueMinor)} commission</p>
+                    <p>Average ticket: {money(data.averageTicketMinor)}</p>
+                    <p>
+                      {count(data.pendingPayoutCount)} payout(s) pending ·{" "}
+                      {money(data.pendingPayoutMinor)}
+                    </p>
+                    <p>
+                      Commission rate: {data.standardCommissionPercent ?? 10}%
+                      on every booking
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <LedgerRow
+                    label="Billed to customers"
+                    value={money(data.grossBookingsMinor)}
+                  />
+                  <LedgerRow
+                    label="Platform commission"
+                    value={`-${money(data.commissionMinor)}`}
+                    accent="text-destructive"
+                  />
+                  <LedgerRow
+                    label="Net earnings"
+                    value={money(data.netEarningsMinor)}
+                    accent="text-sage"
+                  />
+                  <LedgerRow
+                    label="Next payout"
+                    value={money(data.payableMinor)}
+                    accent="text-gold"
+                  />
+                  <LedgerRow
+                    label="Paid out to date"
+                    value={money(data.paidOutMinor)}
+                  />
+                  <LedgerRow
+                    label="Wallet balance"
+                    value={money(data.walletBalanceMinor)}
+                  />
+                  <div className="space-y-1 border-t pt-3 text-xs text-muted-foreground">
+                    <p>This month: {money(data.monthNetMinor)} net</p>
+                    <p>Today: {money(data.todayRevenueMinor)} billed</p>
+                    <p>Average ticket: {money(data.averageTicketMinor)}</p>
+                    <p>
+                      Deposits held on upcoming bookings:{" "}
+                      {money(data.depositsHeldMinor)}
+                    </p>
+                    <p>
+                      Commission: {data.standardCommissionPercent ?? 10}% on every
+                      completed booking
+                    </p>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Main Content Grid */}
       <div className="grid lg:grid-cols-3 gap-6">
@@ -171,6 +339,12 @@ const Dashboard = ({
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
+                        {typeof appointment.totalMinor === "number" &&
+                          appointment.totalMinor > 0 && (
+                            <span className="hidden text-sm font-medium sm:inline">
+                              {money(appointment.totalMinor)}
+                            </span>
+                          )}
                         <span className="text-sm text-muted-foreground">
                           {appointment.startTime
                             ? formatTime12(appointment.startTime)
@@ -193,12 +367,13 @@ const Dashboard = ({
           </Card>
         </motion.div>
 
-        {/* Appointment Status Breakdown (for owners/admins) */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.5 }}
+          className="space-y-6"
         >
+          {/* Appointment Status Breakdown */}
           <Card>
             <CardHeader>
               <CardTitle>
@@ -209,9 +384,9 @@ const Dashboard = ({
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {dashboardData?.appointmentsByStatus?.length > 0 ? (
+                {data.appointmentsByStatus?.length > 0 ? (
                   <>
-                    {dashboardData.appointmentsByStatus.map(
+                    {data.appointmentsByStatus.map(
                       (item: any, index: number) => {
                         const statusLabel = (item.status || "")
                           .replace(/_/g, " ")
@@ -246,18 +421,23 @@ const Dashboard = ({
                       }
                     )}
 
-                    {/* Show total spent for customers */}
-                    {userRole === "CUSTOMER" &&
-                      dashboardData?.totalSpent !== undefined && (
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border-t mt-2">
-                          <span className="text-sm font-medium text-muted-foreground">
-                            Total Spent
-                          </span>
-                          <span className="font-bold text-gold">
-                            ${dashboardData.totalSpent || 0}
-                          </span>
-                        </div>
-                      )}
+                    {userRole === "CUSTOMER" && (
+                      <div className="space-y-2 border-t pt-3 text-sm">
+                        <LedgerRow
+                          label="Total spent"
+                          value={money(data.totalSpentMinor)}
+                        />
+                        <LedgerRow
+                          label="Wallet balance"
+                          value={money(data.walletBalanceMinor)}
+                          accent="text-sage"
+                        />
+                        <LedgerRow
+                          label="Deposits held"
+                          value={money(data.depositsHeldMinor)}
+                        />
+                      </div>
+                    )}
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground text-center py-4">
@@ -267,55 +447,122 @@ const Dashboard = ({
               </div>
             </CardContent>
           </Card>
+
+          {/* Recent payouts, for whoever settles them */}
+          {showMoneyPanel && data.recentPayouts?.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Payouts</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {data.recentPayouts.map((payout: any) => (
+                  <div
+                    key={payout.id}
+                    className="flex items-center justify-between rounded-lg bg-muted/50 p-3 text-sm"
+                  >
+                    <div>
+                      <p className="font-medium">
+                        {money(payout.netMinor)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {payout.salon?.name ? `${payout.salon.name} · ` : ""}
+                        {payout.periodEnd
+                          ? format(new Date(payout.periodEnd), "dd MMM yyyy")
+                          : ""}
+                      </p>
+                    </div>
+                    <Badge variant="outline">{payout.status}</Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </motion.div>
       </div>
     </div>
   );
 };
 
-function buildStats(data: any, role: string) {
-  if (!data) {
-    return [
-      {
-        title: "Appointments",
-        value: "0",
-        icon: Calendar,
-        color: "bg-gradient-rose",
-      },
-      {
-        title: "Revenue",
-        value: "$0",
-        icon: DollarSign,
-        color: "bg-gradient-gold",
-      },
-    ];
-  }
+const LedgerRow = ({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: string;
+}) => (
+  <div className="flex items-center justify-between">
+    <span className="text-muted-foreground">{label}</span>
+    <span className={accent ? `font-semibold ${accent}` : "font-medium"}>
+      {value}
+    </span>
+  </div>
+);
 
+function buildStats(data: any, role: string) {
   if (role === "ADMIN") {
     return [
       {
-        title: "Total Users",
-        value: data.totalUsers?.toLocaleString() || "0",
-        icon: Users,
-        color: "bg-sage",
+        title: "Total Revenue (commission)",
+        value: money(data.totalRevenueMinor),
+        icon: Banknote,
+        color: "bg-gradient-gold",
+        hint: `${money(data.monthRevenueMinor)} this month`,
       },
       {
-        title: "Total Salons",
-        value: data.totalSalons?.toLocaleString() || "0",
-        icon: Store,
+        title: "Booked through the platform",
+        value: money(data.grossBookingsMinor),
+        icon: Receipt,
+        color: "bg-primary",
+        hint: `${data.effectiveCommissionPercent ?? 0}% effective commission`,
+      },
+      {
+        title: "Owed to salons",
+        value: money(data.salonPayableMinor),
+        icon: PiggyBank,
+        color: "bg-sage",
+        hint: `${count(data.pendingPayoutCount)} payout(s) pending`,
+      },
+      {
+        title: "Total Users",
+        value: count(data.totalUsers),
+        icon: Users,
         color: "bg-gradient-rose",
+        hint: `${count(data.totalSalons)} salons · ${count(
+          data.activeSalons,
+        )} active`,
       },
       {
         title: "Total Appointments",
-        value: data.totalAppointments?.toLocaleString() || "0",
+        value: count(data.totalAppointments),
         icon: Calendar,
         color: "bg-primary",
+        hint: `${count(data.todayAppointments)} today`,
       },
       {
-        title: "Total Revenue",
-        value: `$${(data.totalRevenue || 0).toLocaleString()}`,
-        icon: DollarSign,
+        title: "Wallet float",
+        value: money(data.walletFloatMinor),
+        icon: Wallet,
+        color: "bg-sage",
+        hint: `${money(data.walletHeldMinor)} held against bookings`,
+      },
+      {
+        title: "Paid out",
+        value: money(data.paidOutMinor),
+        icon: CheckCircle2,
         color: "bg-gradient-gold",
+        hint:
+          data.failedPayoutMinor > 0
+            ? `${money(data.failedPayoutMinor)} failed`
+            : "All transfers settled",
+      },
+      {
+        title: "Commission rate",
+        value: `${data.standardCommissionPercent ?? 10}%`,
+        icon: Percent,
+        color: "bg-gradient-rose",
+        hint: "Flat rate on every completed booking",
       },
     ];
   }
@@ -323,58 +570,117 @@ function buildStats(data: any, role: string) {
   if (role === "SALON_OWNER") {
     return [
       {
+        title: "Net Earnings",
+        value: money(data.netEarningsMinor),
+        icon: Banknote,
+        color: "bg-gradient-gold",
+        hint: `${money(data.monthNetMinor)} this month`,
+      },
+      {
+        title: "Next Payout",
+        value: money(data.payableMinor),
+        icon: PiggyBank,
+        color: "bg-sage",
+        hint:
+          data.processingPayoutMinor > 0
+            ? `${money(data.processingPayoutMinor)} already batched`
+            : "Awaiting the next batch",
+      },
+      {
+        title: "Wallet Balance",
+        value: money(data.walletBalanceMinor),
+        icon: Wallet,
+        color: "bg-primary",
+        hint: `${money(data.walletAvailableMinor)} available`,
+      },
+      {
+        title: "Platform Commission",
+        value: money(data.commissionMinor),
+        icon: Percent,
+        color: "bg-gradient-rose",
+        hint: `${data.standardCommissionPercent ?? 10}% on every booking`,
+      },
+      {
         title: "Today's Appointments",
-        value: data.todayAppointments?.toLocaleString() || "0",
+        value: count(data.todayAppointments),
         icon: Calendar,
         color: "bg-gradient-rose",
+        hint: `${money(data.todayRevenueMinor)} billed today`,
       },
       {
         title: "Total Appointments",
-        value: data.totalAppointments?.toLocaleString() || "0",
+        value: count(data.totalAppointments),
         icon: Clock,
         color: "bg-primary",
+        hint: `${count(data.completedAppointments)} completed`,
       },
       {
         title: "Pending",
-        value: data.pendingAppointments?.toLocaleString() || "0",
+        value: count(data.pendingAppointments),
         icon: Users,
         color: "bg-sage",
-        change: data.pendingAppointments > 0 ? `${data.pendingAppointments} awaiting` : undefined,
+        change:
+          data.pendingAppointments > 0
+            ? `${data.pendingAppointments} awaiting`
+            : undefined,
         trend: "up",
+        hint: `${count(data.totalCustomers)} customers served`,
       },
       {
-        title: "Revenue",
-        value: `$${(data.totalRevenue || 0).toLocaleString()}`,
-        icon: DollarSign,
+        title: "Services & Staff",
+        value: `${count(data.totalServices)} / ${count(data.totalStaff)}`,
+        icon: Package,
         color: "bg-gradient-gold",
+        hint: `${count(data.totalSalons)} salon(s)`,
       },
     ];
   }
 
-  // CUSTOMER
+  if (role === "CUSTOMER") {
+    return [
+      {
+        title: "Total Appointments",
+        value: count(data.totalAppointments),
+        icon: Calendar,
+        color: "bg-gradient-rose",
+        hint: `${count(data.todayAppointments)} today`,
+      },
+      {
+        title: "Completed",
+        value: count(data.completedAppointments),
+        icon: CheckCircle2,
+        color: "bg-sage",
+        hint: `${count(data.cancelledAppointments)} cancelled`,
+      },
+      {
+        title: "Upcoming",
+        value: count(data.upcomingAppointments),
+        icon: Clock,
+        color: "bg-primary",
+        hint: `${money(data.depositsHeldMinor)} held as deposits`,
+      },
+      {
+        title: "Wallet Balance",
+        value: money(data.walletBalanceMinor),
+        icon: Wallet,
+        color: "bg-gradient-gold",
+        hint: `${money(data.totalSpentMinor)} spent all time`,
+      },
+    ];
+  }
+
+  // No role, or a role with no dashboard of its own.
   return [
     {
-      title: "Total Appointments",
-      value: data.totalAppointments?.toLocaleString() || "0",
+      title: "Appointments",
+      value: count(data.totalAppointments),
       icon: Calendar,
       color: "bg-gradient-rose",
     },
     {
-      title: "Completed",
-      value: data.completedAppointments?.toLocaleString() || "0",
-      icon: Clock,
-      color: "bg-sage",
-    },
-    {
-      title: "Upcoming",
-      value: data.upcomingAppointments?.toLocaleString() || "0",
-      icon: Calendar,
-      color: "bg-primary",
-    },
-    {
-      title: "Total Spent",
-      value: `$${(data.totalSpent || 0).toLocaleString()}`,
-      icon: DollarSign,
+      title: "Salons",
+      value: count(data.totalSalons),
+      icon: Store,
       color: "bg-gradient-gold",
     },
   ];

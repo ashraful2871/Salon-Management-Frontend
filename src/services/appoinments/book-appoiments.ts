@@ -29,6 +29,11 @@ export const bookingAppointment = async (
     if (result.success) {
       revalidateTag("appointments", "seconds");
       revalidateTag("my-appointments", "seconds");
+      // A new booking holds a deposit, so both the counts and the held-money
+      // figures on every dashboard are now stale.
+      revalidateTag("dashboard-stats", "seconds");
+      revalidateTag("earnings", "seconds");
+      revalidateTag("slots", "max");
     }
 
     return result;
