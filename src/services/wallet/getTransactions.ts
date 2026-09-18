@@ -3,10 +3,20 @@
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse } from "@/lib/api-types";
 
+/**
+ * Mirrors `WalletService.serializeTransaction`. The signed poisha arrives as
+ * `amountMinor` / `balanceAfterMinor` / `heldAfterMinor`; `addTakaFields` adds
+ * the taka twins below. Render from the `Minor` fields — `formatBDT` divides by
+ * 100 itself, so formatting a taka field renders it 100x too small.
+ */
 export type WalletTransaction = {
   id: string;
   walletId: string;
   type: string;
+  amountMinor: number;
+  balanceAfterMinor: number;
+  heldAfterMinor: number;
+  /** Taka twins added by `addTakaFields`. For display use the `Minor` fields. */
   amount: number;
   balanceAfter: number;
   heldAfter: number;
@@ -14,7 +24,13 @@ export type WalletTransaction = {
   referenceType?: string;
   referenceId?: string;
   idempotencyKey?: string;
-  metadata?: any;
+  /**
+   * `holdDeltaMinor` is the signed poisha a DEPOSIT_HOLD / DEPOSIT_RELEASE
+   * moved in or out of `heldBalance`. Those rows carry `amountMinor: 0`
+   * because a hold does not change the total balance, so this is the only
+   * amount worth showing for them.
+   */
+  metadata?: { holdDeltaMinor?: number } & Record<string, unknown>;
   createdAt: string;
 };
 

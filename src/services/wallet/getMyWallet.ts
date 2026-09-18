@@ -3,15 +3,22 @@
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse } from "@/lib/api-types";
 
+/**
+ * Mirrors `WalletService.getWalletSummary`. The ledger columns hold poisha, so
+ * the summary projects them under `Minor` names and `addTakaFields` adds the
+ * taka twins below. Render from the `Minor` fields — `formatBDT` already
+ * divides by 100, so formatting a taka field renders it 100x too small.
+ */
 export type Wallet = {
   id: string;
-  userId: string;
-  balance: number;
-  heldBalance: number;
   currency: string;
   isFrozen: boolean;
-  createdAt: string;
-  updatedAt: string;
+  balanceMinor: number;
+  heldBalanceMinor: number;
+  availableMinor: number;
+  /** Taka twins added by `addTakaFields`. For display use the `Minor` fields. */
+  balance: number;
+  heldBalance: number;
   available: number;
 };
 

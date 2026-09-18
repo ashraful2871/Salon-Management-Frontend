@@ -121,7 +121,7 @@ export default function WalletPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-4xl font-bold text-foreground">
-                  {formatBDT(wallet?.available || 0)}
+                  {formatBDT(wallet?.availableMinor || 0)}
                 </p>
               </CardContent>
             </Card>
@@ -134,7 +134,7 @@ export default function WalletPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold text-muted-foreground">
-                  {formatBDT(wallet?.heldBalance || 0)}
+                  {formatBDT(wallet?.heldBalanceMinor || 0)}
                 </p>
               </CardContent>
             </Card>
@@ -147,7 +147,7 @@ export default function WalletPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold text-foreground">
-                  {formatBDT(wallet?.balance || 0)}
+                  {formatBDT(wallet?.balanceMinor || 0)}
                 </p>
               </CardContent>
             </Card>
@@ -168,34 +168,50 @@ export default function WalletPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {transactions.map((tx) => (
-                    <div key={tx.id} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className={`p-2 rounded-full ${tx.amount > 0 ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}>
-                          {tx.amount > 0 ? <ArrowUpRight className="h-5 w-5" /> : <ArrowDownRight className="h-5 w-5" />}
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{tx.description}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-muted-foreground">
-                              {format(new Date(tx.createdAt), "MMM d, yyyy h:mm a")}
-                            </span>
-                            <Badge variant="outline" className="text-[10px] uppercase">
-                              {tx.type.replace(/_/g, " ")}
-                            </Badge>
+                  {transactions.map((tx) => {
+                    const holdDeltaMinor =
+                      typeof tx.metadata?.holdDeltaMinor === "number"
+                        ? tx.metadata.holdDeltaMinor
+                        : null;
+                    // A hold or release shifts money between available and held
+                    // without changing the total, so its amountMinor is 0 and the
+                    // hold delta is the only figure worth showing on the row.
+                    const isHoldMove = tx.amountMinor === 0 && holdDeltaMinor !== null;
+                    const displayMinor = isHoldMove
+                      ? Math.abs(holdDeltaMinor)
+                      : tx.amountMinor;
+                    // Money coming back to the customer: a credit, or a released hold.
+                    const isInflow = isHoldMove ? holdDeltaMinor < 0 : tx.amountMinor > 0;
+
+                    return (
+                      <div key={tx.id} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/30 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className={`p-2 rounded-full ${isHoldMove ? "bg-amber-100 text-amber-600" : isInflow ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"}`}>
+                            {isInflow ? <ArrowUpRight className="h-5 w-5" /> : <ArrowDownRight className="h-5 w-5" />}
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground">{tx.description}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(tx.createdAt), "MMM d, yyyy h:mm a")}
+                              </span>
+                              <Badge variant="outline" className="text-[10px] uppercase">
+                                {tx.type.replace(/_/g, " ")}
+                              </Badge>
+                            </div>
                           </div>
                         </div>
+                        <div className="text-right">
+                          <p className={`font-bold ${isHoldMove ? "text-muted-foreground" : isInflow ? "text-green-600" : "text-foreground"}`}>
+                            {!isHoldMove && isInflow ? "+" : ""}{formatBDT(displayMinor)}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Bal: {formatBDT(tx.balanceAfterMinor)}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className={`font-bold ${tx.amount > 0 ? "text-green-600" : "text-foreground"}`}>
-                          {tx.amount > 0 ? "+" : ""}{formatBDT(tx.amount)}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Bal: {formatBDT(tx.balanceAfter)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
