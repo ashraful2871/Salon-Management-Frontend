@@ -16,7 +16,13 @@ import { Button } from "../ui/button";
 import { loginUser } from "@/services/auth/login";
 import { toast } from "sonner";
 
-const LoginForm = () => {
+/**
+ * `redirectTo` is where the customer was headed before the login wall — the
+ * booking summary sends its own URL, so signing in drops them back on the
+ * half-finished booking instead of the home page. `loginUser` reads it off the
+ * form as `redirect`.
+ */
+const LoginForm = ({ redirectTo }: { redirectTo?: string }) => {
   const [state, formAction, isPending] = useActionState(loginUser, null);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -113,6 +119,9 @@ const LoginForm = () => {
           </div>
 
           <form action={formAction} className="space-y-5">
+            {redirectTo && (
+              <input type="hidden" name="redirect" value={redirectTo} />
+            )}
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">
                 Email

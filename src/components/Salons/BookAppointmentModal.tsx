@@ -3,13 +3,22 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { useActionState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowRight,
+  CalendarDays,
+  Clock,
+  Loader2,
+  Scissors,
+  Store,
+  UserRound,
+} from "lucide-react";
+
 import { Button } from "../ui/button";
-import { bookingAppointment } from "@/services/appoinments/book-appoiments";
 import { getSlots } from "@/services/slots/slot-api";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatBDT } from "@/lib/money";
+import { resolveDepositMinor } from "@/lib/deposit";
 
 type CounterItem = {
   id: string;
@@ -44,6 +53,13 @@ type SalonLike = {
   services?: ServiceItem[];
   staff?: StaffItem[];
   depositMinor?: number;
+  depositPercent?: number | null;
+};
+
+type SlotLike = {
+  id: string;
+  startTime: string;
+  endTime?: string;
 };
 
 type BookAppointmentModalProps = {
@@ -52,15 +68,17 @@ type BookAppointmentModalProps = {
   salon: SalonLike;
 };
 
+/**
+ * Step 1 of the booking flow - pick what, when and where. Nothing is booked
+ * here: continuing hands the selection to `/salons/[id]/book`, which is where
+ * the customer reviews the money and confirms.
+ */
 const BookAppointmentModal = ({
   open,
   onClose,
   salon,
 }: BookAppointmentModalProps) => {
-  const [state, formAction, isPending] = useActionState(
-    bookingAppointment,
-    null,
-  );
+  const router = useRouter();
 
   const services = useMemo(
     () => (salon?.services || []).filter((s) => s?.isActive !== false),
@@ -75,97 +93,113 @@ const BookAppointmentModal = ({
   const [form, setForm] = useState({
     counterId: "",
     serviceId: "",
+    staffId: "",
     appointmentDate: "",
     slotId: "",
     notes: "",
   });
 
-  const [slots, setSlots] = useState<any[]>([]);
+  const [slots, setSlots] = useState<SlotLike[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
-
+  const [isNavigating, setIsNavigating] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const lastProcessedState = React.useRef(state);
-
-  useEffect(() => {
-    if (!state || lastProcessedState.current === state) return;
-    lastProcessedState.current = state;
-
-    if (state?.success) {
-      toast.success(state?.message || "Appointment booked successfully");
-      onClose();
-      setTimeout(() => {
-        setForm({
-          counterId: "",
-          serviceId: "",
-          appointmentDate: "",
-          slotId: "",
-          notes: "",
-        });
-        setSlots([]);
-        setErrors({});
-      }, 0);
-    } else if (state?.success === false) {
-      toast.error(state?.message || "Failed to book appointment");
-    }
-  }, [state, onClose]);
-
-  useEffect(() => {
-    if (form.appointmentDate && salon?.id && form.serviceId) {
-      setLoadingSlots(true);
-      getSlots({ salonId: salon.id, date: form.appointmentDate, status: "AVAILABLE", serviceId: form.serviceId })
-        .then((res) => {
-          if (res?.success) {
-            setSlots(res.data);
-          } else {
-            setSlots([]);
-          }
-        })
-        .finally(() => setLoadingSlots(false));
-    } else {
-      setSlots([]);
-    }
-    // Reset slot when date or service changes
-    setField("slotId", "");
-  }, [form.appointmentDate, salon?.id, form.serviceId]);
 
   const setField = (key: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: "" }));
   };
 
+  useEffect(() => {
+    if (form.appointmentDate && salon?.id && form.serviceId) {
+      setLoadingSlots(true);
+      getSlots({
+        salonId: salon.id,
+        date: form.appointmentDate,
+        status: "AVAILABLE",
+        serviceId: form.serviceId,
+      })
+        .then((res) => {
+          setSlots(res?.success ? res.data : []);
+        })
+        .finally(() => setLoadingSlots(false));
+    } else {
+      setSlots([]);
+    }
+    // Reset the slot whenever the date or service changes - the old id belongs
+    // to a list that no longer exists.
+    setField("slotId", "");
+  }, [form.appointmentDate, salon?.id, form.serviceId]);
+
+  const selectedService = useMemo(
+    () => services.find((s) => s.id === form.serviceId),
+    [services, form.serviceId],
+  );
+
+  const depositMinor = useMemo(
+    () =>
+      selectedService?.priceMinor
+        ? resolveDepositMinor(
+            {
+              depositMinor: salon?.depositMinor,
+              depositPercent: salon?.depositPercent,
+            },
+            selectedService.priceMinor,
+          )
+        : 0,
+    [selectedService, salon?.depositMinor, salon?.depositPercent],
+  );
+
   const validate = () => {
     const nextErrors: Record<string, string> = {};
-    if (!form.counterId) nextErrors.counterId = "Counter is required";
     if (!form.serviceId) nextErrors.serviceId = "Service is required";
-    if (!form.appointmentDate)
-      nextErrors.appointmentDate = "Date is required";
-    if (!form.slotId) nextErrors.slotId = "Slot is required";
+    if (!form.counterId) nextErrors.counterId = "Counter is required";
+    if (!form.appointmentDate) nextErrors.appointmentDate = "Date is required";
+    if (!form.slotId) nextErrors.slotId = "Pick a time slot";
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
 
+  const handleContinue = () => {
+    if (!validate()) return;
+
+    const query = new URLSearchParams({
+      service: form.serviceId,
+      counter: form.counterId,
+      slot: form.slotId,
+      date: form.appointmentDate,
+    });
+    if (form.staffId) query.set("staff", form.staffId);
+    if (form.notes.trim()) query.set("notes", form.notes.trim());
+
+    setIsNavigating(true);
+    router.push(`/salons/${salon.id}/book?${query.toString()}`);
+  };
+
   if (!open) return null;
 
-  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    const ok = validate();
-    if (!ok) e.preventDefault();
-  };
+  const fieldClass =
+    "mt-2 w-full h-11 rounded-lg border border-input bg-background px-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20";
 
   return (
     <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
 
       <div className="absolute inset-0 flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, y: 12, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.2 }}
-          className="w-full max-w-2xl rounded-2xl border bg-background shadow-xl flex flex-col max-h-[90vh]"
+          className="w-full max-w-2xl rounded-2xl border bg-background shadow-2xl flex flex-col max-h-[90vh]"
         >
-          <div className="flex items-center justify-between border-b px-5 py-4 shrink-0">
+          <div className="flex items-start justify-between border-b px-6 py-5 shrink-0">
             <div>
-              <h3 className="text-lg font-semibold">Book Appointment</h3>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+                Step 1 of 2
+              </p>
+              <h3 className="mt-1 text-xl font-bold">Choose your appointment</h3>
               <p className="text-sm text-muted-foreground">
                 {salon?.name || "Salon"}
               </p>
@@ -175,153 +209,207 @@ const BookAppointmentModal = ({
             </Button>
           </div>
 
-          <form action={formAction} onSubmit={handleFormSubmit} className="flex flex-col flex-1 overflow-hidden">
-            <input type="hidden" name="salonId" value={salon?.id} />
-            <input type="hidden" name="slotId" value={form.slotId} />
-
-            <div className="p-5 space-y-5 overflow-y-auto flex-1">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Counter *</label>
-                  <select
-                    name="counterId"
-                    className="mt-2 w-full h-10 rounded-md border bg-background px-3 text-sm"
-                    value={form.counterId}
-                    onChange={(e) => setField("counterId", e.target.value)}
-                  >
-                    <option value="">Select counter</option>
-                    {salon?.counters?.map((counter) => (
-                      <option key={counter.id} value={counter.id}>
-                        {counter.name}
-                        {counter.code ? ` (${counter.code})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.counterId && (
-                    <p className="mt-1 text-xs text-red-500">
-                      {errors.counterId}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Service *</label>
-                  <select
-                    name="serviceId"
-                    className="mt-2 w-full h-10 rounded-md border bg-background px-3 text-sm"
-                    value={form.serviceId}
-                    onChange={(e) => setField("serviceId", e.target.value)}
-                  >
-                    <option value="">Select service</option>
-                    {services.map((service) => (
-                      <option key={service.id} value={service.id}>
-                        {service.name}
-                        {typeof service.priceMinor === "number"
-                          ? ` — ${formatBDT(service.priceMinor)}`
-                          : ""}
-                        {typeof service.duration === "number"
-                          ? ` (${service.duration} min)`
-                          : ""}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.serviceId && (
-                    <p className="mt-1 text-xs text-red-500">
-                      {errors.serviceId}
-                    </p>
-                  )}
-                </div>
-              </div>
-
+          <div className="p-6 space-y-6 overflow-y-auto flex-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">Date *</label>
-                <input
-                  type="date"
-                  min={new Date().toISOString().split("T")[0]}
-                  className="mt-2 w-full h-10 rounded-md border bg-background px-3 text-sm"
-                  value={form.appointmentDate}
-                  onChange={(e) => setField("appointmentDate", e.target.value)}
-                />
-                {errors.appointmentDate && (
-                  <p className="mt-1 text-xs text-red-500">
-                    {errors.appointmentDate}
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <Scissors className="h-4 w-4 text-primary" /> Service *
+                </label>
+                <select
+                  className={fieldClass}
+                  value={form.serviceId}
+                  onChange={(e) => setField("serviceId", e.target.value)}
+                >
+                  <option value="">Select service</option>
+                  {services.map((service) => (
+                    <option key={service.id} value={service.id}>
+                      {service.name}
+                      {typeof service.priceMinor === "number"
+                        ? ` - ${formatBDT(service.priceMinor)}`
+                        : ""}
+                      {typeof service.duration === "number"
+                        ? ` (${service.duration} min)`
+                        : ""}
+                    </option>
+                  ))}
+                </select>
+                {errors.serviceId && (
+                  <p className="mt-1 text-xs text-destructive">
+                    {errors.serviceId}
                   </p>
                 )}
               </div>
 
-              {form.appointmentDate && (
-                <div>
-                  <label className="text-sm font-medium">Available Slots *</label>
-                  {loadingSlots ? (
-                    <div className="mt-2 text-sm text-muted-foreground">Loading slots...</div>
-                  ) : slots.length === 0 ? (
-                    <div className="mt-2 text-sm text-muted-foreground bg-muted p-4 rounded-md text-center">
-                      No available slots for this date.
-                    </div>
-                  ) : (
-                    <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                      {slots.map((slot) => (
-                        <button
-                          key={slot.id}
-                          type="button"
-                          onClick={() => setField("slotId", slot.id)}
-                          className={cn(
-                            "px-3 py-2 border rounded-md text-sm transition-colors text-center",
-                            form.slotId === slot.id 
-                              ? "bg-primary text-primary-foreground border-primary" 
-                              : "bg-background hover:bg-muted"
-                          )}
-                        >
-                          {slot.startTime}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {errors.slotId && (
-                    <p className="mt-1 text-xs text-red-500">
-                      {errors.slotId}
-                    </p>
-                  )}
-                </div>
-              )}
-
               <div>
-                <label className="text-sm font-medium">Notes (Optional)</label>
-                <textarea
-                  name="notes"
-                  className="mt-2 w-full min-h-[80px] rounded-md border bg-background px-3 py-2 text-sm"
-                  placeholder="Write any preferences..."
-                  value={form.notes}
-                  onChange={(e) => setField("notes", e.target.value)}
-                />
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <Store className="h-4 w-4 text-primary" /> Counter *
+                </label>
+                <select
+                  className={fieldClass}
+                  value={form.counterId}
+                  onChange={(e) => setField("counterId", e.target.value)}
+                >
+                  <option value="">Select counter</option>
+                  {salon?.counters?.map((counter) => (
+                    <option key={counter.id} value={counter.id}>
+                      {counter.name}
+                      {counter.code ? ` (${counter.code})` : ""}
+                    </option>
+                  ))}
+                </select>
+                {errors.counterId && (
+                  <p className="mt-1 text-xs text-destructive">
+                    {errors.counterId}
+                  </p>
+                )}
               </div>
+            </div>
 
-              {salon?.depositMinor ? (
-                <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-lg mt-4 flex gap-3">
-                  <div className="mt-0.5">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+            {staffList.length > 0 && (
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <UserRound className="h-4 w-4 text-primary" /> Preferred
+                  specialist{" "}
+                  <span className="font-normal text-muted-foreground">
+                    (optional)
+                  </span>
+                </label>
+                <select
+                  className={fieldClass}
+                  value={form.staffId}
+                  onChange={(e) => setField("staffId", e.target.value)}
+                >
+                  <option value="">No preference - assign anyone</option>
+                  {staffList.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.user?.name || "Specialist"}
+                      {member.speciality ? ` - ${member.speciality}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <CalendarDays className="h-4 w-4 text-primary" /> Date *
+              </label>
+              <input
+                type="date"
+                min={new Date().toISOString().split("T")[0]}
+                className={fieldClass}
+                value={form.appointmentDate}
+                onChange={(e) => setField("appointmentDate", e.target.value)}
+              />
+              {errors.appointmentDate && (
+                <p className="mt-1 text-xs text-destructive">
+                  {errors.appointmentDate}
+                </p>
+              )}
+              {!form.serviceId && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Pick a service first to see its available times.
+                </p>
+              )}
+            </div>
+
+            {form.appointmentDate && form.serviceId && (
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <Clock className="h-4 w-4 text-primary" /> Available times *
+                </label>
+                {loadingSlots ? (
+                  <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Loading slots...
                   </div>
-                  <div className="text-sm text-blue-900">
-                    <p className="font-medium">Deposit Required</p>
-                    <p className="mt-0.5 opacity-90">
-                      A deposit of <span className="font-semibold">{formatBDT(salon.depositMinor)}</span> will be held from your wallet to secure this booking.
-                    </p>
+                ) : slots.length === 0 ? (
+                  <div className="mt-2 rounded-lg bg-muted p-4 text-center text-sm text-muted-foreground">
+                    No available slots for this date. Try another day.
                   </div>
+                ) : (
+                  <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                    {slots.map((slot) => (
+                      <button
+                        key={slot.id}
+                        type="button"
+                        onClick={() => setField("slotId", slot.id)}
+                        className={cn(
+                          "rounded-lg border px-3 py-2 text-sm text-center transition-all",
+                          form.slotId === slot.id
+                            ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                            : "bg-background hover:border-primary/40 hover:bg-muted",
+                        )}
+                      >
+                        {slot.startTime}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {errors.slotId && (
+                  <p className="mt-1 text-xs text-destructive">
+                    {errors.slotId}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div>
+              <label className="text-sm font-medium">Notes (optional)</label>
+              <textarea
+                className="mt-2 w-full min-h-20 rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
+                placeholder="Anything the salon should know - allergies, preferred style, etc."
+                value={form.notes}
+                onChange={(e) => setField("notes", e.target.value)}
+              />
+            </div>
+
+            {selectedService?.priceMinor ? (
+              <div className="rounded-xl border bg-muted/40 p-4 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Service price</span>
+                  <span className="font-semibold">
+                    {formatBDT(selectedService.priceMinor)}
+                  </span>
                 </div>
-              ) : null}
+                {depositMinor > 0 && (
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-muted-foreground">
+                      Deposit held to reserve
+                    </span>
+                    <span className="font-semibold">
+                      {formatBDT(depositMinor)}
+                    </span>
+                  </div>
+                )}
+                <p className="mt-3 text-xs text-muted-foreground">
+                  You will see the full breakdown and choose how to pay on the
+                  next step.
+                </p>
+              </div>
+            ) : null}
+          </div>
 
-            </div>
-
-            <div className="flex items-center justify-end gap-3 border-t px-5 py-4 shrink-0">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isPending || (form.appointmentDate !== "" && slots.length === 0)}>
-                {isPending ? "Booking..." : "Confirm Booking"}
-              </Button>
-            </div>
-          </form>
+          <div className="flex items-center justify-end gap-3 border-t px-6 py-4 shrink-0">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleContinue}
+              disabled={isNavigating}
+              className="gap-2"
+            >
+              {isNavigating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Opening summary...
+                </>
+              ) : (
+                <>
+                  Continue to summary <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </div>
         </motion.div>
       </div>
     </div>
