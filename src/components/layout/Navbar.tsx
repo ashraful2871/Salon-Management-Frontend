@@ -2,6 +2,7 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 
 import { UserRole } from "@/services/auth/auth-utils";
 import { getCookie } from "@/services/auth/cookiesHandler";
+import { getMyWallet, type Wallet } from "@/services/wallet/getMyWallet";
 import NavbarClient from "./NavbarClient";
 
 interface DecodedToken extends JwtPayload {
@@ -33,8 +34,20 @@ const Navbar = async () => {
     }
   }
 
+  // The header balance is a signed-in-only affordance, so the wallet read only
+  // happens once the token has verified. A failed read degrades to `null` — the
+  // header still renders, it just shows no figure.
+  let wallet: Wallet | null = null;
+
+  if (user) {
+    const walletResult = await getMyWallet();
+    if (walletResult.success && walletResult.data) {
+      wallet = walletResult.data;
+    }
+  }
+
   // Pass the user data (or null) to the client component
-  return <NavbarClient user={user} />;
+  return <NavbarClient user={user} wallet={wallet} />;
 };
 
 export default Navbar;

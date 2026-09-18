@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useTransition } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wallet, Plus, ArrowUpRight, ArrowDownRight, RefreshCcw, Loader2 } from "lucide-react";
@@ -56,6 +55,9 @@ export default function WalletPage() {
             clearInterval(poll);
             router.replace("/dashboard/wallet");
             loadData();
+            // The header balance is server-rendered, so it only picks the
+            // top-up up when the route re-renders.
+            router.refresh();
           } else if (res.data.status === "FAILED" || res.data.status === "CANCELLED") {
             toast.error("Top-up failed or cancelled.");
             clearInterval(poll);
