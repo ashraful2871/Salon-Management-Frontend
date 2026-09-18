@@ -61,6 +61,8 @@ export type Salon = {
     staff: number;
     reviews: number;
   };
+  depositMinor?: number;
+  cancellationWindowMin?: number;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -70,7 +72,7 @@ export type SalonService = {
   name: string;
   description?: string | null;
   category?: string | null;
-  price?: number | null;
+  priceMinor?: number | null;
   duration?: number | null;
   images?: string[];
   isActive?: boolean;
@@ -112,7 +114,7 @@ export type Appointment = {
     id: string;
     name: string;
     duration?: number;
-    price?: number;
+    priceMinor?: number;
   };
   salon?: {
     id: string;
@@ -158,17 +160,91 @@ export type Review = {
   createdAt?: string;
 };
 
+/**
+ * The union of what the three `/dashboard-stats/*` endpoints return — every
+ * field is optional because each role gets its own subset.
+ *
+ * Money is poisha under `<name>Minor`. `addTakaFields` puts a taka twin next to
+ * each one, and those twins are deliberately left out of this type: `formatBDT`
+ * divides by 100 itself, so rendering the twin shows the amount 100x too small.
+ */
 export type DashboardStats = {
+  // Counts
   totalUsers?: number;
+  totalCustomers?: number;
+  totalSalonOwners?: number;
+  totalStaff?: number;
+  totalAgents?: number;
   totalSalons?: number;
+  activeSalons?: number;
+  pendingSalons?: number;
+  totalServices?: number;
   totalAppointments?: number;
-  totalRevenue?: number;
   todayAppointments?: number;
   pendingAppointments?: number;
   completedAppointments?: number;
+  cancelledAppointments?: number;
+  noShowAppointments?: number;
   upcomingAppointments?: number;
-  totalSpent?: number;
+
+  // Money, in poisha
+  totalRevenueMinor?: number;
+  grossBookingsMinor?: number;
+  commissionMinor?: number;
+  netEarningsMinor?: number;
+  salonEarningsMinor?: number;
+  salonPayableMinor?: number;
+  payableMinor?: number;
+  monthRevenueMinor?: number;
+  monthCommissionMinor?: number;
+  monthNetMinor?: number;
+  todayRevenueMinor?: number;
+  depositsCollectedMinor?: number;
+  counterCollectedMinor?: number;
+  depositsHeldMinor?: number;
+  depositsPaidMinor?: number;
+  forfeitedDepositMinor?: number;
+  processingPayoutMinor?: number;
+  pendingPayoutMinor?: number;
+  pendingPayoutCount?: number;
+  paidOutMinor?: number;
+  failedPayoutMinor?: number;
+  walletFloatMinor?: number;
+  walletBalanceMinor?: number;
+  walletAvailableMinor?: number;
+  walletHeldMinor?: number;
+  walletFrozen?: boolean;
+  topupVolumeMinor?: number;
+  totalSpentMinor?: number;
+  averageTicketMinor?: number;
+  averageSpendMinor?: number;
+
+  // The one commission rate in force, as a percentage, plus what was
+  // actually charged over everything billed.
+  effectiveCommissionPercent?: number;
+  standardCommissionPercent?: number;
+
+  monthlyEarnings?: Array<{
+    month: string;
+    label: string;
+    grossMinor: number;
+    commissionMinor: number;
+    netMinor: number;
+    bookings: number;
+  }>;
+
+  salons?: Array<{ id: string; name: string }>;
   recentAppointments?: Appointment[];
+  recentPayouts?: Array<{
+    id: string;
+    netMinor: number;
+    status: string;
+    periodStart?: string;
+    periodEnd?: string;
+    salon?: { id: string; name: string };
+  }>;
+  usersByRole?: Array<{ role: string; _count: number }>;
+  salonsByStatus?: Array<{ status: string; _count: number }>;
   appointmentsByStatus?: Array<{
     status: string;
     _count: number;

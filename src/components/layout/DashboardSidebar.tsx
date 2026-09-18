@@ -15,6 +15,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
+  Wallet,
+  DollarSign,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -77,6 +79,18 @@ const menuItems = [
     label: "Settings",
     path: "/dashboard/settings",
     allowedRoles: ["SALON_OWNER", "STAFF", "ADMIN", "CUSTOMER", "AGENT"],
+  },
+  {
+    icon: Wallet,
+    label: "Wallet",
+    path: "/dashboard/wallet",
+    allowedRoles: ["SALON_OWNER", "STAFF", "ADMIN", "CUSTOMER", "AGENT"],
+  },
+  {
+    icon: DollarSign,
+    label: "Earnings",
+    path: "/dashboard/earnings",
+    allowedRoles: ["SALON_OWNER"],
   },
   {
     icon: Scissors,

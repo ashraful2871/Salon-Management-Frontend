@@ -3,6 +3,7 @@
 import { serverFetch } from "@/lib/server-fetch";
 import { revalidateTag } from "next/cache";
 import type { ApiResponse, Salon } from "@/lib/api-types";
+import { toMinor } from "@/lib/money";
 
 export const updateSalon = async (
   _currentState: ApiResponse<Salon> | null,
@@ -21,6 +22,8 @@ export const updateSalon = async (
       city: formData.get("city") as string,
       state: formData.get("state") as string,
       zipCode: formData.get("zipCode") as string,
+      ...(formData.has("depositMinor") && { depositMinor: toMinor(Number(formData.get("depositMinor"))) }),
+      ...(formData.has("cancellationWindowMin") && { cancellationWindowMin: Number(formData.get("cancellationWindowMin")) }),
     };
 
     const operatingHours = JSON.parse(

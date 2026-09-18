@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks */
 "use client";
 
 import {
@@ -17,29 +16,21 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { registerUser } from "@/services/auth/registerUser";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 
 const RegisterForm = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [state, formAction, isPending] = useActionState(registerUser, null);
   const [showPassword, setShowPassword] = useState(false);
-  const router = useRouter();
 
-  if (state?.password !== state?.confirmPassword) {
-    alert("Passwords do not match");
-    return;
-  }
-
+  // A successful registration redirects from inside the server action and
+  // never comes back as state, so anything that lands here is a failure.
   useEffect(() => {
-    if (state?.message) {
-      toast.success(state?.message || "Registration successful");
-      router.push("/login");
+    if (state && !state.success) {
+      toast.error(
+        state.message || state.error || "Registration failed. Please try again.",
+      );
     }
-
-    if (state?.error) {
-      toast.error(state.error);
-    }
-  }, [state, router]);
+  }, [state]);
 
   return (
     <div className="min-h-screen flex bg-slate-50">
@@ -106,6 +97,7 @@ const RegisterForm = () => {
                   type="text"
                   placeholder="John Doe"
                   required
+                  defaultValue={state?.inputs?.name as string}
                   className="pl-11 h-12 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl focus-visible:ring-primary focus-visible:border-primary shadow-sm"
                 />
               </div>
@@ -124,9 +116,17 @@ const RegisterForm = () => {
                   type="email"
                   placeholder="name@example.com"
                   required
-                  className="pl-11 h-12 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl focus-visible:ring-primary focus-visible:border-primary shadow-sm"
+                  defaultValue={state?.inputs?.email as string}
+                  className={`pl-11 h-12 bg-white ${
+                    state && !state.success && state.message?.toLowerCase().includes("email") 
+                      ? "border-red-500 focus-visible:ring-red-500" 
+                      : "border-slate-200 focus-visible:ring-primary focus-visible:border-primary"
+                  } text-slate-900 placeholder:text-slate-400 rounded-xl shadow-sm`}
                 />
               </div>
+              {state && !state.success && state.message?.toLowerCase().includes("email") && (
+                <p className="text-red-500 text-sm mt-1.5 font-medium">{state.message}</p>
+              )}
             </div>
 
             {/* Phone Number */}
@@ -142,6 +142,7 @@ const RegisterForm = () => {
                   type="tel"
                   placeholder="+8801712345679"
                   required
+                  defaultValue={state?.inputs?.phoneNumber as string}
                   className="pl-11 h-12 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl focus-visible:ring-primary focus-visible:border-primary shadow-sm"
                 />
               </div>
@@ -159,6 +160,7 @@ const RegisterForm = () => {
                     name="gender"
                     type="radio"
                     value="MALE"
+                    defaultChecked={state?.inputs?.gender === "MALE"}
                     className="w-4 h-4 text-primary border-slate-300 focus:ring-primary accent-primary"
                   />
                   <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900">Male</span>
@@ -169,6 +171,7 @@ const RegisterForm = () => {
                     name="gender"
                     type="radio"
                     value="FEMALE"
+                    defaultChecked={state?.inputs?.gender === "FEMALE"}
                     className="w-4 h-4 text-primary border-slate-300 focus:ring-primary accent-primary"
                   />
                   <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900">Female</span>
@@ -179,6 +182,7 @@ const RegisterForm = () => {
                     type="radio"
                     name="gender"
                     value="OTHER"
+                    defaultChecked={state?.inputs?.gender === "OTHER"}
                     className="w-4 h-4 text-primary border-slate-300 focus:ring-primary accent-primary"
                   />
                   <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900">Other</span>
@@ -199,6 +203,7 @@ const RegisterForm = () => {
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   required
+                  defaultValue={state?.inputs?.password as string}
                   className="pl-11 pr-11 h-12 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl focus-visible:ring-primary focus-visible:border-primary shadow-sm"
                 />
                 <button
@@ -229,6 +234,7 @@ const RegisterForm = () => {
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="••••••••"
                   required
+                  defaultValue={state?.inputs?.confirmPassword as string}
                   className="pl-11 pr-11 h-12 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl focus-visible:ring-primary focus-visible:border-primary shadow-sm"
                 />
                 <button

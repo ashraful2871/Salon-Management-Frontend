@@ -18,6 +18,9 @@ export const cancelAppointment = async (
       revalidateTag("appointments", "seconds");
       revalidateTag("my-appointments", "seconds");
       revalidateTag("dashboard-stats", "seconds");
+      // Completing or cancelling a booking settles its ledger entries, which
+      // is what the earnings and payout figures are derived from.
+      revalidateTag("earnings", "seconds");
     }
 
     return result;

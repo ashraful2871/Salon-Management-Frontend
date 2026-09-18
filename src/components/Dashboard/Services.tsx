@@ -33,6 +33,7 @@ import AddServiceModal from "./AddServiceModal";
 import { deleteService } from "@/services/service/deleteService";
 import { useRouter } from "next/navigation";
 import { showResultToast } from "@/components/Shared/showResultToast";
+import { formatBDT } from "@/lib/money";
 
 export default function Services({
   servicesResponse,
@@ -116,16 +117,16 @@ export default function Services({
           },
           {
             label: "Avg. Price",
-            value: `$${
-              servicesData.length
-                ? Math.round(
+            value: servicesData.length
+              ? formatBDT(
+                  Math.round(
                     servicesData.reduce(
-                      (acc: any, s: any) => acc + s.price,
+                      (acc: any, s: any) => acc + s.priceMinor,
                       0,
                     ) / servicesData.length,
-                  )
-                : 0
-            }`,
+                  ),
+                )
+              : formatBDT(0),
           },
         ].map((stat, index) => (
           <motion.div
@@ -197,8 +198,7 @@ export default function Services({
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1 font-semibold text-sage">
-                          <DollarSign className="h-4 w-4" />
-                          {service.price}
+                          {formatBDT(service.priceMinor)}
                         </div>
                       </TableCell>
                       <TableCell>

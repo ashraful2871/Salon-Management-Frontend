@@ -14,15 +14,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Store, Bell, Shield } from "lucide-react";
+import { Store, Bell, Shield, Wallet, Loader2 } from "lucide-react";
 import { changePassword } from "@/services/auth/changePassword";
 import { toast } from "sonner";
+import { updateSalon } from "@/services/salon/updateSalon";
+import { toTaka } from "@/lib/money";
 
-const Settings = () => {
+const Settings = ({ salon }: { salon?: any }) => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  const [deposit, setDeposit] = useState(salon?.depositMinor ? toTaka(salon.depositMinor).toString() : "30");
+  const [cancelWindow, setCancelWindow] = useState(salon?.cancellationWindowMin?.toString() || "120");
+  const [isPolicyPending, startPolicyTransition] = useTransition();
 
   const handleChangePassword = () => {
     if (!currentPassword || !newPassword) {
@@ -194,6 +200,84 @@ const Settings = () => {
           </CardContent>
         </Card>
       </motion.div>
+
+      {salon && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+        >
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
+                  <Wallet className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <CardTitle>Booking Policy</CardTitle>
+                  <CardDescription>
+                    Manage deposits and cancellation windows
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="text-sm text-muted-foreground bg-muted p-4 rounded-lg">
+                Customers pay a deposit upfront to hold their slot. It comes off their bill when they arrive. If they don't show up, you keep a portion of it.
+              </div>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="depositMinor">Deposit Amount (৳)</Label>
+                  <Input
+                    id="depositMinor"
+                    type="number"
+                    min="20"
+                    max="500"
+                    placeholder="30"
+                    value={deposit}
+                    onChange={(e) => setDeposit(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">Default is ৳30.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cancellationWindowMin">Free Cancellation Window (minutes)</Label>
+                  <Input
+                    id="cancellationWindowMin"
+                    type="number"
+                    min="0"
+                    placeholder="120"
+                    value={cancelWindow}
+                    onChange={(e) => setCancelWindow(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">Free cancel up to {cancelWindow} mins before.</p>
+                </div>
+              </div>
+              <Button
+                variant="default"
+                disabled={isPolicyPending}
+                onClick={() => {
+                  startPolicyTransition(async () => {
+                    const fd = new FormData();
+                    fd.append("id", salon.id);
+                    fd.append("name", salon.name);
+                    fd.append("depositMinor", deposit);
+                    fd.append("cancellationWindowMin", cancelWindow);
+                    const res = await updateSalon(null, fd);
+                    if (res?.success) {
+                      toast.success("Booking policy updated successfully");
+                    } else {
+                      toast.error(res?.message || "Failed to update booking policy");
+                    }
+                  });
+                }}
+              >
+                {isPolicyPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                {isPolicyPending ? "Saving..." : "Save Policy"}
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Danger Zone */}
       <motion.div

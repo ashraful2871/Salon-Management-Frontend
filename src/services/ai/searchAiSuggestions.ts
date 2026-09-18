@@ -2,9 +2,35 @@
 
 import { serverFetch } from "@/lib/server-fetch";
 
+export interface AiSalonService {
+  id: string;
+  name: string;
+  category: string;
+  priceMinor: number;
+  duration: number;
+}
+
+export interface AiSalonMatch {
+  id: string;
+  name: string;
+  description: string | null;
+  address: string;
+  area: string;
+  district: string;
+  city: string;
+  images: string[];
+  rating: number;
+  totalReviews: number;
+  phone: string;
+  /** Cosine similarity to the query, 0-1. Higher is a closer match. */
+  similarity: number;
+  services: AiSalonService[];
+}
+
 interface AiSearchData {
   aiResponse: string;
-  salons: Array<Record<string, unknown>>;
+  salons: AiSalonMatch[];
+  query?: string;
 }
 
 interface AiSearchResponse {

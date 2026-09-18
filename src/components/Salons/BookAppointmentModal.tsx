@@ -9,6 +9,7 @@ import { bookingAppointment } from "@/services/appoinments/book-appoiments";
 import { getSlots } from "@/services/slots/slot-api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatBDT } from "@/lib/money";
 
 type CounterItem = {
   id: string;
@@ -21,7 +22,7 @@ type CounterItem = {
 type ServiceItem = {
   id: string;
   name: string;
-  price?: number;
+  priceMinor?: number;
   duration?: number;
   isActive?: boolean;
   category?: string;
@@ -42,6 +43,7 @@ type SalonLike = {
   counters?: CounterItem[];
   services?: ServiceItem[];
   staff?: StaffItem[];
+  depositMinor?: number;
 };
 
 type BookAppointmentModalProps = {
@@ -213,8 +215,8 @@ const BookAppointmentModal = ({
                     {services.map((service) => (
                       <option key={service.id} value={service.id}>
                         {service.name}
-                        {typeof service.price === "number"
-                          ? ` — ৳${service.price}`
+                        {typeof service.priceMinor === "number"
+                          ? ` — ${formatBDT(service.priceMinor)}`
                           : ""}
                         {typeof service.duration === "number"
                           ? ` (${service.duration} min)`
@@ -292,6 +294,22 @@ const BookAppointmentModal = ({
                   onChange={(e) => setField("notes", e.target.value)}
                 />
               </div>
+
+              {salon?.depositMinor ? (
+                <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-lg mt-4 flex gap-3">
+                  <div className="mt-0.5">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="text-sm text-blue-900">
+                    <p className="font-medium">Deposit Required</p>
+                    <p className="mt-0.5 opacity-90">
+                      A deposit of <span className="font-semibold">{formatBDT(salon.depositMinor)}</span> will be held from your wallet to secure this booking.
+                    </p>
+                  </div>
+                </div>
+              ) : null}
 
             </div>
 
