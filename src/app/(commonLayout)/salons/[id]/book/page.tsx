@@ -135,6 +135,20 @@ const BookingSummaryPage = async ({
     );
   }
 
+  // A slot generated for a specific counter can only be booked on that counter —
+  // a hand-edited URL must not move the booking to a different chair.
+  if (slot.counterId && slot.counterId !== counterId) {
+    return (
+      <InvalidSelection
+        salonId={id}
+        title="That time belongs to another counter"
+        message={`This time slot is reserved for ${
+          slot.counter?.name ?? "a different counter"
+        }. Please pick the time again so we book you at the right one.`}
+      />
+    );
+  }
+
   const priceMinor = service.priceMinor ?? 0;
   const depositMinor = resolveDepositMinor(
     { depositMinor: salon.depositMinor, depositPercent: salon.depositPercent },

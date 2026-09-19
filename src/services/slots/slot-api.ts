@@ -3,7 +3,21 @@
 import { serverFetch } from "@/lib/server-fetch";
 import { revalidateTag } from "next/cache";
 
-export const createBulkSlots = async (payload: any) => {
+export type CreateBulkSlotsPayload = {
+  salonId: string;
+  serviceId: string;
+  /** Inclusive range. Pass the same value for both to generate a single day. */
+  startDate: string;
+  endDate: string;
+  /** Omit to leave the slots unassigned to any counter. */
+  counterId?: string;
+  startTime: string;
+  endTime: string;
+  duration: number;
+  breakDuration: number;
+};
+
+export const createBulkSlots = async (payload: CreateBulkSlotsPayload) => {
   try {
     const response = await serverFetch.post("/slots/bulk-create", {
       body: JSON.stringify(payload),

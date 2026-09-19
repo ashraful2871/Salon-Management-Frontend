@@ -60,6 +60,10 @@ type SlotLike = {
   id: string;
   startTime: string;
   endTime?: string;
+  // Slots generated since counter support are pinned to one counter; older
+  // slots (and those generated without one) carry null and stay pickable.
+  counterId?: string | null;
+  counter?: { id: string; name: string; code?: string | null } | null;
 };
 
 type BookAppointmentModalProps = {
@@ -135,6 +139,67 @@ const BookAppointmentModal = ({
     [services, form.serviceId],
   );
 
+  const activeCounters = useMemo(
+    () =>
+      (salon?.counters || []).filter(
+        (c) => c?.isActive !== false && !c?.isDeleted,
+      ),
+    [salon?.counters],
+  );
+
+  // Which counters can actually take this service on this date. A counter earns
+  // a place in the list by having free slots of its own, or by there being
+  // unassigned slots (generated before counters existed) that any chair can take.
+  const counterOptions = useMemo(
+    () =>
+      activeCounters
+        .map((counter) => {
+          // One button per start time: where the counter's own slot and a
+          // shared unassigned slot cover the same time, the counter's wins.
+          const byTime = new Map<string, SlotLike>();
+
+          for (const slot of slots) {
+            if (slot.counterId != null && slot.counterId !== counter.id) continue;
+
+            const existing = byTime.get(slot.startTime);
+            if (
+              !existing ||
+              (existing.counterId == null && slot.counterId === counter.id)
+            ) {
+              byTime.set(slot.startTime, slot);
+            }
+          }
+
+          return {
+            ...counter,
+            slots: Array.from(byTime.values()).sort((a, b) =>
+              a.startTime.localeCompare(b.startTime),
+            ),
+          };
+        })
+        .filter((option) => option.slots.length > 0),
+    [activeCounters, slots],
+  );
+
+  // Derived, never stored: one counter means there is nothing to choose, and a
+  // counter that loses its availability when the date changes drops itself.
+  const selectedCounterId = counterOptions.some((c) => c.id === form.counterId)
+    ? form.counterId
+    : counterOptions.length === 1
+      ? counterOptions[0].id
+      : "";
+
+  const selectedCounter = counterOptions.find((c) => c.id === selectedCounterId);
+
+  // Only the chosen counter's times are offered, so the time the customer taps
+  // is always one that chair can actually serve.
+  const visibleSlots = selectedCounter?.slots ?? [];
+  const selectedSlot = visibleSlots.find((s) => s.id === form.slotId);
+
+  const dateChosen = Boolean(form.appointmentDate);
+  const serviceChosen = Boolean(form.serviceId);
+  const counterStepReady = dateChosen && serviceChosen && !loadingSlots;
+
   const depositMinor = useMemo(
     () =>
       selectedService?.priceMinor
@@ -151,21 +216,21 @@ const BookAppointmentModal = ({
 
   const validate = () => {
     const nextErrors: Record<string, string> = {};
-    if (!form.serviceId) nextErrors.serviceId = "Service is required";
-    if (!form.counterId) nextErrors.counterId = "Counter is required";
     if (!form.appointmentDate) nextErrors.appointmentDate = "Date is required";
-    if (!form.slotId) nextErrors.slotId = "Pick a time slot";
+    if (!form.serviceId) nextErrors.serviceId = "Service is required";
+    if (!selectedCounterId) nextErrors.counterId = "Counter is required";
+    if (!selectedSlot) nextErrors.slotId = "Pick a time slot";
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
 
   const handleContinue = () => {
-    if (!validate()) return;
+    if (!validate() || !selectedSlot) return;
 
     const query = new URLSearchParams({
       service: form.serviceId,
-      counter: form.counterId,
-      slot: form.slotId,
+      counter: selectedCounterId,
+      slot: selectedSlot.id,
       date: form.appointmentDate,
     });
     if (form.staffId) query.set("staff", form.staffId);
@@ -179,6 +244,9 @@ const BookAppointmentModal = ({
 
   const fieldClass =
     "mt-2 w-full h-11 rounded-lg border border-input bg-background px-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20";
+
+  const disabledFieldClass =
+    "cursor-not-allowed bg-muted/40 text-muted-foreground";
 
   return (
     <div className="fixed inset-0 z-50">
@@ -213,10 +281,29 @@ const BookAppointmentModal = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="flex items-center gap-2 text-sm font-medium">
+                  <CalendarDays className="h-4 w-4 text-primary" /> Date *
+                </label>
+                <input
+                  type="date"
+                  min={new Date().toISOString().split("T")[0]}
+                  className={fieldClass}
+                  value={form.appointmentDate}
+                  onChange={(e) => setField("appointmentDate", e.target.value)}
+                />
+                {errors.appointmentDate && (
+                  <p className="mt-1 text-xs text-destructive">
+                    {errors.appointmentDate}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium">
                   <Scissors className="h-4 w-4 text-primary" /> Service *
                 </label>
                 <select
-                  className={fieldClass}
+                  className={cn(fieldClass, !dateChosen && disabledFieldClass)}
+                  disabled={!dateChosen}
                   value={form.serviceId}
                   onChange={(e) => setField("serviceId", e.target.value)}
                 >
@@ -233,37 +320,116 @@ const BookAppointmentModal = ({
                     </option>
                   ))}
                 </select>
-                {errors.serviceId && (
+                {errors.serviceId ? (
                   <p className="mt-1 text-xs text-destructive">
                     {errors.serviceId}
                   </p>
-                )}
+                ) : !dateChosen ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Pick a date first.
+                  </p>
+                ) : null}
               </div>
+            </div>
 
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium">
-                  <Store className="h-4 w-4 text-primary" /> Counter *
-                </label>
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <Store className="h-4 w-4 text-primary" /> Counter *
+              </label>
+
+              {!counterStepReady ? (
+                <div
+                  className={cn(
+                    fieldClass,
+                    disabledFieldClass,
+                    "flex items-center gap-2",
+                  )}
+                >
+                  {loadingSlots ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" /> Checking
+                      availability...
+                    </>
+                  ) : (
+                    "Select a date and service first"
+                  )}
+                </div>
+              ) : counterOptions.length === 0 ? (
+                <div className="mt-2 rounded-lg bg-muted p-4 text-center text-sm text-muted-foreground">
+                  No counter is free for this service on this date. Try another
+                  day.
+                </div>
+              ) : counterOptions.length === 1 ? (
+                // Nothing to choose - the only counter with availability is taken
+                // as the answer, so the customer just sees which one it is.
+                <div
+                  className={cn(
+                    fieldClass,
+                    "flex items-center bg-muted/50 font-medium",
+                  )}
+                >
+                  {selectedCounter?.name}
+                  {selectedCounter?.code ? ` (${selectedCounter.code})` : ""}
+                </div>
+              ) : (
                 <select
                   className={fieldClass}
-                  value={form.counterId}
+                  value={selectedCounterId}
                   onChange={(e) => setField("counterId", e.target.value)}
                 >
                   <option value="">Select counter</option>
-                  {salon?.counters?.map((counter) => (
+                  {counterOptions.map((counter) => (
                     <option key={counter.id} value={counter.id}>
                       {counter.name}
-                      {counter.code ? ` (${counter.code})` : ""}
+                      {counter.code ? ` (${counter.code})` : ""} —{" "}
+                      {counter.slots.length} time
+                      {counter.slots.length === 1 ? "" : "s"} free
                     </option>
                   ))}
                 </select>
-                {errors.counterId && (
+              )}
+
+              {errors.counterId && (
+                <p className="mt-1 text-xs text-destructive">
+                  {errors.counterId}
+                </p>
+              )}
+            </div>
+
+            {counterStepReady && selectedCounter && (
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <Clock className="h-4 w-4 text-primary" /> Available times *
+                </label>
+                <p className="mt-2 mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <Store className="h-3.5 w-3.5 text-primary" />
+                  {selectedCounter.name}
+                  {selectedCounter.code ? ` (${selectedCounter.code})` : ""}
+                </p>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                  {visibleSlots.map((slot) => (
+                    <button
+                      key={slot.id}
+                      type="button"
+                      onClick={() => setField("slotId", slot.id)}
+                      className={cn(
+                        "rounded-lg border px-3 py-2 text-sm text-center transition-all",
+                        form.slotId === slot.id
+                          ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                          : "bg-background hover:border-primary/40 hover:bg-muted",
+                      )}
+                    >
+                      {slot.startTime}
+                    </button>
+                  ))}
+                </div>
+                {errors.slotId && (
                   <p className="mt-1 text-xs text-destructive">
-                    {errors.counterId}
+                    {errors.slotId}
                   </p>
                 )}
               </div>
-            </div>
+            )}
 
             {staffList.length > 0 && (
               <div>
@@ -287,69 +453,6 @@ const BookAppointmentModal = ({
                     </option>
                   ))}
                 </select>
-              </div>
-            )}
-
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium">
-                <CalendarDays className="h-4 w-4 text-primary" /> Date *
-              </label>
-              <input
-                type="date"
-                min={new Date().toISOString().split("T")[0]}
-                className={fieldClass}
-                value={form.appointmentDate}
-                onChange={(e) => setField("appointmentDate", e.target.value)}
-              />
-              {errors.appointmentDate && (
-                <p className="mt-1 text-xs text-destructive">
-                  {errors.appointmentDate}
-                </p>
-              )}
-              {!form.serviceId && (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Pick a service first to see its available times.
-                </p>
-              )}
-            </div>
-
-            {form.appointmentDate && form.serviceId && (
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium">
-                  <Clock className="h-4 w-4 text-primary" /> Available times *
-                </label>
-                {loadingSlots ? (
-                  <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Loading slots...
-                  </div>
-                ) : slots.length === 0 ? (
-                  <div className="mt-2 rounded-lg bg-muted p-4 text-center text-sm text-muted-foreground">
-                    No available slots for this date. Try another day.
-                  </div>
-                ) : (
-                  <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                    {slots.map((slot) => (
-                      <button
-                        key={slot.id}
-                        type="button"
-                        onClick={() => setField("slotId", slot.id)}
-                        className={cn(
-                          "rounded-lg border px-3 py-2 text-sm text-center transition-all",
-                          form.slotId === slot.id
-                            ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                            : "bg-background hover:border-primary/40 hover:bg-muted",
-                        )}
-                      >
-                        {slot.startTime}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {errors.slotId && (
-                  <p className="mt-1 text-xs text-destructive">
-                    {errors.slotId}
-                  </p>
-                )}
               </div>
             )}
 
