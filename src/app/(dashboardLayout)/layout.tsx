@@ -1,4 +1,5 @@
 import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
+import SessionKeeper from "@/components/Shared/SessionKeeper";
 import { getUserRoles } from "@/services/get-roles/getUserRoles";
 import React from "react";
 
@@ -14,6 +15,7 @@ const CommonDashboardLayout = async ({
 
   return (
     <div className="flex h-screen overflow-hidden">
+      <SessionKeeper />
       <DashboardSidebar userRole={userRole ?? "GUEST"} />
 
       <main className="flex-1 overflow-y-auto bg-gray-50">

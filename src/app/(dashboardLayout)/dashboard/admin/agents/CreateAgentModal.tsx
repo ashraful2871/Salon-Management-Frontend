@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BANGLADESH_LOCATIONS } from "@/constants/bangladesh-locations";
 import { toast } from "sonner";
-import { serverFetch } from "@/lib/server-fetch";
+import { createAgent } from "@/services/agents/createAgent";
 
 export function CreateAgentModal({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void }) {
   const [loading, setLoading] = useState(false);
@@ -28,14 +28,10 @@ export function CreateAgentModal({ open, setOpen }: { open: boolean; setOpen: (v
     setLoading(true);
 
     try {
-      const res = await serverFetch.post("/agents/create", {
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
-      });
+      const result = await createAgent(form);
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Failed to create agent");
+      if (!result.success) {
+        throw new Error(result.message || "Failed to create agent");
       }
 
       toast.success("Agent created successfully!");

@@ -1,7 +1,12 @@
 import { setCookie } from "./cookiesHandler";
-import type { UserRole } from "./auth-utils";
 import { redirect } from "next/navigation";
 import type { ApiResponse } from "@/lib/api-types";
+import {
+  ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
+  accessCookieOptions,
+  refreshCookieOptions,
+} from "@/lib/auth-cookies";
 
 export const loginUser = async (
   _currentState: ApiResponse<{ message: string }> | null,
@@ -51,21 +56,12 @@ export const loginUser = async (
     if (!accessToken) throw new Error("Access token not found in response");
     if (!refreshToken) throw new Error("Refresh token not found in response");
 
-    await setCookie("accessToken", accessToken, {
-      secure: true,
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60,
-      path: "/",
-      sameSite: "lax",
-    });
-
-    await setCookie("refreshToken", refreshToken, {
-      secure: true,
-      httpOnly: true,
-      maxAge: 90 * 24 * 60 * 60,
-      path: "/",
-      sameSite: "lax",
-    });
+    // Options come from the shared module so that login, the proxy and the
+    // keep-alive route all write the same cookie. They did not before, and a
+    // cookie rewritten with a different `path` or `sameSite` is a second cookie
+    // as far as the browser is concerned.
+    await setCookie(ACCESS_TOKEN_COOKIE, accessToken, accessCookieOptions);
+    await setCookie(REFRESH_TOKEN_COOKIE, refreshToken, refreshCookieOptions);
 
     if (redirectTo) {
       redirect(redirectTo as string);

@@ -1,38 +1,12 @@
-import jwt, { JwtPayload } from "jsonwebtoken";
-
-import { UserRole } from "@/services/auth/auth-utils";
-import { getCookie } from "@/services/auth/cookiesHandler";
 import { getMyWallet, type Wallet } from "@/services/wallet/getMyWallet";
+import { getSessionUser } from "@/services/auth/session";
 import NavbarClient from "./NavbarClient";
 
-interface DecodedToken extends JwtPayload {
-  role: UserRole;
-  email: string;
-  name?: string;
-}
-
 const Navbar = async () => {
-  const accessToken = await getCookie("accessToken");
-
-  let user = null;
-
-  if (accessToken) {
-    try {
-      const decoded = jwt.verify(
-        accessToken,
-        process.env.JWT_SECRET as string,
-      ) as DecodedToken;
-
-      user = {
-        role: decoded.role,
-        email: decoded.email,
-        name: decoded.name || decoded.email.split("@")[0],
-      };
-    } catch (error) {
-      console.error("Token verification failed:", error);
-      // If token is invalid, user remains null (logged out)
-    }
-  }
+  // Reading the token directly is what used to make the header flip to
+  // "Sign in" an hour after sign-in while the session itself was still good.
+  // `getSessionUser` renews an expired token before deciding.
+  const user = await getSessionUser();
 
   // The header balance is a signed-in-only affordance, so the wallet read only
   // happens once the token has verified. A failed read degrades to `null` — the

@@ -1,6 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { setCookie } from "./cookiesHandler";
 import { redirect } from "next/navigation";
+import {
+  ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
+  accessCookieOptions,
+  refreshCookieOptions,
+} from "@/lib/auth-cookies";
 
 /**
  * Registers the user and signs them in in the same step — the backend returns
@@ -77,21 +83,8 @@ export const registerUser = async (
       redirect("/login?registered=true");
     }
 
-    await setCookie("accessToken", accessToken, {
-      secure: true,
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60,
-      path: "/",
-      sameSite: "lax",
-    });
-
-    await setCookie("refreshToken", refreshToken, {
-      secure: true,
-      httpOnly: true,
-      maxAge: 90 * 24 * 60 * 60,
-      path: "/",
-      sameSite: "lax",
-    });
+    await setCookie(ACCESS_TOKEN_COOKIE, accessToken, accessCookieOptions);
+    await setCookie(REFRESH_TOKEN_COOKIE, refreshToken, refreshCookieOptions);
 
     redirect("/?registered=true");
   } catch (error) {
