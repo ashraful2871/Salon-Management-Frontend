@@ -6,102 +6,165 @@ import {
   accessCookieOptions,
   refreshCookieOptions,
 } from "@/lib/auth-cookies";
-import { isTokenExpiring } from "@/lib/jwt";
+import { decodeJwt, isTokenExpiring } from "@/lib/jwt";
+import {
+  PATHNAME_HEADER,
+  ROLE_HOME,
+  canAccessRoute,
+  deniedUrl,
+  isGuestOnlyRoute,
+  isPrivateRoute,
+  isSignedInRole,
+  loginUrl,
+} from "@/lib/route-access";
 import { refreshSession } from "@/services/auth/refreshSession";
+import type { UserRole } from "@/services/auth/auth-utils";
 
-/**
- * Keeps the signed-in session alive across navigations.
- *
- * This is the only place in the app that can *durably* replace the session
- * cookies during an ordinary page load. React server components render
- * read-only - `cookies().set()` throws inside them - so without this the
- * session helper could renew a token for the request it was serving and then
- * lose it, refreshing again on the very next page. Here the new pair goes out
- * in `Set-Cookie` and is also written back onto the incoming request, so the
- * render that follows sees the fresh token rather than the one that just died.
- *
- * Runs before every page and server action (see `config.matcher`), which is why
- * it has to stay cheap: with a healthy token it reads one cookie, decodes the
- * `exp` claim and returns.
- *
- * Deliberately not an auth gate. Route protection is the backend's `auth()`
- * middleware; the only thing decided here is whether to renew a token.
- */
-
-/**
- * Renew this long before the token actually expires.
- *
- * Five minutes covers the gap between this check and the API calls the page
- * will make a moment later, and absorbs a few minutes of clock drift between
- * the Edge runtime and the API host - a token that is thirty seconds from
- * expiry by our clock may already be rejected by theirs.
- */
 const RENEW_BEFORE_MS = 5 * 60 * 1000;
 
-export async function proxy(request: NextRequest) {
+/**
+ * Two jobs, in this order: keep the session alive, then decide where the
+ * request is allowed to go.
+ *
+ * The order matters. A token that expired while the tab sat idle would
+ * otherwise read as "not signed in" and bounce the user to the login page they
+ * do not need - renewing first means the gate judges the session the user
+ * actually has.
+ *
+ * What this is *not* is the authorization boundary. The role read here comes
+ * out of an unverified token (the Edge runtime has no `jsonwebtoken`), so it is
+ * a routing hint: it saves an unauthorised request the cost of a render and
+ * gives the user an instant redirect instead of a flash of a page they cannot
+ * use. The decision is made again, on a verified session, by the guards in
+ * `src/lib/auth-guard.ts`, and a third time by the backend's `auth(...roles)`
+ * middleware, which is the only one an attacker cannot skip.
+ */
+
+type Renewal =
+  | { kind: "kept"; accessToken: string | null }
+  | { kind: "renewed"; accessToken: string; refreshToken: string }
+  | { kind: "ended" };
+
+const renewIfNeeded = async (request: NextRequest): Promise<Renewal> => {
   const refreshToken = request.cookies.get(REFRESH_TOKEN_COOKIE)?.value;
+  const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value ?? null;
 
-  // No refresh token: a visitor, or someone whose session has already been
-  // cleaned up. Nothing to renew.
-  if (!refreshToken) return NextResponse.next();
-
-  const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
+  if (!refreshToken) return { kind: "kept", accessToken };
 
   if (accessToken && !isTokenExpiring(accessToken, RENEW_BEFORE_MS)) {
-    return NextResponse.next();
+    return { kind: "kept", accessToken };
   }
 
   const outcome = await refreshSession(refreshToken);
 
-  if (outcome.status === "rejected") {
-    // The API says this session is genuinely over - the refresh token has
-    // expired or the account is no longer active. Drop both cookies so the page
-    // renders as a visitor instead of retrying on every single navigation.
-    const response = NextResponse.next();
+  if (outcome.status === "refreshed") {
+    return {
+      kind: "renewed",
+      accessToken: outcome.session.accessToken,
+      refreshToken: outcome.session.refreshToken,
+    };
+  }
+
+  // Only a refusal ends the session. An unreachable API leaves the cookies
+  // alone - and the stale token in place - so the next request can try again
+  // rather than signing the user out over a blip.
+  if (outcome.status === "rejected") return { kind: "ended" };
+
+  return { kind: "kept", accessToken };
+};
+
+/** The role claimed by a token, without verifying it. See the note above. */
+const claimedRole = (accessToken: string | null): UserRole | undefined => {
+  if (!accessToken) return undefined;
+
+  const role = decodeJwt(accessToken)?.role;
+
+  return isSignedInRole(role as UserRole) ? (role as UserRole) : undefined;
+};
+
+/**
+ * Where to send the user back to after signing in.
+ *
+ * A client-side navigation asks for the RSC payload of the page, not the page,
+ * and carries a `_rsc` cache-buster to prove it. Echoing that back would return
+ * the user to a URL that renders as a payload dump, so it is dropped.
+ */
+const returnTarget = (url: NextRequest["nextUrl"]): string => {
+  const query = new URLSearchParams(url.search);
+  query.delete("_rsc");
+
+  const rest = query.toString();
+
+  return rest ? `${url.pathname}?${rest}` : url.pathname;
+};
+
+export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const renewal = await renewIfNeeded(request);
+  const accessToken = renewal.kind === "ended" ? null : renewal.accessToken;
+  const role = claimedRole(accessToken);
+
+  // Forwarded so a guard can build an accurate "come back here after signing
+  // in" link. Set, never appended, so a client-supplied header cannot survive.
+  const headers = new Headers(request.headers);
+  headers.set(PATHNAME_HEADER, pathname);
+
+  if (renewal.kind === "renewed") {
+    request.cookies.set(ACCESS_TOKEN_COOKIE, renewal.accessToken);
+    request.cookies.set(REFRESH_TOKEN_COOKIE, renewal.refreshToken);
+  }
+
+  // Only *navigations* are gated. A Server Action posts to whatever URL the
+  // user happens to be on, so the path says nothing about where they are
+  // going - and the action may be the very thing creating the session. Turning
+  // one away mid-flight silently cancels it: this gate used to bounce the
+  // second of the two `setCookie` calls in `loginUser`, because the first had
+  // already planted the access token, which left every login without a refresh
+  // token and swallowed its redirect. Actions answer to the guards in
+  // `auth-guard.ts` and to the backend instead.
+  const isNavigation = request.method === "GET";
+
+  const redirectTo = (() => {
+    if (!isNavigation) return null;
+
+    if (isPrivateRoute(pathname)) {
+      if (!role) return loginUrl(returnTarget(request.nextUrl));
+      if (!canAccessRoute(role, pathname)) return deniedUrl(role);
+      return null;
+    }
+
+    // Nobody needs a login form while holding a session.
+    if (role && isGuestOnlyRoute(pathname)) return ROLE_HOME[role];
+
+    return null;
+  })();
+
+  const response = redirectTo
+    ? NextResponse.redirect(new URL(redirectTo, request.url))
+    : NextResponse.next({ request: { headers } });
+
+  if (renewal.kind === "renewed") {
+    response.cookies.set(
+      ACCESS_TOKEN_COOKIE,
+      renewal.accessToken,
+      accessCookieOptions,
+    );
+    response.cookies.set(
+      REFRESH_TOKEN_COOKIE,
+      renewal.refreshToken,
+      refreshCookieOptions,
+    );
+  }
+
+  if (renewal.kind === "ended") {
     response.cookies.delete(ACCESS_TOKEN_COOKIE);
     response.cookies.delete(REFRESH_TOKEN_COOKIE);
-    return response;
   }
-
-  if (outcome.status === "unavailable") {
-    // Could not reach the API - a deploy, or a cold Render instance. Keep the
-    // cookies and let the next request try again; signing the user out over a
-    // blip is exactly the behaviour this whole flow exists to prevent.
-    return NextResponse.next();
-  }
-
-  const { session } = outcome;
-
-  // Rewriting the request's own cookies is what lets the components rendering
-  // *this* request use the new token, rather than having to wait for the
-  // browser to send it back on the next one.
-  request.cookies.set(ACCESS_TOKEN_COOKIE, session.accessToken);
-  request.cookies.set(REFRESH_TOKEN_COOKIE, session.refreshToken);
-
-  const response = NextResponse.next({
-    request: { headers: request.headers },
-  });
-
-  response.cookies.set(
-    ACCESS_TOKEN_COOKIE,
-    session.accessToken,
-    accessCookieOptions,
-  );
-  response.cookies.set(
-    REFRESH_TOKEN_COOKIE,
-    session.refreshToken,
-    refreshCookieOptions,
-  );
 
   return response;
 }
 
 export const config = {
-  /**
-   * Everything except static assets and the keep-alive route, which does its
-   * own renewal and would otherwise have this run first and make its work
-   * pointless.
-   */
   matcher: [
     "/((?!api/auth/refresh|_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|css|js|txt|xml|woff2?)$).*)",
   ],
