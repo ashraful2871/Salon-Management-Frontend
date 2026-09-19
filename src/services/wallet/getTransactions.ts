@@ -29,8 +29,19 @@ export type WalletTransaction = {
    * moved in or out of `heldBalance`. Those rows carry `amountMinor: 0`
    * because a hold does not change the total balance, so this is the only
    * amount worth showing for them.
+   *
+   * A TOPUP row instead carries the gateway's own identifiers, written by
+   * `creditSettledIntent`: `transactionId` is the id on the customer's receipt
+   * and on the payment result page, and `gatewayRef` is SSLCommerz's
+   * `bank_tran_id`.
    */
-  metadata?: { holdDeltaMinor?: number } & Record<string, unknown>;
+  metadata?: {
+    holdDeltaMinor?: number;
+    transactionId?: string;
+    gatewayRef?: string | null;
+    method?: string | null;
+    provider?: string;
+  } & Record<string, unknown>;
   createdAt: string;
 };
 
