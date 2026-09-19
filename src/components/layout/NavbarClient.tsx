@@ -165,25 +165,10 @@ const NavbarClient = ({ user, wallet }: NavbarClientProps) => {
             <div className="flex items-center gap-2 sm:gap-3">
               {user ? (
                 <>
-                  {/* Balance: full pill on desktop, tap-through chip below it */}
-                  <div className="hidden lg:block">
+                  {/* Balance: Tap-to-reveal for both mobile and desktop */}
+                  <div className="block">
                     <WalletMenu wallet={wallet} />
                   </div>
-
-                  <Link
-                    href="/dashboard/wallet"
-                    aria-label={`Wallet balance ${
-                      wallet ? formatBDT(wallet.availableMinor) : "unavailable"
-                    }`}
-                    className="flex h-9 items-center gap-1.5 rounded-full border border-primary/25 bg-primary/5 pl-1.5 pr-2.5 lg:hidden"
-                  >
-                    <span className="grid h-6 w-6 place-items-center rounded-full bg-gradient-gold text-white">
-                      <WalletIcon className="h-3 w-3" />
-                    </span>
-                    <span className="text-xs font-black tabular-nums text-slate-900">
-                      {wallet ? formatBDT(wallet.availableMinor) : "--"}
-                    </span>
-                  </Link>
 
                   {/* Account menu */}
                   <DropdownMenu>

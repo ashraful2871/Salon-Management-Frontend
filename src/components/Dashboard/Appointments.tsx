@@ -42,6 +42,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { formatBDT } from "@/lib/money";
 import { updateAppointmentStatus } from "@/services/appoinments/updateAppointmentStatus";
 import { cancelAppointment } from "@/services/appoinments/cancelAppointment";
 import { getStaffBySalon } from "@/services/staff/getStaffBySalon";
@@ -189,6 +190,7 @@ const Appointments = ({
         service: serviceName,
         time,
         duration,
+        priceMinor: apt?.totalMinor || 0,
         status: (apt?.status || "PENDING").toLowerCase(),
         rawStatus: apt?.status || "PENDING",
         salonId: apt?.salon?.id,
@@ -567,71 +569,100 @@ const Appointments = ({
                 filteredAppointments.map((appointment) => (
                   <div
                     key={appointment.id}
-                    className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                    className="group flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-5 rounded-xl border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md hover:border-primary/20"
                   >
                     {/* Left */}
                     <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 font-semibold text-primary">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-gold font-bold text-white shadow-gold transition-transform group-hover:scale-105">
                         {getInitials(appointment.customer)}
                       </div>
 
-                      <div>
-                        <p className="font-medium">{appointment.customer}</p>
+                      <div className="flex flex-col">
+                        <p className="font-semibold text-base text-foreground leading-none mb-1.5">{appointment.customer}</p>
                         {appointment.customerEmail && appointment.customerEmail !== appointment.customer && (
-                          <p className="text-xs text-muted-foreground">{appointment.customerEmail}</p>
+                          <p className="text-xs text-muted-foreground/80 mb-1 leading-none">{appointment.customerEmail}</p>
                         )}
-                        <p className="text-sm text-muted-foreground mt-0.5">
-                          {appointment.service}
-                          {appointment.salonName
-                            ? ` • ${appointment.salonName}`
-                            : ""}
-                        </p>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
+                          <span className="font-medium text-primary/80">{appointment.service}</span>
+                          {appointment.salonName && (
+                            <>
+                              <span className="h-1 w-1 rounded-full bg-border" />
+                              <span>{appointment.salonName}</span>
+                            </>
+                          )}
+                        </div>
 
                         {/* Optional extra line (still clean) */}
                         {(appointment.staffName || appointment.counterName) && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {appointment.staffName
-                              ? `Staff: ${appointment.staffName}`
-                              : ""}
-                            {appointment.staffName && appointment.counterName
-                              ? " • "
-                              : ""}
-                            {appointment.counterName
-                              ? `Counter: ${appointment.counterName}`
-                              : ""}
-                          </p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1.5">
+                            {appointment.staffName && (
+                              <span className="flex items-center gap-1">
+                                <User className="h-3 w-3" /> {appointment.staffName}
+                              </span>
+                            )}
+                            {appointment.staffName && appointment.counterName && (
+                              <span className="h-1 w-1 rounded-full bg-border" />
+                            )}
+                            {appointment.counterName && (
+                              <span>Counter: {appointment.counterName}</span>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
 
-                    {/* Right */}
-                    <div className="flex items-center justify-between md:justify-end gap-4 md:gap-6">
-                      {/* Show date when viewing all dates */}
-                      {!selectedDate && (
-                        <div className="text-right">
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(appointment.date + "T00:00:00").toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
+                    {/* Right side data & actions */}
+                    <div className="flex flex-col md:flex-row items-end md:items-center justify-between md:justify-end gap-4 md:gap-8 border-t md:border-t-0 pt-4 md:pt-0 mt-3 md:mt-0 w-full md:w-auto">
+                      
+                      {/* Info grid */}
+                      <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-6 sm:gap-8 text-right">
+                        {/* Show date when viewing all dates */}
+                        {!selectedDate && (
+                          <div className="hidden sm:block">
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                              Date
+                            </p>
+                            <p className="text-sm font-medium text-foreground leading-none">
+                              {new Date(appointment.date + "T00:00:00").toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })}
+                            </p>
+                          </div>
+                        )}
+                        
+                        <div>
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                            Time
+                          </p>
+                          <div className="flex items-baseline justify-end gap-1.5">
+                            <p className="text-sm font-bold tabular-nums text-foreground leading-none">{appointment.time}</p>
+                            <p className="text-[11px] font-medium text-muted-foreground tabular-nums leading-none">
+                              {appointment.duration}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                            Price
+                          </p>
+                          <p className="text-sm font-bold tabular-nums text-foreground leading-none">
+                            {formatBDT(appointment.priceMinor)}
                           </p>
                         </div>
-                      )}
-                      <div className="text-right">
-                        <p className="font-medium">{appointment.time}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {appointment.duration}
-                        </p>
                       </div>
 
-                      {getStatusBadge(appointment.rawStatus)}
+                      {/* Status & Actions */}
+                      <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-3 md:pt-0">
+                        {getStatusBadge(appointment.rawStatus)}
 
-                      {/* Status Actions Dropdown */}
-                      {appointment.rawStatus !== "COMPLETED" &&
-                        appointment.rawStatus !== "CANCELLED" && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
+                        {/* Status Actions Dropdown */}
+                        {appointment.rawStatus !== "COMPLETED" &&
+                          appointment.rawStatus !== "CANCELLED" && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -694,9 +725,10 @@ const Appointments = ({
                                 <XCircle className="mr-2 h-4 w-4" />
                                 Cancel
                               </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                      </div>
                     </div>
                   </div>
                 ))

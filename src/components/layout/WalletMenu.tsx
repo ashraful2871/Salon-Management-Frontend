@@ -11,11 +11,7 @@ import {
   Wallet as WalletIcon,
 } from "lucide-react";
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 import { Button } from "@/components/ui/button";
 import TopUpModal from "@/components/Wallet/TopUpModal";
 import { getMyWallet, type Wallet } from "@/services/wallet/getMyWallet";
@@ -124,25 +120,63 @@ const WalletMenu = ({
     return (
       <>
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="bg-gradient-gold px-4 py-4 text-white">
+          <div 
+            className="group relative cursor-pointer bg-gradient-gold px-4 py-4 text-white transition-all hover:brightness-110"
+            onClick={() => {
+              if (!menuOpen) {
+                setMenuOpen(true);
+                refresh();
+                setTimeout(() => setMenuOpen(false), 3500);
+              }
+            }}
+          >
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/85">
                 <WalletIcon className="h-3.5 w-3.5" /> Available balance
               </span>
               <button
                 type="button"
-                onClick={refresh}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  refresh();
+                }}
                 aria-label="Refresh wallet balance"
-                className="rounded-full p-1 text-white/85 transition-colors hover:bg-white/20 hover:text-white"
+                className="z-10 rounded-full p-1 text-white/85 transition-colors hover:bg-white/20 hover:text-white"
               >
                 <RefreshCcw
                   className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")}
                 />
               </button>
             </div>
-            <p className="mt-1 text-3xl font-black tabular-nums tracking-tight">
-              {isUnavailable ? "--" : formatBDT(availableMinor)}
-            </p>
+            
+            <div className="relative mt-2 h-10 overflow-hidden">
+              {/* Hidden State */}
+              <div
+                className={cn(
+                  "absolute inset-0 flex items-center transition-all duration-500 ease-out",
+                  menuOpen ? "-translate-y-full opacity-0" : "translate-y-0 opacity-100"
+                )}
+              >
+                <span className="text-lg font-bold tracking-wide text-white/95">
+                  Tap for Balance
+                </span>
+              </div>
+
+              {/* Revealed State */}
+              <div
+                className={cn(
+                  "absolute inset-0 flex items-center gap-2 transition-all duration-500 ease-out",
+                  menuOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
+                )}
+              >
+                <p className="text-3xl font-black tabular-nums tracking-tight">
+                  {isUnavailable ? "--" : formatBDT(availableMinor)}
+                </p>
+                {isRefreshing && (
+                  <Loader2 className="h-4 w-4 animate-spin text-white/80" />
+                )}
+              </div>
+            </div>
           </div>
           {details}
         </div>
@@ -152,76 +186,56 @@ const WalletMenu = ({
   }
 
   return (
-    <>
-      <DropdownMenu
-        // Not modal, so opening the top-up dialog from inside the menu does not
-        // leave Radix's pointer-events lock behind on the body.
-        modal={false}
-        open={menuOpen}
-        onOpenChange={(open) => {
-          setMenuOpen(open);
-          if (open) refresh();
-        }}
-      >
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            aria-label="Wallet balance"
-            className="group flex h-10 cursor-pointer items-center gap-2 rounded-full border border-primary/25 bg-primary/5 pl-1.5 pr-2.5 transition-all hover:border-primary/40 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-          >
-            <span className="grid h-7 w-7 place-items-center rounded-full bg-gradient-gold text-white shadow-gold">
-              <WalletIcon className="h-3.5 w-3.5" />
-            </span>
-            <span className="flex flex-col items-start leading-none">
-              <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-500">
-                Balance
-              </span>
-              <span className="mt-0.5 text-sm font-black tabular-nums text-slate-900">
-                {isUnavailable ? "--" : formatBDT(availableMinor)}
-              </span>
-            </span>
-            {isRefreshing && (
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" />
-            )}
-          </button>
-        </DropdownMenuTrigger>
+    <button
+      type="button"
+      onClick={() => {
+        if (!menuOpen) {
+          setMenuOpen(true);
+          refresh();
+          setTimeout(() => setMenuOpen(false), 3500);
+        }
+      }}
+      aria-label="Wallet balance"
+      className={cn(
+        "group relative flex h-10 w-28 sm:w-36 cursor-pointer items-center overflow-hidden rounded-full border bg-white p-1 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        menuOpen
+          ? "border-primary/40 shadow-sm ring-1 ring-primary/10"
+          : "border-slate-200 hover:border-slate-300 hover:shadow-sm"
+      )}
+    >
+      <div className="z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-gold text-white shadow-gold transition-transform duration-300 group-hover:scale-105">
+        <WalletIcon className="h-4 w-4" />
+      </div>
 
-        <DropdownMenuContent
-          align="end"
-          sideOffset={10}
-          className="w-72 overflow-hidden p-0"
+      <div className="relative flex h-full flex-1 items-center justify-center overflow-hidden">
+        {/* Hidden State */}
+        <div
+          className={cn(
+            "absolute inset-0 flex flex-col items-center justify-center transition-all duration-500 ease-out",
+            menuOpen ? "-translate-y-full opacity-0" : "translate-y-0 opacity-100"
+          )}
         >
-          <div className="bg-gradient-gold px-4 py-4 text-white">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-white/85">
-                Available balance
-              </span>
-              <button
-                type="button"
-                onClick={refresh}
-                aria-label="Refresh wallet balance"
-                className="rounded-full p-1 text-white/85 transition-colors hover:bg-white/20 hover:text-white"
-              >
-                <RefreshCcw
-                  className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")}
-                />
-              </button>
-            </div>
-            <p className="mt-1 text-3xl font-black tabular-nums tracking-tight">
-              {isUnavailable ? "--" : formatBDT(availableMinor)}
-            </p>
-            <p className="mt-1 text-[11px] text-white/80">
-              {isUnavailable
-                ? "Balance unavailable right now."
-                : "Spendable on bookings and deposits."}
-            </p>
-          </div>
-          {details}
-        </DropdownMenuContent>
-      </DropdownMenu>
+          <span className="text-[10px] sm:text-[11px] font-bold tracking-wide text-slate-500 whitespace-nowrap">
+            Tap for Balance
+          </span>
+        </div>
 
-      <TopUpModal open={topUpOpen} setOpen={setTopUpOpen} />
-    </>
+        {/* Revealed State */}
+        <div
+          className={cn(
+            "absolute inset-0 flex items-center justify-center gap-1 sm:gap-1.5 transition-all duration-500 ease-out",
+            menuOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
+          )}
+        >
+          <span className="text-xs sm:text-sm font-black tabular-nums text-slate-900">
+            {isUnavailable ? "--" : formatBDT(availableMinor)}
+          </span>
+          {isRefreshing && (
+            <Loader2 className="h-3 w-3 animate-spin text-slate-400" />
+          )}
+        </div>
+      </div>
+    </button>
   );
 };
 
