@@ -40,6 +40,8 @@ interface NavbarClientProps {
   user: UserData | null;
   /** Null when signed out, or when the wallet read failed. */
   wallet: Wallet | null;
+  ownerRevenueMinor?: number | null;
+  adminRevenueMinor?: number | null;
 }
 
 const NAV_LINKS = [
@@ -58,7 +60,120 @@ const ROLE_LABELS: Record<string, string> = {
   AGENT: "Agent",
 };
 
-const NavbarClient = ({ user, wallet }: NavbarClientProps) => {
+const TapToRevealPill = ({ label, amountMinor }: { label: string; amountMinor: number }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        if (!isOpen) {
+          setIsOpen(true);
+          setTimeout(() => setIsOpen(false), 3500);
+        }
+      }}
+      aria-label={`${label} balance`}
+      className={cn(
+        "group relative flex h-10 w-28 sm:w-36 cursor-pointer items-center overflow-hidden rounded-full border bg-white p-1 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        isOpen
+          ? "border-primary/40 shadow-sm ring-1 ring-primary/10"
+          : "border-slate-200 hover:border-slate-300 hover:shadow-sm"
+      )}
+    >
+      <div className="z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-gold text-white shadow-gold transition-transform duration-300 group-hover:scale-105">
+        <WalletIcon className="h-4 w-4" />
+      </div>
+
+      <div className="relative flex h-full flex-1 items-center justify-center overflow-hidden">
+        <div
+          className={cn(
+            "absolute inset-0 flex flex-col items-center justify-center transition-all duration-500 ease-out",
+            isOpen ? "-translate-y-full opacity-0" : "translate-y-0 opacity-100"
+          )}
+        >
+          <span className="text-[10px] sm:text-[11px] font-bold tracking-wide text-slate-500 whitespace-nowrap">
+            Tap for {label}
+          </span>
+        </div>
+
+        <div
+          className={cn(
+            "absolute inset-0 flex items-center justify-center gap-1 sm:gap-1.5 transition-all duration-500 ease-out",
+            isOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
+          )}
+        >
+          <span className="text-xs sm:text-sm font-black tabular-nums text-slate-900">
+            {formatBDT(amountMinor)}
+          </span>
+        </div>
+      </div>
+    </button>
+  );
+};
+
+const TapToRevealCard = ({ label, amountMinor, link }: { label: string; amountMinor: number; link?: string }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div 
+        className="group relative cursor-pointer bg-gradient-gold px-4 py-4 text-white transition-all hover:brightness-110"
+        onClick={() => {
+          if (!isOpen) {
+            setIsOpen(true);
+            setTimeout(() => setIsOpen(false), 3500);
+          }
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/85">
+            <WalletIcon className="h-3.5 w-3.5" /> {label}
+          </span>
+        </div>
+        
+        <div className="relative mt-2 h-10 overflow-hidden">
+          <div
+            className={cn(
+              "absolute inset-0 flex items-center transition-all duration-500 ease-out",
+              isOpen ? "-translate-y-full opacity-0" : "translate-y-0 opacity-100"
+            )}
+          >
+            <span className="text-lg font-bold tracking-wide text-white/95">
+              Tap for Balance
+            </span>
+          </div>
+
+          <div
+            className={cn(
+              "absolute inset-0 flex items-center gap-2 transition-all duration-500 ease-out",
+              isOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
+            )}
+          >
+            <p className="text-3xl font-black tabular-nums tracking-tight">
+              {formatBDT(amountMinor)}
+            </p>
+          </div>
+        </div>
+      </div>
+      {link && (
+        <div className="flex items-center gap-2 p-3">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9 w-full"
+            asChild
+          >
+            <Link href={link}>
+              View Details
+            </Link>
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const NavbarClient = ({ user, wallet, ownerRevenueMinor, adminRevenueMinor }: NavbarClientProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
@@ -167,7 +282,13 @@ const NavbarClient = ({ user, wallet }: NavbarClientProps) => {
                 <>
                   {/* Balance: Tap-to-reveal for both mobile and desktop */}
                   <div className="block">
-                    <WalletMenu wallet={wallet} />
+                    {user.role === "CUSTOMER" && <WalletMenu wallet={wallet} />}
+                    {user.role === "SALON_OWNER" && (
+                      <TapToRevealPill label="Revenue" amountMinor={ownerRevenueMinor ?? 0} />
+                    )}
+                    {user.role === "ADMIN" && (
+                      <TapToRevealPill label="Revenue" amountMinor={adminRevenueMinor ?? 0} />
+                    )}
                   </div>
 
                   {/* Account menu */}
@@ -227,20 +348,37 @@ const NavbarClient = ({ user, wallet }: NavbarClientProps) => {
                         </Link>
                       </DropdownMenuItem>
 
-                      <DropdownMenuItem asChild className="cursor-pointer">
-                        <Link
-                          href="/dashboard/wallet"
-                          className="flex items-center"
-                        >
-                          <WalletIcon className="mr-2 h-4 w-4" />
-                          <span>My Wallet</span>
-                          {wallet && (
+                      {user.role === "CUSTOMER" && (
+                        <DropdownMenuItem asChild className="cursor-pointer">
+                          <Link
+                            href="/dashboard/wallet"
+                            className="flex items-center"
+                          >
+                            <WalletIcon className="mr-2 h-4 w-4" />
+                            <span>My Wallet</span>
+                            {wallet && (
+                              <span className="ml-auto text-xs font-bold tabular-nums text-slate-500">
+                                {formatBDT(wallet.availableMinor)}
+                              </span>
+                            )}
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
+                      
+                      {user.role === "SALON_OWNER" && (
+                        <DropdownMenuItem asChild className="cursor-pointer">
+                          <Link
+                            href="/dashboard/earnings"
+                            className="flex items-center"
+                          >
+                            <WalletIcon className="mr-2 h-4 w-4" />
+                            <span>Earnings</span>
                             <span className="ml-auto text-xs font-bold tabular-nums text-slate-500">
-                              {formatBDT(wallet.availableMinor)}
+                              {formatBDT(ownerRevenueMinor ?? 0)}
                             </span>
-                          )}
-                        </Link>
-                      </DropdownMenuItem>
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
 
                       <DropdownMenuItem asChild className="cursor-pointer">
                         <Link href="/my-profile" className="flex items-center">
@@ -338,11 +476,23 @@ const NavbarClient = ({ user, wallet }: NavbarClientProps) => {
                   </div>
                 </div>
 
-                <WalletMenu
-                  wallet={wallet}
-                  variant="card"
-                  onNavigate={() => setIsMobileMenuOpen(false)}
-                />
+                {user.role === "CUSTOMER" && (
+                  <WalletMenu
+                    wallet={wallet}
+                    variant="card"
+                    onNavigate={() => setIsMobileMenuOpen(false)}
+                  />
+                )}
+                {user.role === "SALON_OWNER" && (
+                  <div onClick={() => setIsMobileMenuOpen(false)}>
+                    <TapToRevealCard label="Owner Revenue" amountMinor={ownerRevenueMinor ?? 0} link="/dashboard/earnings" />
+                  </div>
+                )}
+                {user.role === "ADMIN" && (
+                  <div onClick={() => setIsMobileMenuOpen(false)}>
+                    <TapToRevealCard label="Platform Revenue" amountMinor={adminRevenueMinor ?? 0} link="/dashboard" />
+                  </div>
+                )}
               </>
             )}
 

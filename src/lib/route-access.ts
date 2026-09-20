@@ -74,7 +74,7 @@ export const ROUTE_ROLES = {
   "/dashboard/approval-salon": ["ADMIN", "AGENT"],
   "/dashboard/applications-status": ["SALON_OWNER", "CUSTOMER"],
   "/dashboard/settings": SIGNED_IN_ROLES,
-  "/dashboard/wallet": SIGNED_IN_ROLES,
+  "/dashboard/wallet": ["CUSTOMER"],
   "/my-profile": SIGNED_IN_ROLES,
 } as const satisfies Record<string, readonly UserRole[]>;
 
