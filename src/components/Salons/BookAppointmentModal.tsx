@@ -121,6 +121,9 @@ const BookAppointmentModal = ({
         date: form.appointmentDate,
         status: "AVAILABLE",
         serviceId: form.serviceId,
+        // Today's earlier times are gone. Offering them only ends in a booking
+        // the API refuses, or worse, one it accepts for a chair nobody kept.
+        upcomingOnly: true,
       })
         .then((res) => {
           setSlots(res?.success ? res.data : []);

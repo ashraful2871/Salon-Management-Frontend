@@ -99,8 +99,10 @@ const BookingSummaryPage = async ({
   const [salonRes, slotRes, walletRes] = await Promise.all([
     getSingleSalon(id),
     // Deliberately unfiltered by status: we want to know if the slot has been
-    // taken since the customer picked it, not just that it vanished.
-    getSlots({ salonId: id, date }),
+    // taken since the customer picked it, not just that it vanished. Past times
+    // are filtered though - a customer who left this page open should be sent
+    // back to pick again rather than reaching the pay button on a dead slot.
+    getSlots({ salonId: id, date, upcomingOnly: true }),
     getMyWallet(),
   ]);
 

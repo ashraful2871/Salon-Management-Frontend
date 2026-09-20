@@ -24,7 +24,6 @@ import {
   ChevronRight,
   CheckCircle2,
   XCircle,
-  Play,
   AlertTriangle,
   Filter,
   ListFilter,
@@ -104,6 +103,24 @@ const formatTime12 = (hhmm?: string) => {
   return `${h12}:${mm} ${ampm}`;
 };
 
+const todayYMD = () => {
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+};
+
+/**
+ * When the appointment actually begins. The backend reads "HH:mm" against the
+ * appointment's date in server-local time, so we do the same here - a mismatch
+ * would show a Cancel button the API is about to refuse.
+ */
+const startsAtOf = (ymd: string, hhmm?: string) => {
+  if (!ymd || !hhmm) return null;
+  const parsed = new Date(`${ymd}T${hhmm.padStart(5, "0")}:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const addDays = (ymd: string, delta: number) => {
   const d = new Date(ymd + "T12:00:00"); // noon to avoid DST/timezone edge cases
   d.setDate(d.getDate() + delta);
@@ -157,9 +174,23 @@ const Appointments = ({
     return () => clearInterval(interval);
   }, [router]);
 
+  // The clock the action gating reads. It ticks on its own so a Cancel button
+  // disappears the moment the appointment starts, rather than sitting there
+  // until the next poll for the customer to click and be refused.
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const interval = setInterval(() => setNowMs(Date.now()), 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const isCustomer = userRole === "CUSTOMER";
+
   const normalized = useMemo(() => {
+    const today = todayYMD();
+
     return (appointments || []).map((apt) => {
       const date = toYMD(apt.appointmentDate);
+      const startsAt = startsAtOf(date, apt?.startTime);
       const name = apt?.customer?.name?.trim();
       const email = apt?.customer?.email?.trim();
       
@@ -197,9 +228,19 @@ const Appointments = ({
         salonName: apt?.salon?.name,
         counterName: apt?.counter?.name,
         staffName: apt?.staff?.user?.name,
+        token: apt?.token || null,
+        serialNumber:
+          typeof apt?.serialNumber === "number" ? apt.serialNumber : null,
+        // Drives what may be done, not just what is shown: the appointment is
+        // over to the customer once it starts, and off the salon's desk on any
+        // day but today.
+        hasStarted: startsAt ? startsAt.getTime() <= nowMs : false,
+        isToday: date === today,
       };
     });
-  }, [appointments]);
+    // `nowMs` ticks so a Cancel button disappears on its own at the start time
+    // rather than waiting for the next poll.
+  }, [appointments, nowMs]);
 
   // ✅ filter by date (optional), status, and search
   const filteredAppointments = normalized.filter((apt) => {
@@ -578,6 +619,23 @@ const Appointments = ({
                       </div>
 
                       <div className="flex flex-col">
+                        {/* Queue identity. This is what the customer reads out
+                            and what the counter calls, so it sits above the
+                            name rather than buried in the detail line. */}
+                        {(appointment.token || appointment.serialNumber !== null) && (
+                          <div className="flex items-center gap-2 mb-2">
+                            {appointment.serialNumber !== null && (
+                              <span className="inline-flex items-center justify-center min-w-7 h-6 px-1.5 rounded-md bg-primary/10 text-primary text-xs font-bold tabular-nums">
+                                #{appointment.serialNumber}
+                              </span>
+                            )}
+                            {appointment.token && (
+                              <span className="inline-flex items-center h-6 px-2 rounded-md border border-dashed border-primary/40 bg-muted/40 text-[11px] font-mono font-semibold tracking-wider text-foreground">
+                                {appointment.token}
+                              </span>
+                            )}
+                          </div>
+                        )}
                         <p className="font-semibold text-base text-foreground leading-none mb-1.5">{appointment.customer}</p>
                         {appointment.customerEmail && appointment.customerEmail !== appointment.customer && (
                           <p className="text-xs text-muted-foreground/80 mb-1 leading-none">{appointment.customerEmail}</p>
@@ -658,76 +716,70 @@ const Appointments = ({
                       <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-3 md:pt-0">
                         {getStatusBadge(appointment.rawStatus)}
 
-                        {/* Status Actions Dropdown */}
-                        {appointment.rawStatus !== "COMPLETED" &&
-                          appointment.rawStatus !== "CANCELLED" && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
+                        {/* Status Actions Dropdown.
+                            Confirm and Start are gone: a paid booking is
+                            confirmed at checkout, and a booking starts itself
+                            when its time comes. NO_SHOW shows nothing at all so
+                            the automatic forfeiture is left alone. */}
+                        {isCustomer
+                          ? !appointment.hasStarted &&
+                            appointment.rawStatus !== "COMPLETED" &&
+                            appointment.rawStatus !== "CANCELLED" &&
+                            appointment.rawStatus !== "NO_SHOW" && (
                               <Button
                                 variant="outline"
                                 size="sm"
                                 disabled={isPending}
-                              >
-                                Actions
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {appointment.rawStatus === "PENDING" && (
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleStatusUpdate(
-                                      appointment.id,
-                                      "CONFIRMED"
-                                    )
-                                  }
-                                >
-                                  <CheckCircle2 className="mr-2 h-4 w-4 text-sage" />
-                                  Confirm
-                                </DropdownMenuItem>
-                              )}
-                              {userRole === "SALON_OWNER" && (appointment.rawStatus === "PENDING" || appointment.rawStatus === "CONFIRMED") && (
-                                <DropdownMenuItem
-                                  onClick={() => handleOpenAssignModal(appointment.id, appointment.salonId, appointment.rawStatus)}
-                                >
-                                  <User className="mr-2 h-4 w-4 text-blue-500" />
-                                  Assign Staff
-                                </DropdownMenuItem>
-                              )}
-                              {(appointment.rawStatus === "PENDING" ||
-                                appointment.rawStatus === "CONFIRMED") && (
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleStatusUpdate(
-                                      appointment.id,
-                                      "IN_PROGRESS"
-                                    )
-                                  }
-                                >
-                                  <Play className="mr-2 h-4 w-4 text-gold" />
-                                  Start
-                                </DropdownMenuItem>
-                              )}
-                              {appointment.rawStatus === "IN_PROGRESS" && (
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setCollectingAppointment(appointment);
-                                    setCollectModalOpen(true);
-                                  }}
-                                >
-                                  <CheckCircle2 className="mr-2 h-4 w-4 text-primary" />
-                                  Complete & Collect
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem
+                                className="text-destructive hover:text-destructive"
                                 onClick={() => setCancelId(appointment.id)}
-                                className="text-destructive focus:text-destructive"
                               >
                                 <XCircle className="mr-2 h-4 w-4" />
                                 Cancel
-                              </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
+                              </Button>
+                            )
+                          : // The salon works today's book. An upcoming or past
+                            // appointment is not something to act on from here.
+                            appointment.isToday &&
+                            appointment.rawStatus !== "COMPLETED" &&
+                            appointment.rawStatus !== "CANCELLED" &&
+                            appointment.rawStatus !== "NO_SHOW" && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={isPending}
+                                  >
+                                    Actions
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setCollectingAppointment(appointment);
+                                      setCollectModalOpen(true);
+                                    }}
+                                  >
+                                    <CheckCircle2 className="mr-2 h-4 w-4 text-primary" />
+                                    Complete & Collect
+                                  </DropdownMenuItem>
+                                  {userRole === "SALON_OWNER" && (
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handleOpenAssignModal(
+                                          appointment.id,
+                                          appointment.salonId,
+                                          appointment.rawStatus,
+                                        )
+                                      }
+                                    >
+                                      <User className="mr-2 h-4 w-4 text-blue-500" />
+                                      Assign Staff
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
                       </div>
                     </div>
                   </div>
