@@ -11,6 +11,8 @@ export type PaginationMeta = {
   limit: number;
   total: number;
   totalPage: number;
+  /** Appointment list only: totals per status under every filter but `status`. */
+  statusCounts?: Partial<Record<AppointmentStatus, number>>;
 };
 
 export type OperatingHour = {
@@ -126,7 +128,27 @@ export type Appointment = {
   };
   counter?: {
     name: string;
+    code?: string;
   };
+  token?: string | null;
+  serialNumber?: number | null;
+  // Billing. The server computes everything from `depositPaidMinor` down, so
+  // the owner and the customer always read the same numbers.
+  totalMinor: number;
+  depositMinor: number;
+  depositStatus: string;
+  depositPaidMinor: number;
+  paidAtCounterMinor: number;
+  amountDueMinor: number;
+  paymentState: PaymentState;
+  checkedInAt?: string | null;
+  completedAt?: string | null;
+  payment?: {
+    amountMinor: number;
+    paymentMethod: CounterPaymentMethod | string;
+    status: string;
+    paymentDate?: string | null;
+  } | null;
   review?: unknown;
   createdAt?: string;
   updatedAt?: string;
@@ -135,10 +157,47 @@ export type Appointment = {
 export type AppointmentStatus =
   | "PENDING"
   | "CONFIRMED"
+  | "CHECKED_IN"
   | "IN_PROGRESS"
   | "COMPLETED"
   | "CANCELLED"
   | "NO_SHOW";
+
+// Whether the bill is settled, independent of the booking status.
+export type PaymentState =
+  | "UNPAID"
+  | "PAID"
+  | "UNRECORDED"
+  | "REFUNDED"
+  | "NOT_APPLICABLE";
+
+// How the balance is taken at the counter.
+export type CounterPaymentMethod = "CASH" | "CARD" | "MOBILE_BANKING";
+
+export type CheckoutReceipt = {
+  appointmentId: string;
+  token?: string | null;
+  serialNumber?: number | null;
+  serviceName: string;
+  counterName?: string | null;
+  customerName: string;
+  totalMinor: number;
+  depositPaidMinor: number;
+  collectedMinor: number;
+  paymentMethod?: CounterPaymentMethod | null;
+  completedAt: string;
+};
+
+export type CashSummary = {
+  countsByStatus: Partial<Record<AppointmentStatus, number>>;
+  collectedMinor: number;
+  // Poisha per method.
+  collectedByMethod: Record<CounterPaymentMethod, number>;
+  outstandingMinor: number;
+  expectedMinor: number;
+  unrecordedCount: number;
+  depositsAppliedMinor: number;
+};
 
 export type User = {
   id: string;

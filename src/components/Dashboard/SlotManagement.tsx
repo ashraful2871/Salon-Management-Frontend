@@ -123,6 +123,14 @@ export const SlotManagement = ({ salons }: { salons: any[] }) => {
         "Slots generated successfully!",
         "Failed to generate slots",
       );
+      // A day that already has a booking only grows after its last slot, so
+      // earlier times on those days were left out rather than renumbered.
+      const lockedDates: string[] = res.data?.lockedDates ?? [];
+      if (lockedDates.length) {
+        toast.warning(
+          `Some slots were not added on ${lockedDates.join(", ")}: bookings already exist. New slots can only go after the last existing slot.`,
+        );
+      }
       if (res.success) {
         // Jump the monitoring list to the first generated day so the result is visible.
         if (selectedDate === startDate) {

@@ -41,6 +41,10 @@ export type ConfirmedBooking = {
   notes?: string | null;
   totalMinor: number;
   depositMinor: number;
+  /** The server's figure for what is left to pay; preferred when present. */
+  amountDueMinor?: number | null;
+  serialNumber?: number | null;
+  token?: string | null;
 };
 
 const formatCalendarDate = (iso: string) => {
@@ -83,14 +87,25 @@ const Row = ({
 
 const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
   const reference = booking.id.slice(0, 8).toUpperCase();
-  const dueAtSalonMinor = Math.max(booking.totalMinor - booking.depositMinor, 0);
+  const dueAtSalonMinor =
+    booking.amountDueMinor ??
+    Math.max(booking.totalMinor - booking.depositMinor, 0);
+  const hasSerial =
+    booking.serialNumber !== null && booking.serialNumber !== undefined;
+  const queueLine = [
+    booking.serviceName,
+    booking.counterName,
+    formatClock(booking.startTime),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
-  const copyReference = async () => {
+  const copy = async (value: string, what: string) => {
     try {
-      await navigator.clipboard.writeText(reference);
-      toast.success("Booking reference copied");
+      await navigator.clipboard.writeText(value);
+      toast.success(`${what} copied`);
     } catch {
-      toast.error("Could not copy the reference");
+      toast.error(`Could not copy the ${what.toLowerCase()}`);
     }
   };
 
@@ -114,17 +129,21 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
             expecting you.
           </p>
 
-          <button
-            type="button"
-            onClick={copyReference}
-            className="mt-5 inline-flex items-center gap-2 rounded-full border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
-          >
-            <span className="text-muted-foreground">Booking ref</span>
-            <span className="font-mono font-bold tracking-wider">
-              {reference}
-            </span>
-            <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
+          {/* The token is what the counter asks for; the ref is only a
+              fallback so the customer is never handed two codes. */}
+          {!booking.token && (
+            <button
+              type="button"
+              onClick={() => copy(reference, "Booking reference")}
+              className="mt-5 inline-flex items-center gap-2 rounded-full border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
+            >
+              <span className="text-muted-foreground">Booking ref</span>
+              <span className="font-mono font-bold tracking-wider">
+                {reference}
+              </span>
+              <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+          )}
         </motion.div>
 
         <motion.div
@@ -133,6 +152,35 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
           transition={{ duration: 0.3, delay: 0.08 }}
           className="mt-8 space-y-6"
         >
+          {(hasSerial || booking.token) && (
+            <Card className="border-primary/30 shadow-sm">
+              <CardContent className="text-center">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Show this at the counter
+                </p>
+                {hasSerial && (
+                  <p className="mt-3 font-serif text-5xl font-bold tabular-nums text-primary md:text-6xl">
+                    Serial #{booking.serialNumber}
+                  </p>
+                )}
+                <p className="mt-3 font-medium">{queueLine}</p>
+                {booking.token && (
+                  <button
+                    type="button"
+                    onClick={() => copy(booking.token ?? "", "Token")}
+                    className="mt-4 inline-flex items-center gap-2 rounded-full border border-dashed border-primary/40 bg-muted/40 px-4 py-2 text-sm transition-colors hover:bg-muted"
+                  >
+                    <span className="text-muted-foreground">Token</span>
+                    <span className="font-mono font-bold tracking-wider">
+                      {booking.token}
+                    </span>
+                    <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Appointment details</CardTitle>
@@ -217,10 +265,19 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
                 </span>
               </div>
               <Separator />
-              <div className="flex items-center justify-between text-base">
-                <span className="font-semibold">Due at the salon</span>
-                <span className="font-bold">{formatBDT(dueAtSalonMinor)}</span>
-              </div>
+              <p className="text-base font-semibold">
+                {dueAtSalonMinor > 0 ? (
+                  <>
+                    Pay{" "}
+                    <span className="font-bold">
+                      {formatBDT(dueAtSalonMinor)}
+                    </span>{" "}
+                    at the salon
+                  </>
+                ) : (
+                  "Nothing more to pay at the salon"
+                )}
+              </p>
               <p className="flex items-start gap-2 rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
                 <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sage" />
                 The deposit is held, not spent. It comes off your bill when you
