@@ -14,17 +14,65 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Store, Bell, Shield, Wallet, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Store, Bell, Shield, Wallet, Loader2, Mail } from "lucide-react";
 import { changePassword } from "@/services/auth/changePassword";
+import { changeEmail } from "@/services/auth/changeEmail";
 import { toast } from "sonner";
 import { updateSalon } from "@/services/salon/updateSalon";
 import { toTaka } from "@/lib/money";
 
-const Settings = ({ salon }: { salon?: any }) => {
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const Settings = ({
+  salon,
+  currentEmail = "",
+}: {
+  salon?: any;
+  currentEmail?: string;
+}) => {
+  const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  const [email, setEmail] = useState(currentEmail);
+  const [newEmail, setNewEmail] = useState("");
+  const [emailPassword, setEmailPassword] = useState("");
+  const [isEmailPending, startEmailTransition] = useTransition();
+
+  const handleChangeEmail = () => {
+    const trimmed = newEmail.trim();
+
+    if (!trimmed || !emailPassword) {
+      toast.error("Please enter your new email and current password");
+      return;
+    }
+    if (!EMAIL_PATTERN.test(trimmed)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    if (trimmed === email) {
+      toast.error("New email must be different from your current email");
+      return;
+    }
+
+    startEmailTransition(async () => {
+      const res = await changeEmail(trimmed, emailPassword);
+      if (res?.success) {
+        toast.success(res?.message || "Email updated successfully");
+        setEmail(res.data?.email || trimmed);
+        setNewEmail("");
+        setEmailPassword("");
+        // The session cookie now carries the new address; re-render the
+        // server components (navbar, sidebar) that read it.
+        router.refresh();
+      } else {
+        toast.error(res?.message || "Failed to update email");
+      }
+    });
+  };
 
   const [deposit, setDeposit] = useState(salon?.depositMinor ? toTaka(salon.depositMinor).toString() : "30");
   const [cancelWindow, setCancelWindow] = useState(salon?.cancellationWindowMin?.toString() || "120");
@@ -123,6 +171,77 @@ const Settings = ({ salon }: { salon?: any }) => {
                 <Switch defaultChecked={item.defaultChecked} />
               </div>
             ))}
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Email Address */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+      >
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose/20">
+                <Mail className="h-5 w-5 text-rose" />
+              </div>
+              <div>
+                <CardTitle>Email Address</CardTitle>
+                <CardDescription>
+                  Change the email you sign in with and receive updates at
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="currentEmail">Current Email</Label>
+              <Input
+                id="currentEmail"
+                type="email"
+                value={email}
+                readOnly
+                disabled
+              />
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="newEmail">New Email</Label>
+                <Input
+                  id="newEmail"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="emailPassword">Current Password</Label>
+                <Input
+                  id="emailPassword"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  value={emailPassword}
+                  onChange={(e) => setEmailPassword(e.target.value)}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              You will sign in with the new email from now on. We will send a
+              verification link to it, and a notice to your current address.
+            </p>
+            <Button
+              variant="outline"
+              onClick={handleChangeEmail}
+              disabled={isEmailPending}
+            >
+              {isEmailPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              {isEmailPending ? "Updating..." : "Update Email"}
+            </Button>
           </CardContent>
         </Card>
       </motion.div>

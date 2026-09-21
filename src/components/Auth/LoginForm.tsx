@@ -33,11 +33,11 @@ const LoginForm = ({ redirectTo }: { redirectTo?: string }) => {
       setEmail("admin@salon.com");
       setPassword("admin123456");
     } else if (role === "owner") {
-      setEmail("owner@example.com");
+      setEmail("ashrafulash2871@gmail.com");
       setPassword("123456");
     } else if (role === "user") {
-      setEmail("ash@gmail.com");
-      setPassword("123456");
+      setEmail("ashrafulislam7120@gmail.com");
+      setPassword("1234567");
     } else if (role === "staff") {
       setEmail("staff@gmail.com");
       setPassword("staff123456");
