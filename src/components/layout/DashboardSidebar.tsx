@@ -81,17 +81,15 @@ export const DashboardSidebar = ({ userRole }: DashboardSidebarProps) => {
         <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
           {!collapsed && (
             <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-rose">
-                <Scissors className="h-5 w-5 text-primary-foreground" />
-              </div>
+              <img src="/salon-logo.png" alt="Logo" className="h-10 w-auto object-contain" />
               <span className="font-serif text-xl font-semibold text-sidebar-foreground">
                 Dashboard
               </span>
             </Link>
           )}
           {collapsed && (
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-rose">
-              <Scissors className="h-5 w-5 text-primary-foreground" />
+            <div className="mx-auto flex h-10 w-auto items-center justify-center">
+              <img src="/salon-logo.png" alt="Logo" className="h-10 w-auto object-contain" />
             </div>
           )}
         </div>

@@ -61,7 +61,13 @@ const ROLE_LABELS: Record<string, string> = {
   AGENT: "Agent",
 };
 
-const TapToRevealPill = ({ label, amountMinor }: { label: string; amountMinor: number }) => {
+const TapToRevealPill = ({
+  label,
+  amountMinor,
+}: {
+  label: string;
+  amountMinor: number;
+}) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -78,7 +84,7 @@ const TapToRevealPill = ({ label, amountMinor }: { label: string; amountMinor: n
         "group relative flex h-10 w-28 sm:w-36 cursor-pointer items-center overflow-hidden rounded-full border bg-white p-1 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         isOpen
           ? "border-primary/40 shadow-sm ring-1 ring-primary/10"
-          : "border-slate-200 hover:border-slate-300 hover:shadow-sm"
+          : "border-slate-200 hover:border-slate-300 hover:shadow-sm",
       )}
     >
       <div className="z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-gold text-white shadow-gold transition-transform duration-300 group-hover:scale-105">
@@ -89,7 +95,9 @@ const TapToRevealPill = ({ label, amountMinor }: { label: string; amountMinor: n
         <div
           className={cn(
             "absolute inset-0 flex flex-col items-center justify-center transition-all duration-500 ease-out",
-            isOpen ? "-translate-y-full opacity-0" : "translate-y-0 opacity-100"
+            isOpen
+              ? "-translate-y-full opacity-0"
+              : "translate-y-0 opacity-100",
           )}
         >
           <span className="text-[10px] sm:text-[11px] font-bold tracking-wide text-slate-500 whitespace-nowrap">
@@ -100,7 +108,7 @@ const TapToRevealPill = ({ label, amountMinor }: { label: string; amountMinor: n
         <div
           className={cn(
             "absolute inset-0 flex items-center justify-center gap-1 sm:gap-1.5 transition-all duration-500 ease-out",
-            isOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
+            isOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0",
           )}
         >
           <span className="text-xs sm:text-sm font-black tabular-nums text-slate-900">
@@ -112,12 +120,20 @@ const TapToRevealPill = ({ label, amountMinor }: { label: string; amountMinor: n
   );
 };
 
-const TapToRevealCard = ({ label, amountMinor, link }: { label: string; amountMinor: number; link?: string }) => {
+const TapToRevealCard = ({
+  label,
+  amountMinor,
+  link,
+}: {
+  label: string;
+  amountMinor: number;
+  link?: string;
+}) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div 
+      <div
         className="group relative cursor-pointer bg-gradient-gold px-4 py-4 text-white transition-all hover:brightness-110"
         onClick={() => {
           if (!isOpen) {
@@ -131,12 +147,14 @@ const TapToRevealCard = ({ label, amountMinor, link }: { label: string; amountMi
             <WalletIcon className="h-3.5 w-3.5" /> {label}
           </span>
         </div>
-        
+
         <div className="relative mt-2 h-10 overflow-hidden">
           <div
             className={cn(
               "absolute inset-0 flex items-center transition-all duration-500 ease-out",
-              isOpen ? "-translate-y-full opacity-0" : "translate-y-0 opacity-100"
+              isOpen
+                ? "-translate-y-full opacity-0"
+                : "translate-y-0 opacity-100",
             )}
           >
             <span className="text-lg font-bold tracking-wide text-white/95">
@@ -147,7 +165,9 @@ const TapToRevealCard = ({ label, amountMinor, link }: { label: string; amountMi
           <div
             className={cn(
               "absolute inset-0 flex items-center gap-2 transition-all duration-500 ease-out",
-              isOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
+              isOpen
+                ? "translate-y-0 opacity-100"
+                : "translate-y-full opacity-0",
             )}
           >
             <p className="text-3xl font-black tabular-nums tracking-tight">
@@ -158,15 +178,8 @@ const TapToRevealCard = ({ label, amountMinor, link }: { label: string; amountMi
       </div>
       {link && (
         <div className="flex items-center gap-2 p-3">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-9 w-full"
-            asChild
-          >
-            <Link href={link}>
-              View Details
-            </Link>
+          <Button size="sm" variant="outline" className="h-9 w-full" asChild>
+            <Link href={link}>View Details</Link>
           </Button>
         </div>
       )}
@@ -174,7 +187,12 @@ const TapToRevealCard = ({ label, amountMinor, link }: { label: string; amountMi
   );
 };
 
-const NavbarClient = ({ user, wallet, ownerRevenueMinor, adminRevenueMinor }: NavbarClientProps) => {
+const NavbarClient = ({
+  user,
+  wallet,
+  ownerRevenueMinor,
+  adminRevenueMinor,
+}: NavbarClientProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
@@ -250,12 +268,14 @@ const NavbarClient = ({ user, wallet, ownerRevenueMinor, adminRevenueMinor }: Na
               className="group flex shrink-0 items-center gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               aria-label="SalonKhuji home"
             >
-              <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-gold shadow-gold transition-transform group-hover:scale-105 sm:h-10 sm:w-10">
-                <Scissors className="h-4 w-4 text-white sm:h-5 sm:w-5" />
-              </span>
-              <span className="font-display text-lg font-black tracking-tight text-slate-900 sm:text-xl">
+              <img
+                src="/salon-logo.png"
+                alt="SalonKhuji Logo"
+                className="h-9 w-auto object-contain transition-transform group-hover:scale-105 sm:h-10"
+              />
+              {/* <span className="font-display text-lg font-black tracking-tight text-slate-900 sm:text-xl">
                 Salon<span className="text-primary">Khuji</span>
-              </span>
+              </span> */}
             </Link>
 
             {/* Desktop navigation */}
@@ -287,10 +307,16 @@ const NavbarClient = ({ user, wallet, ownerRevenueMinor, adminRevenueMinor }: Na
                   <div className="block">
                     {user.role === "CUSTOMER" && <WalletMenu wallet={wallet} />}
                     {user.role === "SALON_OWNER" && (
-                      <TapToRevealPill label="Revenue" amountMinor={ownerRevenueMinor ?? 0} />
+                      <TapToRevealPill
+                        label="Revenue"
+                        amountMinor={ownerRevenueMinor ?? 0}
+                      />
                     )}
                     {user.role === "ADMIN" && (
-                      <TapToRevealPill label="Revenue" amountMinor={adminRevenueMinor ?? 0} />
+                      <TapToRevealPill
+                        label="Revenue"
+                        amountMinor={adminRevenueMinor ?? 0}
+                      />
                     )}
                   </div>
 
@@ -367,7 +393,7 @@ const NavbarClient = ({ user, wallet, ownerRevenueMinor, adminRevenueMinor }: Na
                           </Link>
                         </DropdownMenuItem>
                       )}
-                      
+
                       {user.role === "SALON_OWNER" && (
                         <DropdownMenuItem asChild className="cursor-pointer">
                           <Link
@@ -493,12 +519,20 @@ const NavbarClient = ({ user, wallet, ownerRevenueMinor, adminRevenueMinor }: Na
                 )}
                 {user.role === "SALON_OWNER" && (
                   <div onClick={() => setIsMobileMenuOpen(false)}>
-                    <TapToRevealCard label="Owner Revenue" amountMinor={ownerRevenueMinor ?? 0} link="/dashboard/earnings" />
+                    <TapToRevealCard
+                      label="Owner Revenue"
+                      amountMinor={ownerRevenueMinor ?? 0}
+                      link="/dashboard/earnings"
+                    />
                   </div>
                 )}
                 {user.role === "ADMIN" && (
                   <div onClick={() => setIsMobileMenuOpen(false)}>
-                    <TapToRevealCard label="Platform Revenue" amountMinor={adminRevenueMinor ?? 0} link="/dashboard" />
+                    <TapToRevealCard
+                      label="Platform Revenue"
+                      amountMinor={adminRevenueMinor ?? 0}
+                      link="/dashboard"
+                    />
                   </div>
                 )}
               </>
