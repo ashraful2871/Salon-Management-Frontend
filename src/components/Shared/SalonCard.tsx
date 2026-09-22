@@ -21,7 +21,8 @@ interface SalonCardProps {
     location: string;
     image: string;
     services: string[];
-    openNow: boolean;
+    // null: the salon has not listed its hours, so say nothing rather than "Closed".
+    openNow: boolean | null;
   };
   index: number;
   // Preformatted by formatDistance; a leading "~" marks an approximate pin.
@@ -67,15 +68,17 @@ const SalonCard = ({ salon, index, distance }: SalonCardProps) => {
               </Badge>
             </div>
           )}
-          <div className="absolute top-3 right-3">
-            <Badge
-              variant={salon.openNow ? "default" : "destructive"}
-              className={salon.openNow ? "bg-primary" : "text-white"}
-            >
-              <Clock className="h-3 w-3 mr-1" />
-              {salon.openNow ? "Open Now" : "Closed"}
-            </Badge>
-          </div>
+          {salon.openNow !== null && (
+            <div className="absolute top-3 right-3">
+              <Badge
+                variant={salon.openNow ? "default" : "destructive"}
+                className={salon.openNow ? "bg-primary" : "text-white"}
+              >
+                <Clock className="h-3 w-3 mr-1" />
+                {salon.openNow ? "Open Now" : "Closed"}
+              </Badge>
+            </div>
+          )}
         </div>
 
         <CardHeader className="pb-2">
