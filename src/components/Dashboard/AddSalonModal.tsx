@@ -31,8 +31,11 @@ import {
   Building2,
 } from "lucide-react";
 import { createSalon } from "@/services/salon/createSalon";
+import { searchPlaces } from "@/services/geo/searchPlaces";
 import { toast } from "sonner";
 import { BANGLADESH_LOCATIONS } from "@/constants/bangladesh-locations";
+import LocationPicker from "@/components/Map/LocationPicker";
+import type { GeoPlace } from "@/lib/api-types";
 
 /* ---------------- Types ---------------- */
 
@@ -136,6 +139,15 @@ export default function AddSalonModal({
 
   const [imageUrl, setImageUrl] = React.useState("");
 
+  // Map pin (required) and where to show the map before the pin is placed.
+  const [coords, setCoords] = React.useState<{ lat: number; lng: number } | null>(
+    null,
+  );
+  const [mapFocus, setMapFocus] = React.useState<
+    { lat: number; lng: number; label: string } | undefined
+  >();
+  const mapFocusRequest = React.useRef(0);
+
   const processedStateRef = React.useRef(state);
 
   // ✅ Watch for Server Action Success
@@ -167,6 +179,8 @@ export default function AddSalonModal({
           operatingHours: defaultHours,
         });
         setImageUrl("");
+        setCoords(null);
+        setMapFocus(undefined);
       }, 0);
     } else {
       toast.error(state.message || "Failed to create Salon");
@@ -227,6 +241,53 @@ export default function AddSalonModal({
     );
   };
 
+  // Owner picked a district/area: show the map there so they only have to
+  // nudge the pin. The picker ignores this once a pin is placed.
+  const focusMapOn = async (district: string, area: string) => {
+    const place = area || district;
+    if (!place || coords) return;
+    const request = ++mapFocusRequest.current;
+    const res = await searchPlaces(area ? `${area}, ${district}` : district);
+    const first = res.success ? res.data?.[0] : undefined;
+    if (request !== mapFocusRequest.current || !first) return;
+    setMapFocus({ lat: first.lat, lng: first.lng, label: place });
+  };
+
+  // [Use this address]: fill the address, and the selects where the names
+  // match BANGLADESH_LOCATIONS. Selects that don't match are left alone.
+  const applyAddressSuggestion = (place: GeoPlace) => {
+    const same = (a?: string, b?: string) =>
+      Boolean(a && b && a.trim().toLowerCase() === b.trim().toLowerCase());
+
+    const division =
+      BANGLADESH_LOCATIONS.find((l) => same(l.division, place.division)) ??
+      BANGLADESH_LOCATIONS.find((l) =>
+        l.districts.some((d) => same(d.district, place.district)),
+      );
+    const district = division?.districts.find((d) =>
+      same(d.district, place.district),
+    );
+    const area = district?.areas.find((a) => same(a, place.area));
+
+    setForm((prev) => {
+      const next = { ...prev, address: place.label };
+      if (division && division.division !== prev.division) {
+        next.division = division.division;
+        next.city = division.division;
+        next.district = "";
+        next.area = "";
+      }
+      if (district && district.district !== next.district) {
+        next.district = district.district;
+        next.area = "";
+      }
+      if (area) next.area = area;
+      return next;
+    });
+
+    toast.success("Address filled in from the map. Please check it.");
+  };
+
   const isValid =
     form.name.trim() &&
     form.phone.trim() &&
@@ -235,7 +296,8 @@ export default function AddSalonModal({
     form.division.trim() &&
     form.district.trim() &&
     form.area.trim() &&
-    form.country.trim();
+    form.country.trim() &&
+    coords;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -412,6 +474,7 @@ export default function AddSalonModal({
                         district: e.target.value,
                         area: "", // reset area when district changes
                       }));
+                      focusMapOn(e.target.value, "");
                     }}
                   >
                     <option value="">Select District</option>
@@ -431,7 +494,10 @@ export default function AddSalonModal({
                     disabled={!form.district}
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     value={form.area}
-                    onChange={(e) => update("area", e.target.value)}
+                    onChange={(e) => {
+                      update("area", e.target.value);
+                      focusMapOn(form.district, e.target.value);
+                    }}
                   >
                     <option value="">Select Area</option>
                     {BANGLADESH_LOCATIONS.find(
@@ -445,6 +511,27 @@ export default function AddSalonModal({
                       ))}
                   </select>
                 </Field>
+
+                <div className="md:col-span-2">
+                  <Field
+                    icon={<MapPin className="h-4 w-4 text-primary" />}
+                    label="Location on map *"
+                  >
+                    {/* Also renders the latitude/longitude hidden inputs. */}
+                    <LocationPicker
+                      value={coords}
+                      fallbackCenter={mapFocus}
+                      onChange={(lat, lng) => setCoords({ lat, lng })}
+                      onAddressSuggestion={applyAddressSuggestion}
+                    />
+                    {!coords && (
+                      <p className="text-xs font-medium text-gold-dark">
+                        A map pin is required. Drag it, tap the map, search,
+                        or use &quot;I&apos;m at the salon now&quot;.
+                      </p>
+                    )}
+                  </Field>
+                </div>
 
                 {/* Hidden fields to satisfy schema if needed */}
                 <input type="hidden" name="city" value={form.city} />
@@ -603,6 +690,7 @@ export default function AddSalonModal({
             <DialogFooter className="flex flex-col md:flex-row gap-3 md:justify-between">
               <p className="text-xs text-muted-foreground">
                 Fields marked with <b>*</b> are required.
+                {!coords && " Set your salon's pin on the map to save."}
               </p>
               {/* Error Message Display if Server Action Fails */}
               {!state?.success && state?.message && (

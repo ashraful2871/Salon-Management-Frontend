@@ -2,8 +2,17 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Mail, Phone, MapPin, Clock, Send } from "lucide-react";
+import { Mail, Phone, MapPin, Clock, Send, Navigation } from "lucide-react";
 import { useState } from "react";
+import { LeafletMap, PinMarker } from "@/components/Map/MapClient";
+import { directionsUrl, type LatLng } from "@/lib/geo";
+
+// The "Visit Us" card and the map both read this; keep the pin on the address.
+const BUSINESS_ADDRESS = {
+  line1: "123 Beauty Lane, Suite 100",
+  line2: "Los Angeles, CA 90210",
+  position: [34.0736, -118.4004] as LatLng,
+};
 
 const contactInfo = [
   {
@@ -21,8 +30,8 @@ const contactInfo = [
   {
     icon: MapPin,
     title: "Visit Us",
-    value: "123 Beauty Lane, Suite 100",
-    description: "Los Angeles, CA 90210",
+    value: BUSINESS_ADDRESS.line1,
+    description: BUSINESS_ADDRESS.line2,
   },
   {
     icon: Clock,
@@ -233,14 +242,29 @@ export default function Contact() {
         </div>
       </section>
 
-      {/* Map Placeholder */}
-      <section className="h-80 bg-muted relative overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center">
-            <MapPin className="w-12 h-12 text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">Map integration coming soon</p>
-          </div>
-        </div>
+      {/* Map: not draggable, so it never traps page scrolling on phones. */}
+      <section className="relative h-80 bg-muted">
+        <LeafletMap
+          center={BUSINESS_ADDRESS.position}
+          zoom={15}
+          interactive={false}
+          className="h-full rounded-none"
+        >
+          <PinMarker
+            position={BUSINESS_ADDRESS.position}
+            active
+            title={BUSINESS_ADDRESS.line1}
+          />
+        </LeafletMap>
+        <a
+          href={directionsUrl(...BUSINESS_ADDRESS.position)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="absolute bottom-4 left-4 z-10 inline-flex items-center gap-2 rounded-full bg-background px-4 py-2 text-sm font-semibold text-foreground shadow-md transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        >
+          <Navigation className="h-4 w-4 text-gold" />
+          Get directions
+        </a>
       </section>
     </>
   );

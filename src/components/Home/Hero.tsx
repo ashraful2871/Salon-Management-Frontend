@@ -1,6 +1,7 @@
 import { Button } from "../ui/button";
 import Link from "next/link";
 import { ArrowRight, Sparkles, Star, CalendarCheck } from "lucide-react";
+import NearMeButton from "./NearMeButton";
 
 const Hero = () => {
   return (
@@ -34,7 +35,7 @@ const Hero = () => {
               Book top-rated salons, manage your appointments seamlessly, and experience luxury beauty services tailored specifically for you.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-5 animate-slide-up" style={{ animationDelay: '300ms' }}>
+            <div className="flex flex-col sm:flex-row sm:flex-wrap items-center justify-center lg:justify-start gap-5 animate-slide-up" style={{ animationDelay: '300ms' }}>
               <Button
                 size="xl"
                 className="w-full sm:w-auto group relative overflow-hidden bg-primary hover:bg-primary-600 text-white shadow-premium hover:shadow-glow transition-all duration-300 rounded-2xl h-14 px-8 font-semibold text-base"
@@ -47,6 +48,7 @@ const Hero = () => {
                   </span>
                 </Link>
               </Button>
+              <NearMeButton className="w-full sm:w-auto border-primary/30 bg-white/70 text-slate-800 hover:bg-white hover:text-primary hover:border-primary/40 hover:shadow-sm backdrop-blur-md rounded-2xl h-14 px-8 font-semibold text-base transition-all duration-300" />
               <Button
                 variant="outline"
                 size="xl"

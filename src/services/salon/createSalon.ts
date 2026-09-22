@@ -20,6 +20,8 @@ interface CreateSalonPayload {
   zipCode?: string;
   images: string[];
   operatingHours: Record<string, { open: string; close: string }>;
+  latitude?: number;
+  longitude?: number;
 }
 
 export const createSalon = async (
@@ -53,6 +55,12 @@ export const createSalon = async (
       ...rawData,
       images,
       operatingHours,
+      // Both or neither: the API rejects a lone coordinate.
+      ...(formData.get("latitude") &&
+        formData.get("longitude") && {
+          latitude: Number(formData.get("latitude")),
+          longitude: Number(formData.get("longitude")),
+        }),
     };
 
     const response = await serverFetch.post("/salons", {

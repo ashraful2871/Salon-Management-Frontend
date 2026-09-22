@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Separator } from "../ui/separator";
 import BookAppointmentModal from "./BookAppointmentModal";
 import ReviewModal from "./ReviewModal";
+import SalonLocationCard from "./SalonLocationCard";
 import { getMyAppointments } from "@/services/appoinments/getMyAppointments";
 import { formatBDT } from "@/lib/money";
 
@@ -511,6 +512,9 @@ const SalonDetails = ({ salon }: { salon: any }) => {
 
             {/* RIGHT COLUMN: Sticky Sidebar */}
             <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-6">
+              {/* LOCATION */}
+              {salon && <SalonLocationCard salon={salon} />}
+
               {/* QUICK INFO */}
               <Card className="shadow-sm border-primary/20">
                 <CardHeader>

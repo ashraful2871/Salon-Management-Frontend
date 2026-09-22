@@ -33,7 +33,10 @@ import {
   Calendar,
   Clock,
   ArrowUpRight,
+  TriangleAlert,
 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import type { LocationAccuracy } from "@/lib/api-types";
 import { ScrollArea } from "../ui/scroll-area";
 import AddSalonModal, { AddSalonPayload } from "./AddSalonModal";
 import Link from "next/link";
@@ -88,6 +91,9 @@ type Salon = {
   totalReviews: number;
   createdAt: string;
   updatedAt: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  locationAccuracy?: LocationAccuracy | null;
   staff: StaffItem[];
   _count: {
     services: number;
@@ -221,6 +227,11 @@ export default function Store({
     (s) => s.status === "ACTIVE" || s.status === "APPROVED",
   ).length;
 
+  // No pin, or only an area-centroid pin: nearby search can't place them.
+  const needsExactLocation = salons.filter(
+    (s) => s.latitude == null || s.locationAccuracy === "APPROXIMATE",
+  );
+
   const totalStaff = salons.reduce((acc, s) => acc + (s._count?.staff || 0), 0);
   const totalServices = salons.reduce(
     (acc, s) => acc + (s._count?.services || 0),
@@ -251,6 +262,35 @@ export default function Store({
             Add New Salon
           </Button>
         </motion.div>
+
+        {/* ✅ Location banners */}
+        {needsExactLocation.length > 0 && (
+          <div className="space-y-3">
+            {needsExactLocation.map((salon) => (
+              <Alert key={salon.id} className="border-gold/50 bg-gold/10">
+                <TriangleAlert className="text-gold-dark" />
+                <AlertDescription className="flex flex-col gap-3 text-foreground sm:flex-row sm:items-center sm:justify-between">
+                  <p>
+                    <b>{salon.name}</b>{" "}
+                    {salon.latitude == null
+                      ? "has no location on the map."
+                      : "shows an approximate location."}{" "}
+                    Nearby customers may not find you.
+                  </p>
+                  <Button
+                    asChild
+                    size="sm"
+                    className="shrink-0 bg-sage text-white hover:opacity-90"
+                  >
+                    <Link href={`/dashboard/store/${salon.id}?tab=location`}>
+                      Set exact location
+                    </Link>
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            ))}
+          </div>
+        )}
 
         {/* ✅ Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

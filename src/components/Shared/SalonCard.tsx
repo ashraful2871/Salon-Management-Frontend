@@ -24,9 +24,14 @@ interface SalonCardProps {
     openNow: boolean;
   };
   index: number;
+  // Preformatted by formatDistance; a leading "~" marks an approximate pin.
+  distance?: string;
 }
 
-const SalonCard = ({ salon, index }: SalonCardProps) => {
+const SalonCard = ({ salon, index, distance }: SalonCardProps) => {
+  const approximate = distance?.startsWith("~") ?? false;
+
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -43,6 +48,25 @@ const SalonCard = ({ salon, index }: SalonCardProps) => {
             height={400}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
+          {distance && (
+            <div className="absolute top-3 left-3">
+              <Badge
+                variant="secondary"
+                title={
+                  approximate
+                    ? "Approximate location. The salon hasn't pinned its exact spot yet."
+                    : undefined
+                }
+                className="bg-white/90 text-charcoal shadow-sm backdrop-blur-sm"
+              >
+                <MapPin className="h-3 w-3 mr-1 text-gold" />
+                {distance}
+                {approximate && (
+                  <span className="sr-only"> (approximate location)</span>
+                )}
+              </Badge>
+            </div>
+          )}
           <div className="absolute top-3 right-3">
             <Badge
               variant={salon.openNow ? "default" : "destructive"}

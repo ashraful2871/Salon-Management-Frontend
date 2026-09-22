@@ -35,6 +35,8 @@ export type OperatingHours = Partial<
 
 export type SalonStatus = "ACTIVE" | "INACTIVE" | "PENDING";
 
+export type LocationAccuracy = "EXACT" | "APPROXIMATE";
+
 export type Salon = {
   id: string;
   name: string;
@@ -65,8 +67,46 @@ export type Salon = {
   };
   depositMinor?: number;
   cancellationWindowMin?: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  locationAccuracy?: LocationAccuracy | null;
+  locationUpdatedAt?: string | null;
+  // Only present in nearby mode (lat/lng in the query).
+  distanceMeters?: number;
   createdAt?: string;
   updatedAt?: string;
+};
+
+export type SalonMarker = {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  locationAccuracy: LocationAccuracy | null;
+  rating: number;
+  totalReviews: number;
+  image: string | null;
+  minPriceMinor: number | null;
+};
+
+// GET /salons/map. `truncated`: more than 200 salons in the box.
+export type SalonMarkersResult = {
+  markers: SalonMarker[];
+  truncated: boolean;
+};
+
+// [minLng, minLat, maxLng, maxLat], the order GET /salons/map expects.
+export type Bbox = [west: number, south: number, east: number, north: number];
+
+export type GeoPlace = {
+  label: string;
+  lat: number;
+  lng: number;
+  area?: string;
+  district?: string;
+  division?: string;
+  city?: string;
+  postcode?: string;
 };
 
 export type SalonService = {
@@ -351,4 +391,10 @@ export type SalonQuery = {
   area?: string;
   searchTerm?: string;
   city?: string;
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
+  sort?: "distance" | "rating" | "newest";
+  page?: number;
+  limit?: number;
 };

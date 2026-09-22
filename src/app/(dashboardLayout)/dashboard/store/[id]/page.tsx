@@ -2,8 +2,15 @@ import ManageSalon from "@/components/Dashboard/ManageSalon";
 import { getSalonById } from "@/services/salon/getSalonNyId";
 import React from "react";
 
-const ManageSalonPage = async ({ params }: { params: Promise<{ id: string }> }) => {
+const ManageSalonPage = async ({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string | string[] }>;
+}) => {
   const { id } = await params;
+  const { tab } = await searchParams;
 
   const getSingleSalon = await getSalonById(id);
 
@@ -20,7 +27,10 @@ const ManageSalonPage = async ({ params }: { params: Promise<{ id: string }> }) 
 
   return (
     <div>
-      <ManageSalon initialData={getSingleSalon.data} />
+      <ManageSalon
+        initialData={getSingleSalon.data}
+        initialTab={typeof tab === "string" ? tab : undefined}
+      />
     </div>
   );
 };

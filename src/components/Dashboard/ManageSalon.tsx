@@ -39,6 +39,7 @@ import { toast } from "sonner"; // Assuming you use sonner or similar for toasts
 import { updateSalon } from "@/services/salon/updateSalon";
 import AddStaffModal, { AddStaffPayload } from "./AddStaffModal";
 import AddCounterModal from "./AddCounterModal";
+import SalonLocationTab, { type SalonLocationFields } from "./SalonLocationTab";
 import { useRouter } from "next/navigation";
 
 /* ---------------- Types ---------------- */
@@ -46,7 +47,9 @@ import { useRouter } from "next/navigation";
 type DayHours = { open: string; close: string };
 type OperatingHours = Record<string, DayHours>;
 
-type SalonData = {
+const TABS = ["overview", "edit", "location", "staff", "counters"];
+
+type SalonData = SalonLocationFields & {
   id: string;
   name: string;
   description: string;
@@ -143,12 +146,22 @@ const getStatusBadge = (status: string) => {
 
 /* ---------------- Main Component ---------------- */
 
-export default function ManageSalon({ initialData }: { initialData: any }) {
+export default function ManageSalon({
+  initialData,
+  initialTab,
+}: {
+  initialData: any;
+  initialTab?: string;
+}) {
   // 1. Hook Server Action
   const [state, formAction, isPending] = useActionState(updateSalon, null);
 
   // 2. Local State for Inputs (Immediate UI Feedback)
   const [salon, setSalon] = useState<SalonData>(initialData);
+  // `?tab=location` (from the "Set exact location" banner) opens that tab.
+  const [tab, setTab] = useState(
+    initialTab && TABS.includes(initialTab) ? initialTab : "edit",
+  );
   const [openAddStaff, setOpenAddStaff] = useState(false);
   const [openAddCounter, setOpenAddCounter] = useState(false);
   const router = useRouter();
@@ -210,11 +223,12 @@ export default function ManageSalon({ initialData }: { initialData: any }) {
       </motion.div>
 
       {/* --- Tabs for Management --- */}
-      <Tabs defaultValue="edit" className="w-full">
+      <Tabs value={tab} onValueChange={setTab} className="w-full">
         <div className="flex items-center justify-between mb-4">
           <TabsList className="bg-muted/50 p-1">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="edit">Edit Details</TabsTrigger>
+            <TabsTrigger value="location">Location</TabsTrigger>
             <TabsTrigger value="staff">
               Staff ({salon?.staff?.length || 0})
             </TabsTrigger>
@@ -223,25 +237,28 @@ export default function ManageSalon({ initialData }: { initialData: any }) {
             </TabsTrigger>
           </TabsList>
 
-          {/* ✅ SAVE BUTTON LINKED TO FORM VIA ID */}
-          <Button
-            type="submit"
-            form="salon-update-form" // This links the button to the form inside the Tab
-            disabled={isPending}
-            className="bg-sage hover:bg-sage/90 text-white"
-          >
-            {isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                Save Changes
-              </>
-            )}
-          </Button>
+          {/* ✅ SAVE BUTTON LINKED TO FORM VIA ID. The form only exists
+              while the Edit tab is open; Location has its own save. */}
+          {tab === "edit" && (
+            <Button
+              type="submit"
+              form="salon-update-form" // This links the button to the form inside the Tab
+              disabled={isPending}
+              className="bg-sage hover:bg-sage/90 text-white"
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          )}
         </div>
 
         {/* ================= OVERVIEW TAB ================= */}
@@ -610,6 +627,22 @@ export default function ManageSalon({ initialData }: { initialData: any }) {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ================= LOCATION TAB ================= */}
+        <TabsContent value="location">
+          <SalonLocationTab
+            salon={salon}
+            onSaved={(latitude, longitude) => {
+              setSalon((prev) => ({
+                ...prev,
+                latitude,
+                longitude,
+                locationAccuracy: "EXACT",
+              }));
+              router.refresh();
+            }}
+          />
         </TabsContent>
 
         {/* ================= COUNTERS TAB ================= */}

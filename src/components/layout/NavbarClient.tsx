@@ -28,6 +28,7 @@ import { formatBDT } from "@/lib/money";
 import type { Wallet } from "@/services/wallet/getMyWallet";
 import LogoutButton from "./LogoutButton";
 import WalletMenu from "./WalletMenu";
+import LocationChip from "@/components/Location/LocationChip";
 
 // Define the User Interface based on your token
 interface UserData {
@@ -277,7 +278,9 @@ const NavbarClient = ({ user, wallet, ownerRevenueMinor, adminRevenueMinor }: Na
             </div>
 
             {/* Right cluster */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+              <LocationChip className="hidden lg:inline-flex" />
+              <LocationChip variant="compact" className="lg:hidden" />
               {user ? (
                 <>
                   {/* Balance: Tap-to-reveal for both mobile and desktop */}
@@ -455,6 +458,11 @@ const NavbarClient = ({ user, wallet, ownerRevenueMinor, adminRevenueMinor }: Na
           )}
         >
           <div className="container mx-auto space-y-5 px-4 py-5 sm:px-6">
+            <LocationChip
+              variant="block"
+              onDone={() => setIsMobileMenuOpen(false)}
+            />
+
             {user && (
               <>
                 <div className="flex items-center gap-3">
