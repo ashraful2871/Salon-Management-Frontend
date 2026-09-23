@@ -9,6 +9,7 @@ import {
   Loader2,
   LocateFixed,
   MapPin,
+  MessageSquare,
   Minus,
   Search,
   SearchX,
@@ -19,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import SalonCard from "@/components/Shared/SalonCard";
 import LocationDialog from "@/components/Location/LocationDialog";
+import { useAssistantLauncher } from "@/components/Assistant/AssistantContext";
 import { useLocateAndSave } from "@/hooks/useLocateAndSave";
 import { useSavedLocation } from "@/hooks/useSavedLocation";
 import { formatDistance } from "@/lib/geo";
@@ -134,6 +136,7 @@ const SalonMatchCard = ({
   const matched = (salon.matchedServices ?? []).slice(0, 2);
   const reasons = (salon.reasons ?? []).filter((r) => !REPEATED_ON_CARD.has(r.kind));
   const missing = salon.missing ?? [];
+  const { openWith } = useAssistantLauncher();
 
   return (
     <div className="flex flex-col">
@@ -188,6 +191,20 @@ const SalonMatchCard = ({
           </div>
         </div>
       )}
+
+      {/* The search found it; the chat books it, with the salon already chosen. */}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() =>
+          openWith({ type: "choose_salon", salonId: salon.id }, salon.name)
+        }
+        className="mt-3 w-full cursor-pointer gap-2"
+      >
+        <MessageSquare className="h-4 w-4" aria-hidden />
+        Continue in chat
+      </Button>
     </div>
   );
 };

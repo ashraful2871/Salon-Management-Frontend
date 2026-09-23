@@ -10,6 +10,7 @@ import {
   Globe,
   Mail,
   MapPin,
+  MessageSquare,
   Phone,
   Star,
   User2,
@@ -24,6 +25,7 @@ import ReviewModal from "./ReviewModal";
 import SalonLocationCard from "./SalonLocationCard";
 import { getMyAppointments } from "@/services/appoinments/getMyAppointments";
 import { formatBDT } from "@/lib/money";
+import { useAssistantLauncher } from "@/components/Assistant/AssistantContext";
 
 type OperatingHour = { open: string; close: string };
 type OperatingHours = Partial<
@@ -125,6 +127,7 @@ const SalonDetails = ({ salon }: { salon: any }) => {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [unreviewedAppointmentId, setUnreviewedAppointmentId] = useState<string | null>(null);
+  const { openWith } = useAssistantLauncher();
 
   useEffect(() => {
     const checkReviews = async () => {
@@ -551,6 +554,20 @@ const SalonDetails = ({ salon }: { salon: any }) => {
                       onClick={() => setIsBookingModalOpen(true)}
                     >
                       Book Appointment
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2"
+                      size="lg"
+                      onClick={() =>
+                        openWith(
+                          { type: "choose_salon", salonId: salon.id },
+                          salon?.name,
+                        )
+                      }
+                    >
+                      <MessageSquare className="h-4 w-4" aria-hidden />
+                      Ask about this salon
                     </Button>
                     <Button variant="outline" className="w-full" size="lg">
                       Contact Salon
