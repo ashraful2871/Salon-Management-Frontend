@@ -9,6 +9,7 @@ import DatePicker from "./blocks/DatePicker";
 import LocationRequest from "./blocks/LocationRequest";
 import LoginRequired from "./blocks/LoginRequired";
 import Notice from "./blocks/Notice";
+import PaymentPrompt, { type StartTopup } from "./blocks/PaymentPrompt";
 import QuickReplies from "./blocks/QuickReplies";
 import SalonCarousel from "./blocks/SalonCarousel";
 import SalonDetails from "./blocks/SalonDetails";
@@ -28,6 +29,10 @@ type AssistantBlocksProps = {
   confirming?: boolean;
   /** The token that already booked; its card shows "Booked" for good. */
   confirmedToken?: string | null;
+  /** Opens the gateway for a top-up. Absent outside the panel, like
+   *  `onConfirm`. */
+  onTopup?: StartTopup;
+  toppingUp?: boolean;
 };
 
 /**
@@ -43,6 +48,8 @@ const AssistantBlocks = ({
   onConfirm,
   confirming = false,
   confirmedToken = null,
+  onTopup,
+  toppingUp = false,
 }: AssistantBlocksProps) => {
   if (!Array.isArray(blocks) || blocks.length === 0) return null;
 
@@ -87,6 +94,16 @@ const AssistantBlocks = ({
             );
           case "booking_confirmed":
             return <BookingConfirmedCard key={key} block={block} />;
+          case "payment_prompt":
+            return (
+              <PaymentPrompt
+                key={key}
+                block={block}
+                disabled={disabled}
+                onTopup={onTopup}
+                toppingUp={toppingUp}
+              />
+            );
           case "login_required":
             return <LoginRequired key={key} block={block} />;
           case "notice":

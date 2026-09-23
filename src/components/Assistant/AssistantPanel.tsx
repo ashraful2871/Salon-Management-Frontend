@@ -15,27 +15,54 @@ import {
   useReducedMotion,
   type PanInfo,
 } from "framer-motion";
-import { ArrowDown, RotateCcw, Send, Sparkles, X } from "lucide-react";
+import {
+  ArrowDown,
+  Loader2,
+  RotateCcw,
+  Send,
+  Sparkles,
+  Wallet,
+  X,
+} from "lucide-react";
 
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { formatBDT } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { useAssistantChat } from "./AssistantContext";
 import AssistantMessages from "./AssistantMessages";
+import Chip from "./Chip";
 import type { SendAction } from "./block-props";
 
 type AssistantPanelProps = {
   /** `overlay` is the floating panel / bottom sheet; `page` is the same chat
    *  filling `/assistant`, where it is content rather than a dialog. */
   variant?: "overlay" | "page";
+  /** `/assistant?resume=1`, the way back from the wallet result page: reopen
+   *  the chat and ask about the payment once. Page variant only. */
+  resume?: boolean;
+  /** From the `sm_chat_resume` cookie, for a tab with no chat of its own. */
+  resumeId?: string | null;
 };
 
 const FOCUSABLE =
   'a[href],button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
-const AssistantPanel = ({ variant = "overlay" }: AssistantPanelProps) => {
+/** How a top-up is watched: from the moment the customer is back (window
+ *  focus), every few seconds, for a few minutes — then a "Check again" tap. The
+ *  IPN and the reconciliation sweep settle the payment whether anyone watches
+ *  or not; this only decides when the chat finds out. */
+const POLL_EVERY_MS = 5_000;
+const POLL_FOR_MS = 3 * 60_000;
+
+const AssistantPanel = ({
+  variant = "overlay",
+  resume = false,
+  resumeId = null,
+}: AssistantPanelProps) => {
   const { chat, close } = useAssistantChat();
   const {
     messages,
+    state,
     pending,
     pendingLabel,
     error,
@@ -43,6 +70,10 @@ const AssistantPanel = ({ variant = "overlay" }: AssistantPanelProps) => {
     confirm,
     confirming,
     confirmedToken,
+    topup,
+    toppingUp,
+    checkPayment,
+    checkingPayment,
     reset,
     open,
   } = chat;
@@ -117,9 +148,59 @@ const AssistantPanel = ({ variant = "overlay" }: AssistantPanelProps) => {
 
   // The overlay is opened by whoever mounted it; the page has to ask itself.
   useEffect(() => {
-    if (!isOverlay) open();
+    if (isOverlay) return;
+    if (resume) chat.resume(resumeId);
+    else open();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* ------------------------------------------------------ watching a top-up */
+
+  const pendingTopup = state.pendingTopup;
+  const watchedId = pendingTopup?.transactionId ?? null;
+  // The payment the watch last gave up on; a fresh focus clears it.
+  const [stoppedFor, setStoppedFor] = useState<string | null>(null);
+  const gaveUp = watchedId !== null && stoppedFor === watchedId;
+
+  // Lives in the panel, so a closed panel never polls.
+  useEffect(() => {
+    if (!watchedId) return;
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let deadline = 0;
+
+    const tick = () => {
+      if (Date.now() >= deadline) {
+        setStoppedFor(watchedId);
+        return;
+      }
+      // A hidden tab is a customer paying in the other one.
+      if (document.visibilityState === "visible") checkPayment();
+      timer = setTimeout(tick, POLL_EVERY_MS);
+    };
+
+    const watch = () => {
+      clearTimeout(timer);
+      deadline = Date.now() + POLL_FOR_MS;
+      if (document.visibilityState === "visible") checkPayment();
+      timer = setTimeout(tick, POLL_EVERY_MS);
+    };
+
+    const onFocus = () => {
+      setStoppedFor(null);
+      watch();
+    };
+
+    // From the moment the payment starts, or the panel opens on one — and
+    // again whenever the customer comes back to this window.
+    watch();
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      clearTimeout(timer);
+    };
+  }, [watchedId, checkPayment]);
 
   /* ------------------------------------------- dialog focus and keyboard */
 
@@ -258,6 +339,8 @@ const AssistantPanel = ({ variant = "overlay" }: AssistantPanelProps) => {
             onConfirm={confirm}
             confirming={confirming}
             confirmedToken={confirmedToken}
+            onTopup={topup}
+            toppingUp={toppingUp}
           />
 
           {error && (
@@ -286,6 +369,42 @@ const AssistantPanel = ({ variant = "overlay" }: AssistantPanelProps) => {
           </button>
         )}
       </div>
+
+      {pendingTopup && (
+        <div
+          role="status"
+          className="flex shrink-0 items-center gap-3 border-t border-gold/30 bg-gold/5 px-4 py-2.5"
+        >
+          {checkingPayment || (!gaveUp && !pending) ? (
+            <Loader2
+              className="h-4 w-4 shrink-0 animate-spin text-gold"
+              aria-hidden
+            />
+          ) : (
+            <Wallet className="h-4 w-4 shrink-0 text-gold" aria-hidden />
+          )}
+          <p className="min-w-0 flex-1 text-xs leading-snug text-foreground">
+            <span className="font-semibold">
+              Waiting for your {formatBDT(pendingTopup.amountMinor)} payment
+            </span>
+            <span className="block text-muted-foreground">
+              {gaveUp
+                ? "Paid already? Tap Check again."
+                : pendingTopup.autoConfirm
+                  ? "Your booking finishes by itself when it lands."
+                  : "Come back here once you have paid."}
+            </span>
+          </p>
+          <Chip
+            label="Check again"
+            icon="refresh"
+            style={gaveUp ? "primary" : "ghost"}
+            disabled={pending || checkingPayment}
+            onClick={() => send({ type: "check_payment" }, "Check again")}
+            className="shrink-0"
+          />
+        </div>
+      )}
 
       <footer className="shrink-0 border-t border-border px-4 pb-4 pt-3">
         <form onSubmit={handleSubmit} className="flex items-center gap-2">

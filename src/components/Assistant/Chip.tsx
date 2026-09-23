@@ -7,6 +7,7 @@ import {
   Clock,
   MapPin,
   Phone,
+  RefreshCw,
   RotateCcw,
   Scissors,
   Star,
@@ -28,6 +29,7 @@ const ICONS: Record<string, LucideIcon> = {
   star: Star,
   restart: RotateCcw,
   back: ArrowLeft,
+  refresh: RefreshCw,
 };
 
 type ChipProps = {

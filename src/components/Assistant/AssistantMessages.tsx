@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import type { AssistantMessage } from "@/lib/assistant-types";
 import AssistantBlocks from "./AssistantBlocks";
 import type { SendAction } from "./block-props";
+import type { StartTopup } from "./blocks/PaymentPrompt";
 
 type AssistantMessagesProps = {
   messages: AssistantMessage[];
@@ -16,6 +17,8 @@ type AssistantMessagesProps = {
   onConfirm: (confirmToken: string) => void;
   confirming: boolean;
   confirmedToken: string | null;
+  onTopup: StartTopup;
+  toppingUp: boolean;
 };
 
 const TypingIndicator = ({ label }: { label: string }) => (
@@ -44,6 +47,8 @@ const AssistantMessages = ({
   onConfirm,
   confirming,
   confirmedToken,
+  onTopup,
+  toppingUp,
 }: AssistantMessagesProps) => {
   const reduceMotion = useReducedMotion();
 
@@ -111,6 +116,8 @@ const AssistantMessages = ({
               onConfirm={onConfirm}
               confirming={confirming}
               confirmedToken={confirmedToken}
+              onTopup={onTopup}
+              toppingUp={toppingUp}
             />
           </motion.div>
         );

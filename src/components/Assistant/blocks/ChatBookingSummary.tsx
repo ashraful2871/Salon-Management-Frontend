@@ -9,7 +9,6 @@ import {
   MapPin,
   Scissors,
   Timer,
-  Wallet,
 } from "lucide-react";
 
 import { formatBDT } from "@/lib/money";
@@ -225,19 +224,8 @@ const ChatBookingSummary = ({
             </Link>
           )}
 
-          {/* Phase 5 tops up inside the chat; until then the page that
-              already works is one tap away, and the hold survives the trip. */}
-          {blockedByWallet && confirmInChat && !confirmed && (
-            <Link
-              href="/dashboard/wallet"
-              onClick={close}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-            >
-              <Wallet className="h-4 w-4 shrink-0" aria-hidden />
-              Top up {formatBDT(shortfall)}
-            </Link>
-          )}
-
+          {/* A short wallet is topped up right below this card, by the
+              payment prompt the server sends with it. */}
           {!confirmed && (
             <Chip
               label="Change time"

@@ -29,6 +29,9 @@ export type AssistantAction =
   | { type: "choose_slot"; slotId: string }
   | { type: "change"; target: ChangeTarget }
   | { type: "wallet" }
+  /** "Has my top-up landed?" Safe to send any time; answers with the wallet
+   *  when no top-up is in flight. */
+  | { type: "check_payment" }
   | { type: "restart" }
   | { type: "back" };
 
@@ -247,6 +250,24 @@ export type Block =
       /** Directions; null when the salon has no coordinates. */
       mapUrl: string | null;
       manageUrl: string;
+    }
+  | {
+      /** The in-chat top-up. Its buttons call `startAssistantTopup`, not an
+       *  action: money is never something a replayed tap can start. */
+      type: "payment_prompt";
+      /** Zero when no booking is in play (the "My wallet" chip). */
+      shortfallMinor: number;
+      shortfall?: number;
+      suggestedTopupMinor: number;
+      suggestedTopup?: number;
+      minTopupMinor: number;
+      minTopup?: number;
+      /** Poisha, ascending; every one covers the shortfall. */
+      presets: number[];
+      /** Display only - the gateway page is where one is chosen. */
+      methods: string[];
+      /** Offer "Top up & book": a held summary is behind this prompt. */
+      canAutoConfirm: boolean;
     };
 
 export type BlockType = Block["type"];
@@ -281,6 +302,23 @@ export type AssistantState = {
   /** The booking this chat produced, keyed by the Idempotency-Key that made
    *  it. Server-written; the client only reads it to know it is done. */
   confirm?: { key: string; appointmentId: string };
+  /** Server-side copy of the summary's quote; the client never sends it. */
+  quoteToken?: string;
+  holdExtended?: boolean;
+  /** A top-up this chat opened and has not seen settle. While it is set the
+   *  panel watches for the payment. */
+  pendingTopup?: PendingTopup;
+};
+
+export type PendingTopup = {
+  transactionId: string;
+  amountMinor: number;
+  /** "Top up & book": the booking completes by itself when the money lands. */
+  autoConfirm: boolean;
+  confirmToken?: string;
+  redirectUrl?: string;
+  /** ISO instant. */
+  startedAt: string;
 };
 
 /* -------------------------------------------------------------- messages */
@@ -320,4 +358,37 @@ export type AssistantTurn = {
   anonymousId?: string | null;
   state: AssistantState;
   messages: AssistantMessage[];
+};
+
+export type TopupIntentStatus =
+  | "INITIATED"
+  | "PENDING"
+  | "SUCCESS"
+  | "FAILED"
+  | "CANCELLED"
+  | "EXPIRED";
+
+/**
+ * A `check_payment` answer. `recorded: false` is a background poll that found
+ * the payment still pending: the server wrote nothing, so the client draws
+ * nothing either.
+ */
+export type AssistantPaymentCheck = AssistantTurn & {
+  recorded: boolean;
+  payment: { transactionId: string; status: TopupIntentStatus } | null;
+  /** Set when the payment landing also booked ("Top up & book"). */
+  appointmentId?: string;
+};
+
+/**
+ * `POST /assistant/payments/topup`. Started: the gateway URL plus the turn it
+ * wrote ("Opening the payment page…"). Not started (409, "Top up & book" found
+ * the time gone): only the turn, which shows what is free instead.
+ */
+export type AssistantTopupResult = AssistantTurn & {
+  started: boolean;
+  redirectUrl?: string;
+  transactionId?: string;
+  amountMinor?: number;
+  autoConfirm?: boolean;
 };

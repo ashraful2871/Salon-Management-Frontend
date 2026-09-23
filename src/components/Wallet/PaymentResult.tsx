@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import {
   ArrowLeft,
   Ban,
+  CalendarCheck,
   CheckCircle2,
   Clock,
   Loader2,
@@ -135,9 +136,13 @@ const MonoValue = ({ value, label }: { value: string; label: string }) => (
 export default function PaymentResult({
   outcome,
   transactionId,
+  resumeChat = false,
 }: {
   outcome: Outcome;
   transactionId?: string;
+  /** The top-up was started from the booking chat (`sm_chat_resume` is set):
+   *  lead back there, where the booking finishes. */
+  resumeChat?: boolean;
 }) {
   const router = useRouter();
   const [intent, setIntent] = useState<TopupStatus | null>(null);
@@ -334,11 +339,27 @@ export default function PaymentResult({
               </Button>
             )}
 
-            <Button asChild className="bg-sage hover:bg-sage/90">
-              <Link href="/dashboard/wallet">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back to wallet
-              </Link>
-            </Button>
+            {resumeChat ? (
+              <>
+                <Button variant="outline" asChild>
+                  <Link href="/dashboard/wallet">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Back to wallet
+                  </Link>
+                </Button>
+                <Button asChild className="bg-sage hover:bg-sage/90">
+                  <Link href="/assistant?resume=1">
+                    <CalendarCheck className="mr-2 h-4 w-4" /> Back to your
+                    booking
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <Button asChild className="bg-sage hover:bg-sage/90">
+                <Link href="/dashboard/wallet">
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Back to wallet
+                </Link>
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

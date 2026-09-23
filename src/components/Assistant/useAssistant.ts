@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type {
   AssistantAction,
@@ -8,9 +8,12 @@ import type {
   AssistantState,
   AssistantTurn,
 } from "@/lib/assistant-types";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { checkAssistantPayment } from "@/services/assistant/checkAssistantPayment";
 import { getConversation } from "@/services/assistant/getConversation";
 import { sendAssistantAction } from "@/services/assistant/sendAssistantAction";
 import { confirmAssistantBooking } from "@/services/assistant/confirmAssistantBooking";
+import { startAssistantTopup } from "@/services/assistant/startAssistantTopup";
 import { startConversation } from "@/services/assistant/startConversation";
 
 /** Survives a navigation inside the site, not a new tab: one chat per tab is
@@ -39,6 +42,7 @@ const WAITING_FOR: Partial<Record<AssistantAction["type"], string>> = {
   choose_slot: "Putting your booking together…",
   change: "One moment…",
   wallet: "Checking your wallet…",
+  check_payment: "Checking your payment…",
   restart: "Starting over…",
   back: "Going back…",
 };
@@ -62,7 +66,29 @@ const writeStoredId = (id: string | null) => {
   }
 };
 
+/**
+ * A tab opened inside the tap itself. A window opened after a round trip is a
+ * popup to Safari (and to Chrome once the gateway takes a few seconds), so the
+ * tab is opened first and pointed at the gateway when the URL arrives. Null on
+ * a phone, or when the browser blocked it anyway — then the page itself goes.
+ */
+const openPaymentTab = (): Window | null => {
+  const tab = window.open("", "_blank");
+  if (!tab) return null;
+
+  try {
+    tab.document.title = "Opening payment…";
+    tab.document.body.textContent = "Opening the payment page…";
+  } catch {
+    /* cosmetic */
+  }
+
+  return tab;
+};
+
 export type AssistantError = { message: string; retry: () => void };
+
+type TopupRequest = { amountMinor: number; autoConfirm: boolean; label: string };
 
 export type AssistantController = {
   conversationId: string | null;
@@ -74,6 +100,9 @@ export type AssistantController = {
   error: AssistantError | null;
   /** Start or resume the chat. Safe to call on every open. */
   open: (action?: AssistantAction, label?: string) => void;
+  /** Coming back from the gateway: reopen this chat (from `sm_chat_resume`
+   *  when this tab has none of its own) and ask about the payment once. */
+  resume: (conversationId?: string | null) => void;
   send: (action: AssistantAction, label?: string) => void;
   /** Post a signed quote and book. Not an action: it is the one call that
    *  commits, and a stale tab must not be able to replay it as one. */
@@ -82,6 +111,13 @@ export type AssistantController = {
   confirming: boolean;
   /** The token whose card produced a booking; that card stays "Booked". */
   confirmedToken: string | null;
+  /** Open the gateway for a wallet top-up. Must be called from the tap
+   *  itself: it opens the payment tab before its first await. */
+  topup: (amountMinor: number, autoConfirm: boolean, label: string) => void;
+  toppingUp: boolean;
+  /** A background `check_payment`: draws only what the server wrote. */
+  checkPayment: () => void;
+  checkingPayment: boolean;
   /** Throw the transcript away and greet again. */
   reset: () => void;
 };
@@ -100,14 +136,25 @@ export function useAssistant(): AssistantController {
     /** Set when it was a confirm that failed, so "Try again" retries the
      *  booking rather than the last guided tap. */
     confirmToken?: string;
+    /** Set when it was opening a top-up that failed. */
+    topup?: TopupRequest;
   } | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [confirmedToken, setConfirmedToken] = useState<string | null>(null);
+  const [toppingUp, setToppingUp] = useState(false);
+  const [checkingPayment, setCheckingPayment] = useState(false);
+
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   // A tap must not be able to open a second turn, and the dispatcher must never
   // read a conversation id one render out of date.
   const busy = useRef(false);
   const idRef = useRef<string | null>(null);
+  // The background payment check in flight. A tap waits for it rather than
+  // being dropped, so the two never race each other on the server.
+  const pollRef = useRef<Promise<void> | null>(null);
+  // Set by `resume`: ask about the payment once the conversation is loaded.
+  const resumeCheck = useRef(false);
 
   const apply = useCallback((turn: AssistantTurn, replace: boolean) => {
     idRef.current = turn.conversationId;
@@ -120,6 +167,23 @@ export function useAssistant(): AssistantController {
         : // Drop the optimistic bubble: the server's own pair replaces it.
           [...prev.filter((m) => !m.optimistic), ...turn.messages],
     );
+  }, []);
+
+  const showOptimistic = useCallback((text: string) => {
+    setMessages((prev) => [
+      ...prev.filter((m) => !m.optimistic),
+      {
+        id: `optimistic-${Date.now()}`,
+        role: "USER",
+        text,
+        createdAt: new Date().toISOString(),
+        optimistic: true,
+      },
+    ]);
+  }, []);
+
+  const dropOptimistic = useCallback(() => {
+    setMessages((prev) => prev.filter((m) => !m.optimistic));
   }, []);
 
   /**
@@ -137,31 +201,23 @@ export function useAssistant(): AssistantController {
 
       // The bubble goes up before the await: on a slow connection the tap has
       // to feel like it landed.
-      if (label) {
-        setMessages((prev) => [
-          ...prev.filter((m) => !m.optimistic),
-          {
-            id: `optimistic-${Date.now()}`,
-            role: "USER",
-            text: label,
-            createdAt: new Date().toISOString(),
-            optimistic: true,
-          },
-        ]);
-      }
-
-      const id = idRef.current;
+      if (label) showOptimistic(label);
 
       try {
+        await pollRef.current;
+
+        const id = idRef.current;
         const result =
-          id && action
-            ? await sendAssistantAction(id, action, label)
-            : await startConversation(action ?? undefined, label);
+          id && action?.type === "check_payment"
+            ? await checkAssistantPayment(id, label)
+            : id && action
+              ? await sendAssistantAction(id, action, label)
+              : await startConversation(action ?? undefined, label);
 
         if (result.success && result.data) {
           apply(result.data, !id || !action);
         } else {
-          setMessages((prev) => prev.filter((m) => !m.optimistic));
+          dropOptimistic();
           setFailed({
             message: result.message || "That did not go through.",
             action,
@@ -169,7 +225,7 @@ export function useAssistant(): AssistantController {
           });
         }
       } catch (error) {
-        setMessages((prev) => prev.filter((m) => !m.optimistic));
+        dropOptimistic();
         setFailed({
           message:
             error instanceof Error ? error.message : "That did not go through.",
@@ -181,7 +237,7 @@ export function useAssistant(): AssistantController {
         setPendingAction(null);
       }
     },
-    [apply],
+    [apply, dropOptimistic, showOptimistic],
   );
 
   /** Resume the chat this tab was already having, or open a new one. */
@@ -231,6 +287,71 @@ export function useAssistant(): AssistantController {
   );
 
   /**
+   * The background check. Skipped while a tap is in flight — that tap's answer
+   * is the fresher one. A payment still pending comes back unrecorded and is
+   * not drawn; anything the server wrote is appended, ahead of a tap that
+   * started meanwhile.
+   */
+  const checkPayment = useCallback(() => {
+    const id = idRef.current;
+    if (!id || busy.current || pollRef.current) return;
+
+    setCheckingPayment(true);
+
+    pollRef.current = (async () => {
+      try {
+        const result = await checkAssistantPayment(id);
+        const data = result.data;
+        if (!result.success || !data) return;
+
+        if (data.recorded) {
+          setState(data.state ?? GREETING);
+          setMessages((prev) => [
+            ...prev.filter((m) => !m.optimistic),
+            ...data.messages,
+            ...prev.filter((m) => m.optimistic),
+          ]);
+        } else if (!data.state?.pendingTopup) {
+          // Settled in another tab: stop watching, the transcript is theirs.
+          setState((prev) => {
+            const next = { ...prev };
+            delete next.pendingTopup;
+            return next;
+          });
+        }
+      } catch {
+        // A missed poll is not worth a banner; the next one, or the customer's
+        // own "Check again", will ask again.
+      } finally {
+        pollRef.current = null;
+        setCheckingPayment(false);
+      }
+    })();
+  }, []);
+
+  const resume = useCallback(
+    (resumeId?: string | null) => {
+      if (idRef.current) {
+        checkPayment();
+        return;
+      }
+      // A new tab (the desktop gateway opened one) has no sessionStorage of
+      // its own; the cookie's id is this customer's chat. The API still checks
+      // it is theirs.
+      if (resumeId && !readStoredId()) writeStoredId(resumeId);
+      resumeCheck.current = true;
+      open();
+    },
+    [checkPayment, open],
+  );
+
+  useEffect(() => {
+    if (!conversationId || !resumeCheck.current) return;
+    resumeCheck.current = false;
+    checkPayment();
+  }, [conversationId, checkPayment]);
+
+  /**
    * The booking. The server writes both transcript messages itself, so what
    * comes back is one turn's worth of blocks to append — on success and on a
    * recoverable failure alike, which is why a 409 renders a fresh slot list
@@ -247,19 +368,11 @@ export function useAssistant(): AssistantController {
       setConfirming(true);
       setPendingAction({ type: "choose_slot", slotId: "" });
       setFailed(null);
-
-      setMessages((prev) => [
-        ...prev.filter((m) => !m.optimistic),
-        {
-          id: `optimistic-${Date.now()}`,
-          role: "USER",
-          text: "Confirm booking",
-          createdAt: new Date().toISOString(),
-          optimistic: true,
-        },
-      ]);
+      showOptimistic("Confirm booking");
 
       try {
+        await pollRef.current;
+
         const result = await confirmAssistantBooking(confirmToken);
         const data = result.data;
 
@@ -282,7 +395,7 @@ export function useAssistant(): AssistantController {
         }
 
         // No blocks came back, so there is nothing to draw but the message.
-        setMessages((prev) => prev.filter((m) => !m.optimistic));
+        dropOptimistic();
         setFailed({
           message: result.message || "That did not go through.",
           action: null,
@@ -290,7 +403,7 @@ export function useAssistant(): AssistantController {
           confirmToken,
         });
       } catch (error) {
-        setMessages((prev) => prev.filter((m) => !m.optimistic));
+        dropOptimistic();
         setFailed({
           message:
             error instanceof Error ? error.message : "That did not go through.",
@@ -304,7 +417,86 @@ export function useAssistant(): AssistantController {
         setPendingAction(null);
       }
     },
-    [],
+    [dropOptimistic, showOptimistic],
+  );
+
+  /**
+   * Out to the gateway. Desktop keeps the chat in this tab and pays in a new
+   * one; a phone leaves for the gateway and comes back through the wallet
+   * result page's "Back to your booking" (the `sm_chat_resume` cookie set by
+   * the server action). The API answers a double tap on the same amount with
+   * the payment it already opened, so one tap is one intent.
+   */
+  const topup = useCallback(
+    (amountMinor: number, autoConfirm: boolean, label: string) => {
+      const id = idRef.current;
+      if (!id || busy.current) return;
+      busy.current = true;
+
+      // Before any await — see `openPaymentTab`.
+      const tab = isDesktop ? openPaymentTab() : null;
+
+      setToppingUp(true);
+      setFailed(null);
+      showOptimistic(label);
+
+      void (async () => {
+        const fail = (message: string) => {
+          tab?.close();
+          dropOptimistic();
+          setFailed({
+            message,
+            action: null,
+            topup: { amountMinor, autoConfirm, label },
+          });
+        };
+
+        try {
+          await pollRef.current;
+
+          const result = await startAssistantTopup(
+            id,
+            amountMinor,
+            autoConfirm,
+            label,
+          );
+          const data = result.data;
+
+          if (!data) {
+            fail(result.message || "The payment page did not open.");
+            return;
+          }
+
+          // Started or not, the server wrote a turn: "Opening the payment
+          // page…", or the time being gone with what is free instead.
+          apply(data, false);
+
+          if (!result.success || !data.redirectUrl) {
+            tab?.close();
+            return;
+          }
+
+          if (tab) {
+            // What `noopener` would have done: the gateway page gets no handle
+            // back into this one.
+            tab.opener = null;
+            tab.location.href = data.redirectUrl;
+          } else {
+            window.location.href = data.redirectUrl;
+          }
+        } catch (error) {
+          fail(
+            error instanceof Error
+              ? error.message
+              : "The payment page did not open.",
+          );
+        } finally {
+          busy.current = false;
+          setToppingUp(false);
+        }
+      })();
+    },
+    [apply, dropOptimistic, isDesktop, showOptimistic],
   );
 
   const reset = useCallback(() => {
@@ -328,25 +520,37 @@ export function useAssistant(): AssistantController {
       void confirm(failed.confirmToken);
       return;
     }
+    // "Try again" is itself a tap, so the payment tab can open inside it.
+    if (failed.topup) {
+      topup(failed.topup.amountMinor, failed.topup.autoConfirm, failed.topup.label);
+      return;
+    }
     void dispatch(failed.action, failed.label);
-  }, [confirm, dispatch, failed]);
+  }, [confirm, dispatch, failed, topup]);
 
   return {
     conversationId,
     messages,
     state,
-    pending: pendingAction !== null,
+    pending: pendingAction !== null || toppingUp,
     pendingLabel: confirming
       ? "Booking your appointment…"
-      : (pendingAction && WAITING_FOR[pendingAction.type]) || "Thinking…",
+      : toppingUp
+        ? "Opening the payment page…"
+        : (pendingAction && WAITING_FOR[pendingAction.type]) || "Thinking…",
     error: failed ? { message: failed.message, retry } : null,
     open,
+    resume,
     send,
     confirm: (confirmToken: string) => {
       void confirm(confirmToken);
     },
     confirming,
     confirmedToken,
+    topup,
+    toppingUp,
+    checkPayment,
+    checkingPayment,
     reset,
   };
 }

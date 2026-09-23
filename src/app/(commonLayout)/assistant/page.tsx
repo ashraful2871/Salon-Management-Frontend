@@ -1,4 +1,6 @@
 import AssistantPanel from "@/components/Assistant/AssistantPanel";
+import { CHAT_RESUME_COOKIE } from "@/lib/assistant-request";
+import { getCookie } from "@/services/auth/cookiesHandler";
 
 export const metadata = {
   title: "Book with AI | SalonKhuji",
@@ -7,8 +9,17 @@ export const metadata = {
 };
 
 // The same chat as the floating panel, filling a page: a link worth sharing,
-// and the way out of a cramped in-app browser on a phone.
-export default function AssistantPage() {
+// and the way out of a cramped in-app browser on a phone. `?resume=1` is the
+// way back from the wallet's payment result page: the chat reopens on the
+// conversation that started the top-up and asks how it went.
+export default async function AssistantPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const resume = (await searchParams).resume === "1";
+  const resumeId = resume ? await getCookie(CHAT_RESUME_COOKIE) : null;
+
   return (
     <div className="min-h-screen bg-muted/30 pb-16 pt-10">
       <section className="container mx-auto mb-8 px-4 text-center">
@@ -22,7 +33,7 @@ export default function AssistantPage() {
       </section>
 
       <section className="container mx-auto max-w-2xl px-4">
-        <AssistantPanel variant="page" />
+        <AssistantPanel variant="page" resume={resume} resumeId={resumeId} />
       </section>
     </div>
   );

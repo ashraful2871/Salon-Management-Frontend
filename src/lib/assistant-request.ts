@@ -21,6 +21,22 @@ export const CHAT_COOKIE_OPTIONS = {
 };
 
 /**
+ * The way back from the gateway. The wallet result pages belong to the
+ * SSLCommerz config and cannot carry a chat id, and a desktop top-up opens in
+ * a new tab whose sessionStorage is empty — so the conversation id rides here,
+ * short-lived, and `/assistant?resume=1` picks it up.
+ */
+export const CHAT_RESUME_COOKIE = "sm_chat_resume";
+
+export const CHAT_RESUME_COOKIE_OPTIONS = {
+  httpOnly: true,
+  sameSite: "lax" as const,
+  path: "/",
+  secure: process.env.NODE_ENV === "production",
+  maxAge: 60 * 30,
+};
+
+/**
  * Everything a turn needs on the wire: the guest key, and the visitor's own
  * address so the API's rate limiter counts visitors rather than this server
  * (every call reaches the API from Vercel, so without it one bucket would
