@@ -4,7 +4,7 @@ import { revalidateTag } from "next/cache";
 
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse } from "@/lib/api-types";
-import type { AssistantAction, AssistantTurn } from "@/lib/assistant-types";
+import type { AssistantTurn } from "@/lib/assistant-types";
 import {
   assistantErrorMessage,
   assistantHeaders,
@@ -12,44 +12,40 @@ import {
 } from "@/lib/assistant-request";
 
 /**
- * One guided turn. `label` is the chip's own words: the API keeps it as the
- * text of the customer's message, so a transcript reopened on another device
- * reads the way it did when it was tapped.
+ * A typed message. The API reads it with rules first and asks the model only
+ * when it has to, then answers with the same turn envelope as a tap, plus
+ * `mode` ("guided" when no model was involved) and `toolLabel`.
  *
- * No cache. Two taps write something a cached server component renders — a
- * cancellation and a review — so those revalidate the same tags
- * `cancelAppointment` and `createReview` do. Every other tap is read-only.
+ * "Did my payment go through?" is answered by the payment check on the API
+ * side, which can finish a "Top up & book" — so a reply carrying an
+ * `appointmentId` owes the same invalidation the Confirm button does.
  */
-export const sendAssistantAction = async (
+export const sendAssistantMessage = async (
   conversationId: string,
-  action: AssistantAction,
-  label?: string,
+  text: string,
 ): Promise<ApiResponse<AssistantTurn>> => {
   try {
     const response = await serverFetch.post(
-      `/assistant/conversations/${conversationId}/actions`,
+      `/assistant/conversations/${conversationId}/messages`,
       {
         headers: await assistantHeaders(),
-        body: JSON.stringify({ action, ...(label ? { label } : {}) }),
+        body: JSON.stringify({ text }),
         cache: "no-store",
       },
     );
 
     const result = (await response.json()) as ApiResponse<
-      AssistantTurn & { id?: string }
+      AssistantTurn & { id?: string; appointmentId?: string }
     >;
 
     if (!result.success || !result.data) return result;
 
-    if (action.type === "cancel_confirm") {
+    if (result.data.appointmentId) {
       revalidateTag("appointments", "seconds");
       revalidateTag("my-appointments", "seconds");
       revalidateTag("dashboard-stats", "seconds");
       revalidateTag("earnings", "seconds");
       revalidateTag("slots", "max");
-    } else if (action.type === "rate_booking") {
-      revalidateTag("salons", "seconds");
-      revalidateTag("my-appointments", "seconds");
     }
 
     return {
@@ -57,10 +53,12 @@ export const sendAssistantAction = async (
       data: {
         ...normalizeTurn(result.data, conversationId),
         anonymousId: null,
+        mode: result.data.mode ?? "guided",
+        ...(result.data.toolLabel ? { toolLabel: result.data.toolLabel } : {}),
       },
     };
   } catch (error) {
-    console.error("Error running assistant action:", error);
+    console.error("Error sending assistant message:", error);
     return { success: false, message: assistantErrorMessage(error) };
   }
 };

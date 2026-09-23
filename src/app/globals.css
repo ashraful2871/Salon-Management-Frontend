@@ -234,3 +234,12 @@
     background-color: var(--sage);
   }
 }
+
+/* Bangla text. The chat marks a Bangla message (or the composer while Bangla
+   is being typed) lang="bn"; system Bangla faces come first, so nobody else
+   downloads a font for it. Conjuncts need a taller line than Latin. */
+:lang(bn) {
+  font-family: "Noto Sans Bengali", "Hind Siliguri", "Kohinoor Bangla",
+    "Nirmala UI", "Vrinda", var(--font-body), sans-serif;
+  line-height: 1.7;
+}

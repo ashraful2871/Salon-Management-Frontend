@@ -18,7 +18,9 @@ export type AssistantAction =
   | { type: "start" }
   | { type: "find_nearby"; page?: number }
   | { type: "set_location"; lat: number; lng: number; label?: string }
-  | { type: "search_salons"; query: string; page?: number }
+  // `filters` is what the API read a typed message as; the client never builds
+  // one, only posts back the "Show more" action it was given.
+  | { type: "search_salons"; query: string; page?: number; filters?: Record<string, unknown> }
   | { type: "choose_salon"; salonId: string }
   | { type: "change_location" }
   | { type: "book" }
@@ -33,7 +35,15 @@ export type AssistantAction =
    *  when no top-up is in flight. */
   | { type: "check_payment" }
   | { type: "restart" }
-  | { type: "back" };
+  | { type: "back" }
+  // Managing bookings that already exist. Cancel is two taps on purpose:
+  // `cancel_booking` only shows what it would cost.
+  | { type: "my_bookings"; scope?: "upcoming" | "past" }
+  | { type: "cancel_booking"; appointmentId: string }
+  | { type: "cancel_confirm"; appointmentId: string }
+  | { type: "reschedule"; appointmentId: string }
+  | { type: "book_usual"; appointmentId: string }
+  | { type: "rate_booking"; appointmentId: string; rating: number };
 
 /* ---------------------------------------------------------------- pieces */
 
@@ -127,6 +137,39 @@ export type SummaryService = {
 
 export type SummaryCounter = { id: string; name: string; code: string | null };
 
+/** The booking a summary is moving, and what cancelling it costs now. */
+export type RescheduleInfo = {
+  appointmentId: string;
+  /** "Thu 24 Sep 17:45" */
+  label: string;
+  date: string;
+  startTime: string;
+  penaltyMinor: number;
+  depositMinor: number;
+  freeCancellation: boolean;
+};
+
+export type BookingListItem = {
+  id: string;
+  salonId: string;
+  salonName: string;
+  salonPhone: string;
+  serviceName: string;
+  date: string;
+  startTime: string;
+  endTime: string | null;
+  status: string;
+  token: string | null;
+  serialNumber: number | null;
+  counterName: string | null;
+  totalMinor: number;
+  depositMinor: number;
+  dueAtSalonMinor: number;
+  canCancel: boolean;
+  canReschedule: boolean;
+  actions: QuickReply[];
+};
+
 /* ---------------------------------------------------------------- blocks */
 
 export type Block =
@@ -185,6 +228,11 @@ export type Block =
        *  times come from several, and then each slot names its own. */
       counterName: string | null;
       groups: SlotGroup[];
+      /** The band a typed "evening" / "bikele" asked for: scrolled to and
+       *  highlighted. Every band is still shown. */
+      focus?: "Morning" | "Afternoon" | "Evening" | null;
+      /** "after 5" ("HH:mm"): earlier times are dimmed, not hidden. */
+      after?: string | null;
     }
   | {
       type: "booking_summary";
@@ -223,6 +271,31 @@ export type Block =
       confirmToken?: string;
       /** ISO instant the hold lapses; drives the countdown on the button. */
       holdExpiresAt?: string;
+      /** Present when this summary moves an existing booking. */
+      reschedule?: RescheduleInfo;
+    }
+  | {
+      type: "booking_list";
+      scope: "upcoming" | "past";
+      bookings: BookingListItem[];
+    }
+  | {
+      type: "cancellation_preview";
+      appointmentId: string;
+      startsAt: string;
+      freeCancellation: boolean;
+      cancellationWindowMin: number;
+      depositMinor: number;
+      penaltyMinor: number;
+      penaltyPercent: number;
+      refundMinor: number;
+      cancellable: boolean;
+      salonName: string;
+      salonPhone: string;
+      serviceName: string;
+      date: string;
+      startTime: string;
+      actions: QuickReply[];
     }
   | {
       type: "booking_confirmed";
@@ -305,6 +378,8 @@ export type AssistantState = {
   /** Server-side copy of the summary's quote; the client never sends it. */
   quoteToken?: string;
   holdExtended?: boolean;
+  /** The booking this funnel is moving (Reschedule). */
+  rescheduleOf?: string;
   /** A top-up this chat opened and has not seen settle. While it is set the
    *  panel watches for the payment. */
   pendingTopup?: PendingTopup;
@@ -332,6 +407,8 @@ export type AssistantMessage = {
   blocks?: Block[] | null;
   action?: AssistantAction | null;
   createdAt: string;
+  /** 👍 1 / 👎 -1, once the customer has rated this message. */
+  feedback?: number | null;
   /** Client-only: an optimistic bubble that has not been acknowledged yet. */
   optimistic?: boolean;
 };
@@ -358,6 +435,10 @@ export type AssistantTurn = {
   anonymousId?: string | null;
   state: AssistantState;
   messages: AssistantMessage[];
+  /** Typed turns only: "guided" when the rules answered without a model. */
+  mode?: "guided" | "ai";
+  /** Typed turns only: what the last tool the model ran was doing. */
+  toolLabel?: string;
 };
 
 export type TopupIntentStatus =

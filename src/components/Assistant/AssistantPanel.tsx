@@ -33,6 +33,9 @@ import AssistantMessages from "./AssistantMessages";
 import Chip from "./Chip";
 import type { SendAction } from "./block-props";
 
+/** Any Bangla letter: the field switches to the Bangla font stack. */
+const BANGLA = /[ঀ-৿]/;
+
 type AssistantPanelProps = {
   /** `overlay` is the floating panel / bottom sheet; `page` is the same chat
    *  filling `/assistant`, where it is content rather than a dialog. */
@@ -67,6 +70,8 @@ const AssistantPanel = ({
     pendingLabel,
     error,
     send,
+    sendText,
+    mode,
     confirm,
     confirming,
     confirmedToken,
@@ -266,9 +271,7 @@ const AssistantPanel = ({
     const query = draft.trim();
     if (!query || pending) return;
     setDraft("");
-    // Until free text arrives in Phase 6, typed words are a salon search - the
-    // one thing the guided flow can already answer from any step.
-    send({ type: "search_salons", query }, query);
+    sendText(query);
   };
 
   const handleDragEnd = (_: unknown, info: PanInfo) => {
@@ -293,9 +296,20 @@ const AssistantPanel = ({
             Book with AI
           </h2>
           <p className="truncate text-xs text-muted-foreground">
-            Tap your way to an appointment
+            Tap an option or type what you need
           </p>
         </div>
+
+        {/* Honest about the last typed reply: the rules answered it, not a
+            model. Never shown before anything is typed. */}
+        {mode === "guided" && (
+          <span
+            title="Typed messages are being read without AI right now. Every button still works."
+            className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+          >
+            Guided mode
+          </span>
+        )}
 
         <button
           type="button"
@@ -413,21 +427,23 @@ const AssistantPanel = ({
             onChange={(e) => setDraft(e.target.value)}
             disabled={pending}
             maxLength={300}
-            aria-label="Search salons"
-            placeholder="Search salons, or tap an option above"
+            lang={BANGLA.test(draft) ? "bn" : undefined}
+            aria-label="Message the booking assistant"
+            placeholder="Try “haircut in Dhanmondi tomorrow”"
             className="min-h-11 min-w-0 flex-1 rounded-full border border-border bg-background px-4 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
           />
           <button
             type="submit"
             disabled={pending || !draft.trim()}
-            aria-label="Search"
+            aria-label="Send"
             className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           >
             <Send className="h-4 w-4" aria-hidden />
           </button>
         </form>
         <p className="mt-2 text-center text-[11px] text-muted-foreground">
-          Nothing is booked until you tap Confirm.
+          Type in English, বাংলা or Banglish · Nothing is booked until you tap
+          Confirm.
         </p>
       </footer>
     </>

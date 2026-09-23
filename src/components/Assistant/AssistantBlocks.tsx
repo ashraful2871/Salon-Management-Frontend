@@ -3,6 +3,8 @@
 import type { Block } from "@/lib/assistant-types";
 import type { SendAction } from "./block-props";
 import BookingConfirmedCard from "./blocks/BookingConfirmedCard";
+import BookingList from "./blocks/BookingList";
+import CancellationPreview from "./blocks/CancellationPreview";
 import ChatBookingSummary from "./blocks/ChatBookingSummary";
 import CounterPicker from "./blocks/CounterPicker";
 import DatePicker from "./blocks/DatePicker";
@@ -92,6 +94,10 @@ const AssistantBlocks = ({
                 }
               />
             );
+          case "booking_list":
+            return <BookingList key={key} block={block} {...props} />;
+          case "cancellation_preview":
+            return <CancellationPreview key={key} block={block} {...props} />;
           case "booking_confirmed":
             return <BookingConfirmedCard key={key} block={block} />;
           case "payment_prompt":

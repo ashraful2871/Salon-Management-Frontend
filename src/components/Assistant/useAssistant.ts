@@ -12,6 +12,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { checkAssistantPayment } from "@/services/assistant/checkAssistantPayment";
 import { getConversation } from "@/services/assistant/getConversation";
 import { sendAssistantAction } from "@/services/assistant/sendAssistantAction";
+import { sendAssistantMessage } from "@/services/assistant/sendAssistantMessage";
 import { confirmAssistantBooking } from "@/services/assistant/confirmAssistantBooking";
 import { startAssistantTopup } from "@/services/assistant/startAssistantTopup";
 import { startConversation } from "@/services/assistant/startConversation";
@@ -45,6 +46,22 @@ const WAITING_FOR: Partial<Record<AssistantAction["type"], string>> = {
   check_payment: "Checking your payment…",
   restart: "Starting over…",
   back: "Going back…",
+};
+
+/**
+ * A typed message has no action to name what is in flight, and the reply is
+ * not streamed, so the label is a guess from where the customer is — replaced
+ * by the tool the server last reported running at this same step, when there
+ * is one.
+ */
+const TYPING_FOR: Partial<Record<AssistantState["step"], string>> = {
+  greeting: "Searching salons…",
+  discover: "Searching salons…",
+  salon: "Checking availability…",
+  date: "Checking availability…",
+  service: "Checking availability…",
+  counter: "Checking availability…",
+  slot: "Checking availability…",
 };
 
 const readStoredId = (): string | null => {
@@ -104,6 +121,11 @@ export type AssistantController = {
    *  when this tab has none of its own) and ask about the payment once. */
   resume: (conversationId?: string | null) => void;
   send: (action: AssistantAction, label?: string) => void;
+  /** Free text, read by the API into the same actions a tap sends. */
+  sendText: (text: string) => void;
+  /** How the last typed message was answered: "guided" means no model was
+   *  involved (off, over budget, or down). Null until something is typed. */
+  mode: "guided" | "ai" | null;
   /** Post a signed quote and book. Not an action: it is the one call that
    *  commits, and a stale tab must not be able to replay it as one. */
   confirm: (confirmToken: string) => void;
@@ -138,6 +160,15 @@ export function useAssistant(): AssistantController {
     confirmToken?: string;
     /** Set when it was opening a top-up that failed. */
     topup?: TopupRequest;
+    /** Set when it was a typed message that failed. */
+    text?: string;
+  } | null>(null);
+  const [pendingText, setPendingText] = useState<string | null>(null);
+  const [mode, setMode] = useState<"guided" | "ai" | null>(null);
+  // The last tool the server said it ran, and at which step.
+  const [lastTool, setLastTool] = useState<{
+    step: AssistantState["step"];
+    label: string;
   } | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [confirmedToken, setConfirmedToken] = useState<string | null>(null);
@@ -284,6 +315,69 @@ export function useAssistant(): AssistantController {
       void dispatch(action, label);
     },
     [dispatch],
+  );
+
+  /**
+   * A typed message. Same single-flight guard and optimistic bubble as a tap;
+   * a chat that has not started yet is started first, so typing into a fresh
+   * panel works too.
+   */
+  const sendText = useCallback(
+    async (text: string) => {
+      if (busy.current) return;
+      busy.current = true;
+
+      setPendingText(text);
+      setFailed(null);
+      showOptimistic(text);
+
+      try {
+        await pollRef.current;
+
+        let id = idRef.current;
+        if (!id) {
+          const started = await startConversation();
+          if (started.success && started.data) {
+            apply(started.data, true);
+            showOptimistic(text);
+            id = started.data.conversationId;
+          }
+        }
+        if (!id) throw new Error("The chat did not start.");
+
+        const result = await sendAssistantMessage(id, text);
+
+        if (result.success && result.data) {
+          apply(result.data, false);
+          setMode(result.data.mode ?? "guided");
+          const toolLabel = result.data.toolLabel;
+          setLastTool(
+            toolLabel
+              ? { step: result.data.state?.step ?? "greeting", label: toolLabel }
+              : null,
+          );
+        } else {
+          dropOptimistic();
+          setFailed({
+            message: result.message || "That did not go through.",
+            action: null,
+            text,
+          });
+        }
+      } catch (error) {
+        dropOptimistic();
+        setFailed({
+          message:
+            error instanceof Error ? error.message : "That did not go through.",
+          action: null,
+          text,
+        });
+      } finally {
+        busy.current = false;
+        setPendingText(null);
+      }
+    },
+    [apply, dropOptimistic, showOptimistic],
   );
 
   /**
@@ -508,6 +602,8 @@ export function useAssistant(): AssistantController {
     setState(GREETING);
     setFailed(null);
     setConfirmedToken(null);
+    setMode(null);
+    setLastTool(null);
     void dispatch(null);
   }, [dispatch]);
 
@@ -525,23 +621,35 @@ export function useAssistant(): AssistantController {
       topup(failed.topup.amountMinor, failed.topup.autoConfirm, failed.topup.label);
       return;
     }
+    if (failed.text) {
+      void sendText(failed.text);
+      return;
+    }
     void dispatch(failed.action, failed.label);
-  }, [confirm, dispatch, failed, topup]);
+  }, [confirm, dispatch, failed, sendText, topup]);
 
   return {
     conversationId,
     messages,
     state,
-    pending: pendingAction !== null || toppingUp,
+    pending: pendingAction !== null || toppingUp || pendingText !== null,
     pendingLabel: confirming
       ? "Booking your appointment…"
       : toppingUp
         ? "Opening the payment page…"
-        : (pendingAction && WAITING_FOR[pendingAction.type]) || "Thinking…",
+        : pendingText !== null
+          ? (lastTool?.step === state.step
+              ? lastTool.label
+              : TYPING_FOR[state.step]) || "Thinking…"
+          : (pendingAction && WAITING_FOR[pendingAction.type]) || "Thinking…",
     error: failed ? { message: failed.message, retry } : null,
     open,
     resume,
     send,
+    sendText: (text: string) => {
+      void sendText(text);
+    },
+    mode,
     confirm: (confirmToken: string) => {
       void confirm(confirmToken);
     },

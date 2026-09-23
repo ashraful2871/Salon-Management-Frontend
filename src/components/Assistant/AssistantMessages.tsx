@@ -8,6 +8,7 @@ import type { AssistantMessage } from "@/lib/assistant-types";
 import AssistantBlocks from "./AssistantBlocks";
 import type { SendAction } from "./block-props";
 import type { StartTopup } from "./blocks/PaymentPrompt";
+import MessageFeedback, { canRate } from "./MessageFeedback";
 
 type AssistantMessagesProps = {
   messages: AssistantMessage[];
@@ -20,6 +21,10 @@ type AssistantMessagesProps = {
   onTopup: StartTopup;
   toppingUp: boolean;
 };
+
+/** Any Bangla letter: the bubble is marked `lang="bn"`, which switches it to
+ *  the Bangla font stack in globals.css. */
+const BANGLA = /[ঀ-৿]/;
 
 const TypingIndicator = ({ label }: { label: string }) => (
   <div className="flex items-center gap-2.5">
@@ -76,7 +81,9 @@ const AssistantMessages = ({
                   message.optimistic && "opacity-70",
                 )}
               >
-                {message.text}
+                <span lang={BANGLA.test(message.text) ? "bn" : undefined}>
+                  {message.text}
+                </span>
               </p>
             </motion.div>
           );
@@ -100,7 +107,10 @@ const AssistantMessages = ({
                 <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gradient-gold text-white">
                   <Sparkles className="h-3.5 w-3.5" aria-hidden />
                 </span>
-                <p className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-md bg-muted px-3.5 py-2 text-sm leading-relaxed text-foreground">
+                <p
+                  lang={BANGLA.test(message.text) ? "bn" : undefined}
+                  className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-md bg-muted px-3.5 py-2 text-sm leading-relaxed text-foreground"
+                >
                   {message.text}
                 </p>
               </div>
@@ -119,6 +129,15 @@ const AssistantMessages = ({
               onTopup={onTopup}
               toppingUp={toppingUp}
             />
+
+            {Array.isArray(message.blocks) &&
+              message.blocks.length > 0 &&
+              canRate(message.id) && (
+                <MessageFeedback
+                  messageId={message.id}
+                  initial={message.feedback}
+                />
+              )}
           </motion.div>
         );
       })}

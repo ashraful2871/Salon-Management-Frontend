@@ -28,7 +28,8 @@ export default async function AssistantPage({
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
           Tap your way from &ldquo;salons near me&rdquo; to a time that suits
-          you. No forms, no typing.
+          you &mdash; or just type it: &ldquo;haircut in Dhanmondi tomorrow
+          evening&rdquo;, in English, বাংলা or Banglish.
         </p>
       </section>
 

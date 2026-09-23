@@ -90,12 +90,13 @@ const ChatBookingSummary = ({
   // buy a 410; asking for new times is the same tap with a useful answer.
   const expired = confirmInChat && Boolean(block.holdExpiresAt) && !countdown;
   const blockedByWallet = shortfall > 0;
+  const move = block.reschedule;
 
   return (
     <div className="overflow-hidden rounded-xl border border-primary/30 bg-background">
       <div className="border-b border-border bg-primary/5 px-3.5 py-2.5">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">
-          Your appointment
+          {move ? `Moving your ${move.label} booking` : "Your appointment"}
         </p>
       </div>
 
@@ -157,6 +158,20 @@ const ChatBookingSummary = ({
           )}
         </dl>
 
+        {move && (
+          <p
+            className={
+              move.penaltyMinor > 0
+                ? "rounded-lg border border-gold/40 bg-gold/5 px-3 py-2 text-xs text-foreground"
+                : "text-xs text-muted-foreground"
+            }
+          >
+            {move.penaltyMinor > 0
+              ? `Moving costs ${formatBDT(move.penaltyMinor)}: your ${move.label} booking is inside its cancellation window, so that much of its ${formatBDT(move.depositMinor)} deposit is kept.`
+              : `Your ${move.label} booking is cancelled for free once this one is booked.`}
+          </p>
+        )}
+
         {block.freeCancellationUntil && (
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -180,7 +195,7 @@ const ChatBookingSummary = ({
         <div className="flex flex-col gap-2 sm:flex-row">
           {confirmed ? (
             <Chip
-              label="Booked"
+              label={move ? "Moved" : "Booked"}
               style="primary"
               disabled
               onClick={() => {}}
@@ -200,10 +215,14 @@ const ChatBookingSummary = ({
             <Chip
               label={
                 confirming
-                  ? "Booking…"
+                  ? move
+                    ? "Moving…"
+                    : "Booking…"
                   : blockedByWallet
                     ? "Top up to confirm"
-                    : "Confirm booking"
+                    : move
+                      ? "Move booking"
+                      : "Confirm booking"
               }
               style="primary"
               // Never let a second confirm leave the browser: the button is

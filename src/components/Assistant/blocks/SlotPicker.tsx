@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 import { cn } from "@/lib/utils";
 import type { Block } from "@/lib/assistant-types";
 import { formatTime } from "../format";
@@ -19,6 +21,14 @@ const SlotPicker = ({
   onAction,
 }: BlockProps<SlotPickerBlock>) => {
   const groups = (block.groups ?? []).filter((g) => g.slots?.length > 0);
+  const focusRef = useRef<HTMLDivElement>(null);
+
+  // A typed "evening" / "bikele": bring that band into view once, when the
+  // picker first appears. Every band stays on screen.
+  useEffect(() => {
+    focusRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, []);
+
   if (groups.length === 0) return null;
 
   const showCounter = block.counterName == null;
@@ -35,14 +45,27 @@ const SlotPicker = ({
       )}
 
       {groups.map((group) => (
-        <div key={group.label}>
-          <h5 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div
+          key={group.label}
+          ref={group.label === block.focus ? focusRef : undefined}
+        >
+          <h5
+            className={cn(
+              "mb-1.5 text-[11px] font-semibold uppercase tracking-wider",
+              group.label === block.focus ? "text-gold" : "text-muted-foreground",
+            )}
+          >
             {group.label}
+            {group.label === block.focus && (
+              <span className="ml-1.5 normal-case tracking-normal">· as you asked</span>
+            )}
           </h5>
           <div className="grid grid-cols-3 gap-1.5 md:grid-cols-4">
             {group.slots.map((slot) => {
               const label = formatTime(slot.startTime);
               const selected = chosen === label;
+              // "after 5": earlier times stay tappable, just quieter.
+              const early = Boolean(block.after) && slot.startTime.slice(0, 5) < (block.after ?? "");
 
               return (
                 <button
@@ -65,6 +88,7 @@ const SlotPicker = ({
                     selected
                       ? "border-primary/60 bg-primary/10"
                       : "border-border bg-background hover:border-primary/50 hover:bg-primary/5",
+                    early && !selected && "opacity-60",
                   )}
                 >
                   <span className="text-sm font-semibold text-foreground">
