@@ -127,7 +127,7 @@ const SalonDetails = ({ salon }: { salon: any }) => {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [unreviewedAppointmentId, setUnreviewedAppointmentId] = useState<string | null>(null);
-  const { openWith } = useAssistantLauncher();
+  const { openWith, enabled: chatEnabled } = useAssistantLauncher();
 
   useEffect(() => {
     const checkReviews = async () => {
@@ -555,20 +555,22 @@ const SalonDetails = ({ salon }: { salon: any }) => {
                     >
                       Book Appointment
                     </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full gap-2"
-                      size="lg"
-                      onClick={() =>
-                        openWith(
-                          { type: "choose_salon", salonId: salon.id },
-                          salon?.name,
-                        )
-                      }
-                    >
-                      <MessageSquare className="h-4 w-4" aria-hidden />
-                      Ask about this salon
-                    </Button>
+                    {chatEnabled && (
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2"
+                        size="lg"
+                        onClick={() =>
+                          openWith(
+                            { type: "choose_salon", salonId: salon.id },
+                            salon?.name,
+                          )
+                        }
+                      >
+                        <MessageSquare className="h-4 w-4" aria-hidden />
+                        Ask about this salon
+                      </Button>
+                    )}
                     <Button variant="outline" className="w-full" size="lg">
                       Contact Salon
                     </Button>

@@ -136,7 +136,7 @@ const SalonMatchCard = ({
   const matched = (salon.matchedServices ?? []).slice(0, 2);
   const reasons = (salon.reasons ?? []).filter((r) => !REPEATED_ON_CARD.has(r.kind));
   const missing = salon.missing ?? [];
-  const { openWith } = useAssistantLauncher();
+  const { openWith, enabled: chatEnabled } = useAssistantLauncher();
 
   return (
     <div className="flex flex-col">
@@ -193,18 +193,20 @@ const SalonMatchCard = ({
       )}
 
       {/* The search found it; the chat books it, with the salon already chosen. */}
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() =>
-          openWith({ type: "choose_salon", salonId: salon.id }, salon.name)
-        }
-        className="mt-3 w-full cursor-pointer gap-2"
-      >
-        <MessageSquare className="h-4 w-4" aria-hidden />
-        Continue in chat
-      </Button>
+      {chatEnabled && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            openWith({ type: "choose_salon", salonId: salon.id }, salon.name)
+          }
+          className="mt-3 w-full cursor-pointer gap-2"
+        >
+          <MessageSquare className="h-4 w-4" aria-hidden />
+          Continue in chat
+        </Button>
+      )}
     </div>
   );
 };

@@ -1,5 +1,8 @@
+import { notFound } from "next/navigation";
+
 import AssistantPanel from "@/components/Assistant/AssistantPanel";
 import { CHAT_RESUME_COOKIE } from "@/lib/assistant-request";
+import { getAssistantAccess } from "@/services/assistant/getAssistantAccess";
 import { getCookie } from "@/services/auth/cookiesHandler";
 
 export const metadata = {
@@ -17,6 +20,10 @@ export default async function AssistantPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  // Kill switch off, or not on the rollout allowlist: the page is not there,
+  // the same answer the API gives.
+  if (!(await getAssistantAccess()).enabled) notFound();
+
   const resume = (await searchParams).resume === "1";
   const resumeId = resume ? await getCookie(CHAT_RESUME_COOKIE) : null;
 

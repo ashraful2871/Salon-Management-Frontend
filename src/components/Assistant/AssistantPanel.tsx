@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { useAssistantChat } from "./AssistantContext";
 import AssistantMessages from "./AssistantMessages";
 import Chip from "./Chip";
+import PrivacyFooter from "./PrivacyFooter";
 import type { SendAction } from "./block-props";
 
 /** Any Bangla letter: the field switches to the Bangla font stack. */
@@ -62,7 +63,7 @@ const AssistantPanel = ({
   resume = false,
   resumeId = null,
 }: AssistantPanelProps) => {
-  const { chat, close } = useAssistantChat();
+  const { chat, close, access } = useAssistantChat();
   const {
     messages,
     state,
@@ -420,7 +421,7 @@ const AssistantPanel = ({
         </div>
       )}
 
-      <footer className="shrink-0 border-t border-border px-4 pb-4 pt-3">
+      <footer className="relative shrink-0 border-t border-border px-4 pb-4 pt-3">
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
           <input
             value={draft}
@@ -441,10 +442,12 @@ const AssistantPanel = ({
             <Send className="h-4 w-4" aria-hidden />
           </button>
         </form>
-        <p className="mt-2 text-center text-[11px] text-muted-foreground">
-          Type in English, বাংলা or Banglish · Nothing is booked until you tap
-          Confirm.
-        </p>
+        <PrivacyFooter
+          llm={access.llm}
+          signedIn={access.signedIn}
+          disabled={pending}
+          onDeleted={reset}
+        />
       </footer>
     </>
   );
