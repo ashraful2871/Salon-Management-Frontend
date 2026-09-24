@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import {
   ArrowLeft,
+  ArrowLeftRight,
   Ban,
   CalendarCheck,
   CheckCircle2,
@@ -28,6 +29,11 @@ import {
   type TopupStatus,
 } from "@/services/wallet/checkTopupStatus";
 import { formatBDT } from "@/lib/money";
+import {
+  gatewayRefLabel,
+  providerLabel,
+  type ProviderId,
+} from "@/lib/payment-providers";
 import { cn } from "@/lib/utils";
 
 /** What the gateway sent the customer back to. */
@@ -157,6 +163,13 @@ export default function PaymentResult({
   );
   // Bumping this re-runs the poll, which is what "Check again" does.
   const [attempt, setAttempt] = useState(0);
+  // Where "Try another method" points: the gateway this attempt did not use.
+  const otherProvider: ProviderId | null =
+    intent?.provider === "BKASH"
+      ? "SSLCOMMERZ"
+      : intent?.provider === "SSLCOMMERZ"
+        ? "BKASH"
+        : null;
 
   useEffect(() => {
     // Nothing to poll with - the initial view already says so.
@@ -278,10 +291,10 @@ export default function PaymentResult({
                   )}
 
                   {intent?.gatewayRef && (
-                    <Row label="Gateway reference">
+                    <Row label={gatewayRefLabel(intent.provider)}>
                       <MonoValue
                         value={intent.gatewayRef}
-                        label="Gateway reference"
+                        label={gatewayRefLabel(intent.provider)}
                       />
                     </Row>
                   )}
@@ -292,7 +305,7 @@ export default function PaymentResult({
 
                   <Row label="Payment method">{intent?.method || "N/A"}</Row>
 
-                  <Row label="Paid via">{intent?.provider || "SSLCommerz"}</Row>
+                  <Row label="Paid via">{providerLabel(intent?.provider)}</Row>
 
                   {paidAt && (
                     <Row label="Date">
@@ -318,7 +331,7 @@ export default function PaymentResult({
             </>
           )}
 
-          <div className="flex flex-col gap-3 border-t bg-muted/30 px-6 py-5 sm:flex-row sm:justify-end print:hidden">
+          <div className="flex flex-col gap-3 border-t bg-muted/30 px-6 py-5 sm:flex-row sm:flex-wrap sm:justify-end print:hidden">
             {view === "unresolved" && (
               <Button variant="outline" onClick={checkAgain}>
                 <RefreshCcw className="mr-2 h-4 w-4" /> Check again
@@ -329,6 +342,14 @@ export default function PaymentResult({
               <Button variant="outline" asChild>
                 <Link href="/dashboard/wallet?add=1">
                   <RotateCcw className="mr-2 h-4 w-4" /> Try again
+                </Link>
+              </Button>
+            )}
+
+            {(view === "failed" || view === "cancelled") && otherProvider && (
+              <Button variant="outline" asChild>
+                <Link href={`/dashboard/wallet?add=1&method=${otherProvider}`}>
+                  <ArrowLeftRight className="mr-2 h-4 w-4" /> Try another method
                 </Link>
               </Button>
             )}

@@ -23,10 +23,10 @@ export type TopupStatus = {
   amountMinor: number;
   /** Available balance the wallet holds right now, after this top-up landed. */
   walletAvailableMinor: number;
-  provider: string;
+  provider: "SSLCOMMERZ" | "BKASH" | string;
   /** The gateway's own label for the instrument used — "BKASH", "VISA", … */
   method: string | null;
-  /** SSLCommerz `bank_tran_id`: the reference their support desk asks for. */
+  /** SSLCommerz bank_tran_id or bKash trxID: the reference their support desk asks for. */
   gatewayRef: string | null;
   failureReason: string | null;
   completedAt: string | null;

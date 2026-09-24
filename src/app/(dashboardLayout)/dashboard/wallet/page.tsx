@@ -22,6 +22,7 @@ import {
 } from "@/services/wallet/getTransactions";
 import { formatBDT } from "@/lib/money";
 import TopUpModal from "@/components/Wallet/TopUpModal";
+import type { ProviderId } from "@/lib/payment-providers";
 import CopyButton from "@/components/Wallet/CopyButton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -145,6 +146,12 @@ export default function WalletPage() {
   const [topUpModalOpen, setTopUpModalOpen] = useState(
     () => searchParams.get("add") === "1"
   );
+  // "Try another method" adds ?method= so the dialog opens on the other gateway.
+  const methodParam = searchParams.get("method");
+  const initialTopupMethod: ProviderId | undefined =
+    methodParam === "BKASH" || methodParam === "SSLCOMMERZ"
+      ? methodParam
+      : undefined;
 
   const loadData = useCallback(async () => {
     const [walletRes, txRes] = await Promise.all([
@@ -308,7 +315,11 @@ export default function WalletPage() {
         </>
       )}
 
-      <TopUpModal open={topUpModalOpen} setOpen={setTopUpModalOpen} />
+      <TopUpModal
+        open={topUpModalOpen}
+        setOpen={setTopUpModalOpen}
+        initialMethod={initialTopupMethod}
+      />
     </div>
   );
 }
