@@ -3,9 +3,8 @@
 // server"` files call, which is why it lives in `lib/` rather than
 // `services/assistant/`.
 
-import { headers } from "next/headers";
-
 import type { AssistantTurn } from "./assistant-types";
+import { clientIpHeaders } from "./client-ip-headers";
 import { getCookie } from "@/services/auth/cookiesHandler";
 
 /** The guest key. httpOnly and server-side only: it is the whole of a guest's
@@ -49,20 +48,7 @@ export const assistantHeaders = async (): Promise<Record<string, string>> => {
   const key = await getCookie(CHAT_COOKIE);
   if (key) out["X-Assistant-Key"] = key;
 
-  const internalKey = process.env.INTERNAL_API_KEY;
-  if (!internalKey) return out;
-
-  const incoming = await headers();
-  const ip =
-    incoming.get("x-real-ip")?.trim() ||
-    incoming.get("x-forwarded-for")?.split(",")[0]?.trim();
-
-  if (ip) {
-    out["X-Client-IP"] = ip;
-    out["X-Internal-Key"] = internalKey;
-  }
-
-  return out;
+  return { ...out, ...(await clientIpHeaders()) };
 };
 
 /** The real error in development, one fixed sentence in production. */

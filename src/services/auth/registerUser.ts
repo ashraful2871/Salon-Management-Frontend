@@ -1,49 +1,53 @@
+"use server";
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { setCookie } from "./cookiesHandler";
 import { redirect } from "next/navigation";
-import {
-  ACCESS_TOKEN_COOKIE,
-  REFRESH_TOKEN_COOKIE,
-  accessCookieOptions,
-  refreshCookieOptions,
-} from "@/lib/auth-cookies";
+import type { AuthResult } from "@/lib/auth-types";
+import { applySession, extractTokens } from "@/lib/auth-session";
+import { clientIpHeaders } from "@/lib/client-ip-headers";
+import { setVerifyCookie } from "@/lib/verify-cookie";
 
 /**
- * Registers the user and signs them in in the same step — the backend returns
- * the same token pair as /auth/login, so there is no reason to bounce them to
- * the login screen and make them retype what they just typed.
+ * Registers the user, then one of two things. With the backend's email
+ * verification flag on, the API answers `VERIFICATION_REQUIRED`: the ticket
+ * goes into `sm_verify` and the code screen takes over. With it off, the API
+ * returns the same token pair as /auth/login, so they are signed in on the
+ * spot rather than bounced to the login screen to retype what they just typed.
  */
 export const registerUser = async (
   _currentState: unknown,
   formData: FormData,
 ): Promise<any> => {
-  let payload;
+  let inputs;
   try {
-    const role = formData.get("isSalonOwner") ? "SALON_OWNER" : "CUSTOMER";
-
-    payload = {
+    inputs = {
       name: formData.get("name"),
       email: formData.get("email"),
       password: formData.get("password"),
       confirmPassword: formData.get("confirmPassword"),
       phoneNumber: formData.get("phoneNumber"),
       gender: formData.get("gender"),
-      ...(role === "SALON_OWNER" && { role }),
     };
 
-    if (payload.password !== payload.confirmPassword) {
+    if (inputs.password !== inputs.confirmPassword) {
       return {
         success: false,
         message: "Passwords do not match.",
-        inputs: payload,
+        inputs,
       };
     }
+
+    // The form's field is `phoneNumber`; the API reads `phone`.
+    const { phoneNumber, ...rest } = inputs;
+    const payload = { ...rest, phone: phoneNumber };
 
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/auth/register`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(await clientIpHeaders()),
+        },
         body: JSON.stringify(payload),
       },
     );
@@ -51,40 +55,23 @@ export const registerUser = async (
     const result = await res.json();
 
     if (!result.success) {
-      return { ...result, inputs: payload };
+      return { ...result, inputs };
     }
 
-    // Same extraction as login: prefer the Set-Cookie headers, fall back to the
-    // response body for deployments where the cookie is dropped cross-origin.
-    let accessToken: string | undefined;
-    let refreshToken: string | undefined;
-
-    const setCookieHeaders = res.headers.getSetCookie();
-    if (setCookieHeaders && setCookieHeaders.length > 0) {
-      for (const cookie of setCookieHeaders) {
-        const parts = cookie.split(";")[0];
-        const [name, ...rest] = parts.split("=");
-        const value = rest.join("=");
-        if (name?.trim() === "accessToken") accessToken = value;
-        if (name?.trim() === "refreshToken") refreshToken = value;
-      }
-    }
-
-    if (!accessToken && result.data?.accessToken) {
-      accessToken = result.data.accessToken;
-    }
-    if (!refreshToken && result.data?.refreshToken) {
-      refreshToken = result.data.refreshToken;
+    const data = result.data as AuthResult | undefined;
+    if (data?.status === "VERIFICATION_REQUIRED") {
+      await setVerifyCookie(data, null, "register");
+      redirect("/verify-email");
     }
 
     // The account exists either way — send them to sign in rather than
     // reporting a failure for something that actually succeeded.
-    if (!accessToken || !refreshToken) {
+    const tokens = extractTokens(res, result);
+    if (!tokens) {
       redirect("/login?registered=true");
     }
 
-    await setCookie(ACCESS_TOKEN_COOKIE, accessToken, accessCookieOptions);
-    await setCookie(REFRESH_TOKEN_COOKIE, refreshToken, refreshCookieOptions);
+    await applySession(tokens);
 
     redirect("/?registered=true");
   } catch (error) {
@@ -95,7 +82,7 @@ export const registerUser = async (
     return {
       success: false,
       message: "Registration failed. Please try again.",
-      inputs: payload,
+      inputs,
     };
   }
 };

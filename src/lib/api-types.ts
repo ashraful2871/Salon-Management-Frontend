@@ -4,6 +4,10 @@ export type ApiResponse<T = unknown> = {
   data?: T;
   meta?: PaginationMeta;
   errorDetails?: Record<string, string[]>;
+  /** Machine-readable failure reason (`OTP_INVALID`, `TICKET_EXPIRED`, …). */
+  errorCode?: string;
+  /** Extra facts for that reason, e.g. `{ attemptsLeft }` or `{ retryAfter }`. */
+  details?: Record<string, unknown>;
 };
 
 export type PaginationMeta = {

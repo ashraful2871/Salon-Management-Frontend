@@ -10,39 +10,72 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import React, { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import React, { useActionState, useEffect, useRef, useState } from "react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
+import GoogleButton, { OrDivider } from "./GoogleButton";
 import { loginUser } from "@/services/auth/login";
 import { toast } from "sonner";
+
+/** What `/login?error=` says, keyed by the code the Google routes put there.
+ *  Anything not listed gets the generic line; a cancel says nothing. */
+const GOOGLE_ERRORS = new Map<string, string | null>([
+  ["google_cancelled", null],
+  [
+    "GOOGLE_EMAIL_UNVERIFIED",
+    "Your Google account's email isn't verified. Verify it with Google or sign up with email.",
+  ],
+  ["ACCOUNT_UNAVAILABLE", "This account is not active. Contact support."],
+  ["GOOGLE_STATE_MISMATCH", "Your Google sign-in expired. Please try again."],
+]);
+const GOOGLE_ERROR_FALLBACK = "Google sign-in didn't work. Please try again.";
+
+export type DemoLogin = { label: string; email: string; password: string };
 
 /**
  * `redirectTo` is where the customer was headed before the login wall — the
  * booking summary sends its own URL, so signing in drops them back on the
  * half-finished booking instead of the home page. `loginUser` reads it off the
- * form as `redirect`.
+ * form as `redirect`, and the Google button carries it through its own flow.
  */
-const LoginForm = ({ redirectTo }: { redirectTo?: string }) => {
+const LoginForm = ({
+  redirectTo,
+  googleEnabled = false,
+  error,
+  demoLogins = null,
+}: {
+  redirectTo?: string;
+  googleEnabled?: boolean;
+  /** `?error=` from a failed Google round trip. */
+  error?: string;
+  /** The Demo Access panel; null (the default) hides it. */
+  demoLogins?: DemoLogin[] | null;
+}) => {
+  const router = useRouter();
   const [state, formAction, isPending] = useActionState(loginUser, null);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const fillCredentials = (role: "admin" | "owner" | "user" | "staff") => {
-    if (role === "admin") {
-      setEmail("admin@salon.com");
-      setPassword("admin123456");
-    } else if (role === "owner") {
-      setEmail("ashrafulash2871@gmail.com");
-      setPassword("123456");
-    } else if (role === "user") {
-      setEmail("ashrafulislam7120@gmail.com");
-      setPassword("1234567");
-    } else if (role === "staff") {
-      setEmail("staff@gmail.com");
-      setPassword("staff123456");
-    }
-  };
+  // One toast per failed round trip, then drop `error` from the URL so a
+  // refresh doesn't repeat it. The ref covers Strict Mode's second effect run.
+  // The toast waits a tick: this effect runs before the root layout's
+  // <Toaster> subscribes, and sonner drops a toast nobody is listening for.
+  const shownError = useRef(false);
+  useEffect(() => {
+    if (!error || shownError.current) return;
+    shownError.current = true;
+
+    const message = GOOGLE_ERRORS.has(error)
+      ? GOOGLE_ERRORS.get(error)
+      : GOOGLE_ERROR_FALLBACK;
+    if (message) setTimeout(() => toast.error(message));
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("error");
+    router.replace(url.pathname + url.search, { scroll: false });
+  }, [error, router]);
 
   // Show error toast when login fails
   useEffect(() => {
@@ -74,49 +107,37 @@ const LoginForm = ({ redirectTo }: { redirectTo?: string }) => {
             </p>
           </div>
 
-          <div className="mb-8 p-5 bg-white border border-slate-200 rounded-2xl shadow-sm">
-            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
-              Demo Access
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => fillCredentials("admin")}
-                className="text-xs h-9 bg-slate-50 hover:bg-slate-100 hover:text-primary border-slate-200 cursor-pointer"
-              >
-                Admin
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => fillCredentials("owner")}
-                className="text-xs h-9 bg-slate-50 hover:bg-slate-100 hover:text-primary border-slate-200 cursor-pointer"
-              >
-                Owner
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => fillCredentials("user")}
-                className="text-xs h-9 bg-slate-50 hover:bg-slate-100 hover:text-primary border-slate-200 cursor-pointer"
-              >
-                User
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => fillCredentials("staff")}
-                className="text-xs h-9 bg-slate-50 hover:bg-slate-100 hover:text-primary border-slate-200 cursor-pointer"
-              >
-                Staff
-              </Button>
+          {demoLogins && (
+            <div className="mb-8 p-5 bg-white border border-slate-200 rounded-2xl shadow-sm">
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
+                Demo Access
+              </h3>
+              <div className="grid grid-cols-2 gap-2">
+                {demoLogins.map((demo) => (
+                  <Button
+                    key={demo.label}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setEmail(demo.email);
+                      setPassword(demo.password);
+                    }}
+                    className="text-xs h-9 bg-slate-50 hover:bg-slate-100 hover:text-primary border-slate-200 cursor-pointer"
+                  >
+                    {demo.label}
+                  </Button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {googleEnabled && (
+            <>
+              <GoogleButton redirect={redirectTo} />
+              <OrDivider />
+            </>
+          )}
 
           <form action={formAction} className="space-y-5">
             {redirectTo && (
