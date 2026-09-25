@@ -11,15 +11,31 @@ export const getAllSalon = async (
   if (query?.searchTerm) params.set("searchTerm", query.searchTerm);
   if (query?.city) params.set("city", query.city);
 
+  const nearby = query?.lat != null && query?.lng != null;
+  if (nearby) {
+    params.set("lat", String(query.lat));
+    params.set("lng", String(query.lng));
+    if (query.radiusKm != null) params.set("radiusKm", String(query.radiusKm));
+  }
+  if (query?.sort) params.set("sort", query.sort);
+  if (query?.page) params.set("page", String(query.page));
+  if (query?.limit) params.set("limit", String(query.limit));
+
   const url = `/salons${params.toString() ? `?${params.toString()}` : ""}`;
 
   try {
-    const response = await serverFetch.get(url, {
-      next: {
-        revalidate: 60,
-        tags: ["salons"],
-      },
-    });
+    // Coordinates in the URL would make one cache entry per point.
+    const response = await serverFetch.get(
+      url,
+      nearby
+        ? { cache: "no-store" }
+        : {
+            next: {
+              revalidate: 60,
+              tags: ["salons"],
+            },
+          },
+    );
 
     const result: ApiResponse<Salon[]> = await response.json();
     return result;

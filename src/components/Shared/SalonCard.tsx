@@ -21,12 +21,18 @@ interface SalonCardProps {
     location: string;
     image: string;
     services: string[];
-    openNow: boolean;
+    // null: the salon has not listed its hours, so say nothing rather than "Closed".
+    openNow: boolean | null;
   };
   index: number;
+  // Preformatted by formatDistance; a leading "~" marks an approximate pin.
+  distance?: string;
 }
 
-const SalonCard = ({ salon, index }: SalonCardProps) => {
+const SalonCard = ({ salon, index, distance }: SalonCardProps) => {
+  const approximate = distance?.startsWith("~") ?? false;
+
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -43,15 +49,36 @@ const SalonCard = ({ salon, index }: SalonCardProps) => {
             height={400}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
-          <div className="absolute top-3 right-3">
-            <Badge
-              variant={salon.openNow ? "default" : "destructive"}
-              className={salon.openNow ? "bg-primary" : "text-white"}
-            >
-              <Clock className="h-3 w-3 mr-1" />
-              {salon.openNow ? "Open Now" : "Closed"}
-            </Badge>
-          </div>
+          {distance && (
+            <div className="absolute top-3 left-3">
+              <Badge
+                variant="secondary"
+                title={
+                  approximate
+                    ? "Approximate location. The salon hasn't pinned its exact spot yet."
+                    : undefined
+                }
+                className="bg-white/90 text-charcoal shadow-sm backdrop-blur-sm"
+              >
+                <MapPin className="h-3 w-3 mr-1 text-gold" />
+                {distance}
+                {approximate && (
+                  <span className="sr-only"> (approximate location)</span>
+                )}
+              </Badge>
+            </div>
+          )}
+          {salon.openNow !== null && (
+            <div className="absolute top-3 right-3">
+              <Badge
+                variant={salon.openNow ? "default" : "destructive"}
+                className={salon.openNow ? "bg-primary" : "text-white"}
+              >
+                <Clock className="h-3 w-3 mr-1" />
+                {salon.openNow ? "Open Now" : "Closed"}
+              </Badge>
+            </div>
+          )}
         </div>
 
         <CardHeader className="pb-2">

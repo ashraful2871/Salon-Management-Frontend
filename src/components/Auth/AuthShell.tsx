@@ -4,7 +4,7 @@ import React from "react";
 
 type AuthShellProps = {
   title: string;
-  subtitle: string;
+  subtitle: React.ReactNode;
   /** Right-hand showcase panel copy — hidden below `lg`. */
   showcase: {
     image: string;

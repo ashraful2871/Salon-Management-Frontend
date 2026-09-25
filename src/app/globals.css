@@ -60,6 +60,21 @@
   --color-rose-light: var(--rose-light);
 
   --font-family-serif: "Playfair Display", serif;
+
+  /* The fake caret in the one-time-code boxes (components/ui/input-otp). */
+  --animate-caret-blink: caret-blink 1.25s ease-out infinite;
+
+  @keyframes caret-blink {
+    0%,
+    70%,
+    100% {
+      opacity: 1;
+    }
+    20%,
+    50% {
+      opacity: 0;
+    }
+  }
 }
 
 :root {
@@ -233,4 +248,13 @@
   .bg-sage {
     background-color: var(--sage);
   }
+}
+
+/* Bangla text. The chat marks a Bangla message (or the composer while Bangla
+   is being typed) lang="bn"; system Bangla faces come first, so nobody else
+   downloads a font for it. Conjuncts need a taller line than Latin. */
+:lang(bn) {
+  font-family: "Noto Sans Bengali", "Hind Siliguri", "Kohinoor Bangla",
+    "Nirmala UI", "Vrinda", var(--font-body), sans-serif;
+  line-height: 1.7;
 }

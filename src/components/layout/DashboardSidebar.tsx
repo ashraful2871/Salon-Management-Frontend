@@ -17,112 +17,60 @@ import {
   ShieldCheck,
   Wallet,
   DollarSign,
+  ReceiptText,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/services/auth/auth-utils";
+import { rolesForPath } from "@/lib/route-access";
 import LogoutButton from "./LogoutButton";
 
-// 2. Add an 'allowedRoles' array to each menu item
+/**
+ * The dashboard navigation. Labels and icons live here; who may see each link
+ * does not - `rolesForPath` reads it off the same table the route guards
+ * enforce, so a link is drawn exactly when its destination would open.
+ */
 const menuItems = [
+  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+  { icon: Calendar, label: "Appointments", path: "/dashboard/appointments" },
+  { icon: Calendar, label: "Slot Management", path: "/dashboard/slots" },
+  { icon: Users, label: "Customers", path: "/dashboard/customers" },
+  { icon: Package, label: "Services", path: "/dashboard/services" },
+  { icon: Store, label: "My Salon", path: "/dashboard/store" },
+  { icon: ShieldCheck, label: "Admin Panel", path: "/dashboard/admin" },
+  { icon: Users, label: "Agents", path: "/dashboard/admin/agents" },
   {
-    icon: LayoutDashboard,
-    label: "Dashboard",
-    path: "/dashboard",
-    allowedRoles: ["SALON_OWNER", "STAFF", "ADMIN", "CUSTOMER", "AGENT"],
+    icon: ReceiptText,
+    label: "Top-ups & Refunds",
+    path: "/dashboard/admin/topups",
   },
-  {
-    icon: Calendar,
-    label: "Appointments",
-    path: "/dashboard/appointments",
-    allowedRoles: ["SALON_OWNER", "STAFF", "CUSTOMER"],
-  },
-  {
-    icon: Calendar,
-    label: "Slot Management",
-    path: "/dashboard/slots",
-    allowedRoles: ["SALON_OWNER"],
-  },
-  {
-    icon: Users,
-    label: "Customers",
-    path: "/dashboard/customers",
-    allowedRoles: ["SALON_OWNER", "STAFF", "ADMIN", "AGENT"], // Customers shouldn't see this
-  },
-  {
-    icon: Package,
-    label: "Services",
-    path: "/dashboard/services",
-    allowedRoles: ["SALON_OWNER", "ADMIN"], // Only owners/admin manage services
-  },
-  {
-    icon: Store,
-    label: "My Salon",
-    path: "/dashboard/store",
-    allowedRoles: ["SALON_OWNER"], // Specific to owners
-  },
-  {
-    icon: ShieldCheck,
-    label: "Admin Panel",
-    path: "/dashboard/admin",
-    allowedRoles: ["ADMIN"], // Only for Super Admins
-  },
-  {
-    icon: Users,
-    label: "Agents",
-    path: "/dashboard/admin/agents",
-    allowedRoles: ["ADMIN"],
-  },
-  {
-    icon: Settings,
-    label: "Settings",
-    path: "/dashboard/settings",
-    allowedRoles: ["SALON_OWNER", "STAFF", "ADMIN", "CUSTOMER", "AGENT"],
-  },
-  {
-    icon: Wallet,
-    label: "Wallet",
-    path: "/dashboard/wallet",
-    allowedRoles: ["SALON_OWNER", "STAFF", "ADMIN", "CUSTOMER", "AGENT"],
-  },
-  {
-    icon: DollarSign,
-    label: "Earnings",
-    path: "/dashboard/earnings",
-    allowedRoles: ["SALON_OWNER"],
-  },
+  { icon: Settings, label: "Settings", path: "/dashboard/settings" },
+  { icon: Wallet, label: "Wallet", path: "/dashboard/wallet" },
+  { icon: DollarSign, label: "Earnings", path: "/dashboard/earnings" },
   {
     icon: Scissors,
     label: "Become a Salon Owner Request",
     path: "/dashboard/become-a-salon-owner-request",
-    allowedRoles: ["ADMIN"],
   },
-  {
-    icon: Store,
-    label: "Approval Salon",
-    path: "/dashboard/approval-salon",
-    allowedRoles: ["ADMIN", "AGENT"],
-  },
+  { icon: Store, label: "Approval Salon", path: "/dashboard/approval-salon" },
   {
     icon: Scissors,
     label: "Applications Status",
     path: "/dashboard/applications-status",
-    allowedRoles: ["SALON_OWNER", "CUSTOMER"],
   },
 ];
 
 interface DashboardSidebarProps {
-  userRole: UserRole; // Renamed to singular for clarity, though 'userRoles' works too
+  userRole: UserRole;
 }
 
 export const DashboardSidebar = ({ userRole }: DashboardSidebarProps) => {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
-  // 3. Filter the menu items based on the current userRole
   const filteredNav = menuItems.filter((item) =>
-    item.allowedRoles.includes(userRole)
+    rolesForPath(item.path)?.includes(userRole),
   );
 
   return (
@@ -139,17 +87,15 @@ export const DashboardSidebar = ({ userRole }: DashboardSidebarProps) => {
         <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
           {!collapsed && (
             <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-rose">
-                <Scissors className="h-5 w-5 text-primary-foreground" />
-              </div>
+              <img src="/salon-logo.png" alt="Logo" className="h-10 w-auto object-contain" />
               <span className="font-serif text-xl font-semibold text-sidebar-foreground">
                 Dashboard
               </span>
             </Link>
           )}
           {collapsed && (
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-rose">
-              <Scissors className="h-5 w-5 text-primary-foreground" />
+            <div className="mx-auto flex h-10 w-auto items-center justify-center">
+              <img src="/salon-logo.png" alt="Logo" className="h-10 w-auto object-contain" />
             </div>
           )}
         </div>

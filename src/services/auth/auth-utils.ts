@@ -1,17 +1,16 @@
-export type UserRole = "CUSTOMER" | "STAFF" | "SALON_OWNER" | "ADMIN" | "AGENT" | "GUEST";
+import { ROLE_HOME } from "@/lib/route-access";
 
-export const getDefaultDashboardRoute = (role: UserRole): string => {
-  if (role === "ADMIN" || role === "AGENT") {
-    return "/";
-  }
-  if (role === "SALON_OWNER") {
-    return "/";
-  }
-  if (role === "CUSTOMER") {
-    return "/";
-  }
-  if (role === "STAFF") {
-    return "/";
-  }
-  return "/";
-};
+export type UserRole =
+  | "CUSTOMER"
+  | "STAFF"
+  | "SALON_OWNER"
+  | "ADMIN"
+  | "AGENT"
+  | "GUEST";
+
+/**
+ * Where a role belongs after signing in, or after being turned away from a page
+ * that is not theirs. The table itself lives with the rest of the access rules.
+ */
+export const getDefaultDashboardRoute = (role: UserRole): string =>
+  ROLE_HOME[role];

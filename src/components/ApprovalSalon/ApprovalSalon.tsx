@@ -38,8 +38,27 @@ import {
   XCircle,
   Eye,
   Store,
+  ExternalLink,
 } from "lucide-react";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  InvalidateSize,
+  LeafletMap,
+  PinMarker,
+} from "@/components/Map/MapClient";
+import { LocationAccuracyBadge } from "@/components/Shared/LocationAccuracyBadge";
+import { directionsUrl } from "@/lib/geo";
+import type { LocationAccuracy } from "@/lib/api-types";
 import { updateSalonStatus } from "@/services/salon/updateSalonStatus";
 
 /* ---------------- Types ---------------- */
@@ -54,6 +73,9 @@ type Salon = {
   city: string;
   phone: string;
   email: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  locationAccuracy?: LocationAccuracy | null;
   status: SalonStatus;
   createdAt: string;
   owner?: {
@@ -138,6 +160,18 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
       showResultToast(res, "Salon status updated successfully!", "Failed to update salon status.");
       router.refresh();
     });
+  };
+
+  // A salon without a pin never shows up in "near me" and can't be given
+  // directions, so approving one takes an explicit confirmation.
+  const [confirmApprove, setConfirmApprove] = useState<Salon | null>(null);
+
+  const requestApprove = (salon: Salon) => {
+    if (salon.latitude == null || salon.longitude == null) {
+      setConfirmApprove(salon);
+      return;
+    }
+    handleStatusChange(salon.id, "ACTIVE");
   };
 
   return (
@@ -248,6 +282,7 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
                   <TableHead>Owner</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Location</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -256,7 +291,7 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
               <TableBody>
                 {filteredSalons.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-10">
+                    <TableCell colSpan={7} className="text-center py-10">
                       <p className="text-muted-foreground">
                         No salons found.
                       </p>
@@ -313,6 +348,28 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
                         {statusBadge(salon.status)}
                       </TableCell>
 
+                      {/* Location */}
+                      <TableCell>
+                        <div className="flex flex-col items-start gap-1">
+                          <LocationAccuracyBadge
+                            latitude={salon.latitude}
+                            locationAccuracy={salon.locationAccuracy}
+                          />
+                          {salon.latitude != null && salon.longitude != null && (
+                            <a
+                              href={directionsUrl(salon.latitude, salon.longitude)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                            >
+                              View on map
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )}
+                        </div>
+                      </TableCell>
+
                       {/* Created */}
                       <TableCell className="text-sm text-muted-foreground">
                         {new Date(salon.createdAt).toLocaleDateString()}
@@ -339,7 +396,7 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
                               size="sm"
                               className="bg-sage text-white hover:opacity-90 font-semibold"
                               disabled={isPending}
-                              onClick={() => handleStatusChange(salon.id, "ACTIVE")}
+                              onClick={() => requestApprove(salon)}
                             >
                               Approve
                             </Button>
@@ -389,6 +446,10 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <MapPin className="h-4 w-4 text-primary" />
                       Location
+                      <LocationAccuracyBadge
+                        latitude={selected.latitude}
+                        locationAccuracy={selected.locationAccuracy}
+                      />
                     </div>
                     <p className="text-sm text-muted-foreground">
                       {selected.address}
@@ -396,6 +457,35 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
                     <p className="text-sm text-muted-foreground font-semibold">
                       {selected.city}
                     </p>
+                    {selected.latitude != null && selected.longitude != null && (
+                      <>
+                        <div className="h-[160px]">
+                          <LeafletMap
+                            key={selected.id}
+                            center={[selected.latitude, selected.longitude]}
+                            zoom={selected.locationAccuracy === "EXACT" ? 16 : 14}
+                            interactive={false}
+                            className="h-full"
+                          >
+                            <InvalidateSize />
+                            <PinMarker
+                              position={[selected.latitude, selected.longitude]}
+                              approximate={selected.locationAccuracy !== "EXACT"}
+                              title={selected.name}
+                            />
+                          </LeafletMap>
+                        </div>
+                        <a
+                          href={directionsUrl(selected.latitude, selected.longitude)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        >
+                          View on map
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -446,7 +536,7 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
                     <Button
                       className="bg-sage text-white hover:opacity-90 font-semibold"
                       disabled={isPending}
-                      onClick={() => handleStatusChange(selected.id, "ACTIVE")}
+                      onClick={() => requestApprove(selected)}
                     >
                       Set Active
                     </Button>
@@ -477,6 +567,39 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Approving without a map location */}
+      <AlertDialog
+        open={confirmApprove !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmApprove(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Approve without a map location?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <b>{confirmApprove?.name}</b> has no location on the map. It
+              won&apos;t appear in nearby searches and customers can&apos;t get
+              directions to it. You can ask the owner to set the pin first.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-sage text-white hover:opacity-90"
+              onClick={() => {
+                if (confirmApprove) {
+                  handleStatusChange(confirmApprove.id, "ACTIVE");
+                }
+                setConfirmApprove(null);
+              }}
+            >
+              Approve anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

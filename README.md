@@ -77,6 +77,7 @@ If you prefer, you can also use `npm`, `yarn`, or `pnpm`.
    | `JWT_SECRET` | Secret key for JWT signing | `your-jwt-secret` |
    | `ACCESS_TOKEN_SECRET` | Secret key for Access Token | `your-access-token-secret` |
    | `REFRESH_TOKEN_SECRET`| Secret key for Refresh Token | `your-refresh-token-secret` |
+   | `INTERNAL_API_KEY` | Optional. Same value as the backend's; lets its rate limits count visitors instead of this server | `openssl rand -hex 32` |
 
 4. **Run the development server:**
    ```bash

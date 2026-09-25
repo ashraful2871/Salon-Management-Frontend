@@ -1,8 +1,19 @@
-import { setCookie } from "./cookiesHandler";
-import type { UserRole } from "./auth-utils";
+"use server";
+
 import { redirect } from "next/navigation";
 import type { ApiResponse } from "@/lib/api-types";
+import type { AuthResult } from "@/lib/auth-types";
+import { applySession, extractTokens } from "@/lib/auth-session";
+import { clientIpHeaders } from "@/lib/client-ip-headers";
+import { setVerifyCookie } from "@/lib/verify-cookie";
 
+/**
+ * A server action: the verification ticket and the visitor's IP must never
+ * pass through the browser. `SIGNED_IN` sets the session here;
+ * `VERIFICATION_REQUIRED` (an unverified account while the backend's flag is
+ * on) parks the ticket in `sm_verify` and goes to the code screen, carrying
+ * `redirect` along so the code lands them where they were headed.
+ */
 export const loginUser = async (
   _currentState: ApiResponse<{ message: string }> | null,
   formData: FormData,
@@ -17,63 +28,34 @@ export const loginUser = async (
 
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(await clientIpHeaders()),
+      },
       body: JSON.stringify(payload),
     });
 
-    const result = await res.json();
+    const result: ApiResponse<AuthResult> = await res.json();
 
     if (!result.success) {
       throw new Error(result.message || "Login failed");
     }
 
-    let accessToken: string | undefined;
-    let refreshToken: string | undefined;
-
-    const setCookieHeaders = res.headers.getSetCookie();
-    if (setCookieHeaders && setCookieHeaders.length > 0) {
-      for (const cookie of setCookieHeaders) {
-        const parts = cookie.split(";")[0];
-        const [name, ...rest] = parts.split("=");
-        const value = rest.join("=");
-        if (name?.trim() === "accessToken") accessToken = value;
-        if (name?.trim() === "refreshToken") refreshToken = value;
-      }
+    if (result.data?.status === "VERIFICATION_REQUIRED") {
+      await setVerifyCookie(result.data, redirectTo, "login");
+      redirect("/verify-email");
     }
 
-    if (!accessToken && result.data?.accessToken) {
-      accessToken = result.data.accessToken;
-    }
-    if (!refreshToken && result.data?.refreshToken) {
-      refreshToken = result.data.refreshToken;
-    }
+    const tokens = extractTokens(res, result);
+    if (!tokens) throw new Error("Tokens not found in response");
 
-    if (!accessToken) throw new Error("Access token not found in response");
-    if (!refreshToken) throw new Error("Refresh token not found in response");
-
-    await setCookie("accessToken", accessToken, {
-      secure: true,
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60,
-      path: "/",
-      sameSite: "lax",
-    });
-
-    await setCookie("refreshToken", refreshToken, {
-      secure: true,
-      httpOnly: true,
-      maxAge: 90 * 24 * 60 * 60,
-      path: "/",
-      sameSite: "lax",
-    });
+    await applySession(tokens);
 
     if (redirectTo) {
       redirect(redirectTo as string);
     } else {
       redirect("/?loggedIn=true");
     }
-
-    return result;
   } catch (error) {
     if ((error as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) {
       throw error;

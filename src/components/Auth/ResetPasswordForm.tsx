@@ -104,7 +104,7 @@ const ResetPasswordForm = ({ token }: { token: string }) => {
               name="newPassword"
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
-              minLength={6}
+              minLength={8}
               className="pl-11 pr-11 h-12 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl focus-visible:ring-primary focus-visible:border-primary shadow-sm"
               required
               disabled={isPending}
@@ -125,7 +125,7 @@ const ResetPasswordForm = ({ token }: { token: string }) => {
             </button>
           </div>
           <p className="text-xs text-slate-400 mt-1.5 font-medium">
-            At least 6 characters.
+            At least 8 characters.
           </p>
         </div>
 
@@ -143,7 +143,7 @@ const ResetPasswordForm = ({ token }: { token: string }) => {
               name="confirmPassword"
               type={showConfirm ? "text" : "password"}
               placeholder="••••••••"
-              minLength={6}
+              minLength={8}
               className="pl-11 pr-11 h-12 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl focus-visible:ring-primary focus-visible:border-primary shadow-sm"
               required
               disabled={isPending}

@@ -10,6 +10,7 @@ import {
   Globe,
   Mail,
   MapPin,
+  MessageSquare,
   Phone,
   Star,
   User2,
@@ -21,8 +22,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Separator } from "../ui/separator";
 import BookAppointmentModal from "./BookAppointmentModal";
 import ReviewModal from "./ReviewModal";
+import SalonLocationCard from "./SalonLocationCard";
 import { getMyAppointments } from "@/services/appoinments/getMyAppointments";
 import { formatBDT } from "@/lib/money";
+import { useAssistantLauncher } from "@/components/Assistant/AssistantContext";
 
 type OperatingHour = { open: string; close: string };
 type OperatingHours = Partial<
@@ -124,6 +127,7 @@ const SalonDetails = ({ salon }: { salon: any }) => {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [unreviewedAppointmentId, setUnreviewedAppointmentId] = useState<string | null>(null);
+  const { openWith, enabled: chatEnabled } = useAssistantLauncher();
 
   useEffect(() => {
     const checkReviews = async () => {
@@ -511,6 +515,9 @@ const SalonDetails = ({ salon }: { salon: any }) => {
 
             {/* RIGHT COLUMN: Sticky Sidebar */}
             <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-6">
+              {/* LOCATION */}
+              {salon && <SalonLocationCard salon={salon} />}
+
               {/* QUICK INFO */}
               <Card className="shadow-sm border-primary/20">
                 <CardHeader>
@@ -548,6 +555,22 @@ const SalonDetails = ({ salon }: { salon: any }) => {
                     >
                       Book Appointment
                     </Button>
+                    {chatEnabled && (
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2"
+                        size="lg"
+                        onClick={() =>
+                          openWith(
+                            { type: "choose_salon", salonId: salon.id },
+                            salon?.name,
+                          )
+                        }
+                      >
+                        <MessageSquare className="h-4 w-4" aria-hidden />
+                        Ask about this salon
+                      </Button>
+                    )}
                     <Button variant="outline" className="w-full" size="lg">
                       Contact Salon
                     </Button>

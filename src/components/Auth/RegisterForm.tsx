@@ -14,10 +14,11 @@ import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
+import GoogleButton, { OrDivider } from "./GoogleButton";
 import { registerUser } from "@/services/auth/registerUser";
 import { toast } from "sonner";
 
-const RegisterForm = () => {
+const RegisterForm = ({ googleEnabled = false }: { googleEnabled?: boolean }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [state, formAction, isPending] = useActionState(registerUser, null);
   const [showPassword, setShowPassword] = useState(false);
@@ -81,6 +82,13 @@ const RegisterForm = () => {
               Join us and start managing your salon today
             </p>
           </div>
+
+          {googleEnabled && (
+            <>
+              <GoogleButton />
+              <OrDivider />
+            </>
+          )}
 
           <form action={formAction} className="grid grid-cols-1 md:grid-cols-2 gap-5">
             
@@ -203,6 +211,8 @@ const RegisterForm = () => {
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   required
+                  minLength={8}
+                  autoComplete="new-password"
                   defaultValue={state?.inputs?.password as string}
                   className="pl-11 pr-11 h-12 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl focus-visible:ring-primary focus-visible:border-primary shadow-sm"
                 />
@@ -219,6 +229,9 @@ const RegisterForm = () => {
                   )}
                 </button>
               </div>
+              <p className="text-xs text-slate-400 mt-1.5 font-medium">
+                At least 8 characters.
+              </p>
             </div>
 
             {/* Confirm Password */}
@@ -234,6 +247,8 @@ const RegisterForm = () => {
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="••••••••"
                   required
+                  minLength={8}
+                  autoComplete="new-password"
                   defaultValue={state?.inputs?.confirmPassword as string}
                   className="pl-11 pr-11 h-12 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl focus-visible:ring-primary focus-visible:border-primary shadow-sm"
                 />

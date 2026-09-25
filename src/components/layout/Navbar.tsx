@@ -1,40 +1,50 @@
-import jwt, { JwtPayload } from "jsonwebtoken";
-
-import { UserRole } from "@/services/auth/auth-utils";
-import { getCookie } from "@/services/auth/cookiesHandler";
+import { getMyWallet, type Wallet } from "@/services/wallet/getMyWallet";
+import { getSessionUser } from "@/services/auth/session";
 import NavbarClient from "./NavbarClient";
-
-interface DecodedToken extends JwtPayload {
-  role: UserRole;
-  email: string;
-  name?: string;
-}
+import { getMyEarnings } from "@/services/settlement/getMyEarnings";
+import { getPlatformEarnings } from "@/services/settlement/getPlatformEarnings";
 
 const Navbar = async () => {
-  const accessToken = await getCookie("accessToken");
+  // Reading the token directly is what used to make the header flip to
+  // "Sign in" an hour after sign-in while the session itself was still good.
+  // `getSessionUser` renews an expired token before deciding.
+  const user = await getSessionUser();
 
-  let user = null;
+  // The header balance is a signed-in-only affordance, so the wallet read only
+  // happens once the token has verified. A failed read degrades to `null` — the
+  // header still renders, it just shows no figure.
+  let wallet: Wallet | null = null;
+  let ownerRevenueMinor: number | null = null;
+  let adminRevenueMinor: number | null = null;
 
-  if (accessToken) {
-    try {
-      const decoded = jwt.verify(
-        accessToken,
-        process.env.JWT_SECRET as string,
-      ) as DecodedToken;
-
-      user = {
-        role: decoded.role,
-        email: decoded.email,
-        name: decoded.name || decoded.email.split("@")[0],
-      };
-    } catch (error) {
-      console.error("Token verification failed:", error);
-      // If token is invalid, user remains null (logged out)
+  if (user) {
+    if (user.role === "CUSTOMER") {
+      const walletResult = await getMyWallet();
+      if (walletResult.success && walletResult.data) {
+        wallet = walletResult.data;
+      }
+    } else if (user.role === "SALON_OWNER") {
+      const earningsResult = await getMyEarnings(1);
+      if (earningsResult.success && earningsResult.data) {
+        ownerRevenueMinor = earningsResult.data.summary.netEarningsMinor;
+      }
+    } else if (user.role === "ADMIN") {
+      const earningsResult = await getPlatformEarnings();
+      if (earningsResult.success && earningsResult.data) {
+        adminRevenueMinor = earningsResult.data.platformRevenueMinor;
+      }
     }
   }
 
   // Pass the user data (or null) to the client component
-  return <NavbarClient user={user} />;
+  return (
+    <NavbarClient 
+      user={user} 
+      wallet={wallet} 
+      ownerRevenueMinor={ownerRevenueMinor}
+      adminRevenueMinor={adminRevenueMinor}
+    />
+  );
 };
 
 export default Navbar;

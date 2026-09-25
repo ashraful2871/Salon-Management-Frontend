@@ -1,9 +1,13 @@
 import RegisterForm from "@/components/Auth/RegisterForm";
+import { getAuthProviders } from "@/services/auth/getAuthProviders";
 
-const RegisterPage = () => {
+/** Signed-in visitors are turned away by the proxy; see the note in the login page. */
+const RegisterPage = async () => {
+  const providers = await getAuthProviders();
+
   return (
     <>
-      <RegisterForm />
+      <RegisterForm googleEnabled={providers.google} />
     </>
   );
 };

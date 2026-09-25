@@ -1,7 +1,5 @@
 import { SlotManagement } from "@/components/Dashboard/SlotManagement";
 import { getMySalon } from "@/services/salon/getMySalon";
-import { getUserRoles } from "@/services/get-roles/getUserRoles";
-import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "Slot Management - Dashboard",
@@ -9,12 +7,6 @@ export const metadata = {
 };
 
 export default async function SlotsPage() {
-  const userRole = await getUserRoles();
-
-  if (userRole !== "SALON_OWNER") {
-    redirect("/");
-  }
-
   const mySalonRes = await getMySalon();
   const mySalons = mySalonRes?.data ?? [];
 

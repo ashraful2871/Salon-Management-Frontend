@@ -24,6 +24,9 @@ export const metadata: Metadata = {
   title: "SalonKhuji - Beauty Services Management",
   description:
     "Find and book the best salons in your area. Manage your salon appointments, customers, and services with ease.",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
