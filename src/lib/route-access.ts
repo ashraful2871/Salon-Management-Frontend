@@ -70,6 +70,7 @@ export const ROUTE_ROLES = {
   "/dashboard/earnings": ["SALON_OWNER"],
   "/dashboard/admin": ["ADMIN"],
   "/dashboard/admin/agents": ["ADMIN"],
+  "/dashboard/admin/topups": ["ADMIN"],
   "/dashboard/become-a-salon-owner-request": ["ADMIN"],
   "/dashboard/approval-salon": ["ADMIN", "AGENT"],
   "/dashboard/applications-status": ["SALON_OWNER", "CUSTOMER"],

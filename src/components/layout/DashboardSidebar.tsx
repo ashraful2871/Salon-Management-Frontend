@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Wallet,
   DollarSign,
+  ReceiptText,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,11 @@ const menuItems = [
   { icon: Store, label: "My Salon", path: "/dashboard/store" },
   { icon: ShieldCheck, label: "Admin Panel", path: "/dashboard/admin" },
   { icon: Users, label: "Agents", path: "/dashboard/admin/agents" },
+  {
+    icon: ReceiptText,
+    label: "Top-ups & Refunds",
+    path: "/dashboard/admin/topups",
+  },
   { icon: Settings, label: "Settings", path: "/dashboard/settings" },
   { icon: Wallet, label: "Wallet", path: "/dashboard/wallet" },
   { icon: DollarSign, label: "Earnings", path: "/dashboard/earnings" },
