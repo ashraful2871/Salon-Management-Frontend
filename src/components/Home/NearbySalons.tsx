@@ -2,23 +2,17 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import {
-  ArrowRight,
-  Loader2,
-  LocateFixed,
-  Map as MapIcon,
-  MapPin,
-  Navigation,
-  Search,
-} from "lucide-react";
+import { ArrowRight, Map as MapIcon, MapPin, Navigation, Search } from "lucide-react";
 
 import { Button } from "../ui/button";
 import SalonCard from "../Shared/SalonCard";
 import { SalonCardSkeleton } from "../Shared/SkeletonCard";
 import LocationDialog from "../Location/LocationDialog";
+import NearbyLocationPrompt from "./NearbyLocationPrompt";
 import { useSavedLocation } from "@/hooks/useSavedLocation";
 import { useLocateAndSave } from "@/hooks/useLocateAndSave";
 import { NEARBY_RADIUS_KM } from "@/lib/geo";
+import { saveLocation } from "@/lib/location-cookie";
 import { toSalonCardData, type SalonCardData } from "@/lib/salon-card";
 import { getNearbySalons } from "@/services/salon/getNearbySalons";
 
@@ -98,69 +92,23 @@ export default function NearbySalons() {
 
   if (mounted && !saved) {
     return (
-      <section className="py-14 md:py-20" aria-labelledby="nearby-cta-heading">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative isolate overflow-hidden rounded-3xl bg-charcoal px-6 py-10 text-white shadow-card sm:px-10 md:px-14 md:py-14">
-            {/* A faint street grid with a few pins: says "map" without a map. */}
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 -z-10 opacity-[0.14] [background-image:linear-gradient(to_right,white_1px,transparent_1px),linear-gradient(to_bottom,white_1px,transparent_1px)] [background-size:44px_44px] [mask-image:radial-gradient(ellipse_at_right,black_10%,transparent_70%)]"
-            />
-            <div
-              aria-hidden="true"
-              className="absolute -right-16 -top-24 -z-10 h-80 w-80 rounded-full bg-gold/30 blur-3xl"
-            />
-            <div aria-hidden="true" className="absolute inset-y-0 right-0 -z-10 hidden w-1/2 md:block">
-              <MapPin className="absolute left-[22%] top-[26%] h-9 w-9 fill-gold/80 text-gold-light drop-shadow-lg" />
-              <MapPin className="absolute left-[58%] top-[18%] h-7 w-7 fill-gold/60 text-gold-light/80" />
-              <MapPin className="absolute left-[44%] top-[58%] h-11 w-11 fill-gold text-white drop-shadow-xl" />
-              <MapPin className="absolute left-[76%] top-[52%] h-6 w-6 fill-gold/50 text-gold-light/70" />
-              <span className="absolute left-[46%] top-[72%] h-16 w-16 -translate-x-1/4 rounded-full border border-gold/50" />
-            </div>
-
-            <div className="max-w-xl">
-              <p className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-gold-light">
-                <Navigation className="h-3.5 w-3.5" aria-hidden="true" />
-                Near you
-              </p>
-              <h2
-                id="nearby-cta-heading"
-                className="mt-4 font-display text-3xl font-bold leading-tight sm:text-4xl"
-              >
-                Find salons around the corner
-              </h2>
-              <p className="mt-3 text-sm text-white/75 sm:text-base">
-                Share your location or drop a pin, and we&apos;ll show the
-                closest salons with ratings, prices and how far each one is.
-              </p>
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <Button
-                  variant="gold"
-                  size="lg"
-                  onClick={locateMe}
-                  disabled={busy}
-                  aria-busy={busy}
-                  className="rounded-full"
-                >
-                  {busy ? <Loader2 className="animate-spin" /> : <LocateFixed />}
-                  Use my location
-                </Button>
-                <Button
-                  size="lg"
-                  variant="ghost"
-                  onClick={() => setDialog("map")}
-                  aria-haspopup="dialog"
-                  className="rounded-full border border-white/25 text-white hover:bg-white/10 hover:text-white"
-                >
-                  <MapIcon />
-                  Pick on map
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+      <>
+        <NearbyLocationPrompt
+          onLocate={locateMe}
+          locating={busy}
+          onPickOnMap={() => setDialog("map")}
+          // Saving fires the cookie event, which swaps this for the list.
+          onPickArea={(area) =>
+            saveLocation({
+              lat: area.lat,
+              lng: area.lng,
+              label: `${area.name}, Dhaka`,
+              source: "area",
+            })
+          }
+        />
         {locationDialog}
-      </section>
+      </>
     );
   }
 

@@ -50,18 +50,11 @@ import {
   type SavedLocation,
 } from "@/lib/location-cookie";
 import type { GeoPlace } from "@/lib/api-types";
+// Also the fallback when the geocoder can't be reached, so areas keep working.
+import { POPULAR_AREAS, type PopularArea } from "@/constants/popular-areas";
 import { reversePlace } from "@/services/geo/reversePlace";
 import { searchPlaces } from "@/services/geo/searchPlaces";
 
-// Used when the geocoder can't be reached, so popular areas keep working.
-const POPULAR_AREAS: { name: string; lat: number; lng: number }[] = [
-  { name: "Dhanmondi", lat: 23.746, lng: 90.374 },
-  { name: "Gulshan", lat: 23.793, lng: 90.414 },
-  { name: "Uttara", lat: 23.874, lng: 90.39 },
-  { name: "Mirpur", lat: 23.807, lng: 90.368 },
-  { name: "Banani", lat: 23.794, lng: 90.404 },
-  { name: "Mohammadpur", lat: 23.766, lng: 90.359 },
-];
 
 const OUTSIDE_BD_MESSAGE =
   "Looks like you're outside Bangladesh. Pick an area to browse salons.";
@@ -275,7 +268,7 @@ const LocationPicker = ({
     });
   };
 
-  const pickArea = async (area: (typeof POPULAR_AREAS)[number]) => {
+  const pickArea = async (area: PopularArea) => {
     setOutsideBd(false);
     setPickingArea(area.name);
     const res = await searchPlaces(`${area.name}, Dhaka`, undefined, 1);

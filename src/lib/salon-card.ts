@@ -3,7 +3,8 @@
 import type { OperatingHours, Salon } from "./api-types";
 import { formatDistance } from "./geo";
 
-const FALLBACK_IMAGE =
+// Also the stand-in photo wherever a salon picture is only illustrative.
+export const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&fit=crop";
 
 // JS: 0=Sun ... 6=Sat
