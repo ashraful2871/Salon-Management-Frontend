@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Clock, MapPin, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { formatRating } from "@/lib/rating";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import {
@@ -82,15 +83,26 @@ const SalonCard = ({ salon, index, distance }: SalonCardProps) => {
         </div>
 
         <CardHeader className="pb-2">
-          <div className="flex items-start justify-between">
-            <CardTitle className="text-xl">{salon.name}</CardTitle>
-            <div className="flex items-center gap-1 text-sm shrink-0">
-              <Star className="h-4 w-4 fill-gold text-gold" />
-              <span className="font-semibold">{salon.rating}</span>
-              <span className="text-muted-foreground">
-                ({salon.reviews})
+          <div className="flex items-start justify-between gap-3">
+            <CardTitle className="text-xl min-w-0">{salon.name}</CardTitle>
+            {salon.reviews > 0 ? (
+              <div
+                className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-sm"
+                aria-label={`Rated ${formatRating(salon.rating)} out of 5 from ${salon.reviews} review${salon.reviews === 1 ? "" : "s"}`}
+              >
+                <Star className="h-3.5 w-3.5 fill-gold text-gold" aria-hidden="true" />
+                <span className="font-semibold text-foreground">
+                  {formatRating(salon.rating)}
+                </span>
+                <span className="text-xs text-muted-foreground" aria-hidden="true">
+                  ({salon.reviews})
+                </span>
+              </div>
+            ) : (
+              <span className="mt-0.5 shrink-0 rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                New
               </span>
-            </div>
+            )}
           </div>
           <CardDescription className="flex items-center gap-1 line-clamp-1">
             <MapPin className="h-4 w-4 shrink-0" />

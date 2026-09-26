@@ -41,6 +41,7 @@ import { ScrollArea } from "../ui/scroll-area";
 import AddSalonModal, { AddSalonPayload } from "./AddSalonModal";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { formatRating } from "@/lib/rating";
 
 /* ---------------- Types ---------------- */
 
@@ -407,7 +408,7 @@ export default function Store({
                               <div className="flex items-center gap-1 text-sm">
                                 <Star className="h-4 w-4 text-gold" />
                                 <span className="font-medium">
-                                  {salon.rating || 0}
+                                  {formatRating(salon.rating)}
                                 </span>
                                 <span className="text-muted-foreground text-xs">
                                   ({salon.totalReviews || 0})
@@ -489,7 +490,7 @@ export default function Store({
                               {getSalonStatusBadge(selectedSalon.status)}
 
                               <Badge variant="secondary" className="text-xs">
-                                ⭐ {selectedSalon.rating || 0} (
+                                ⭐ {formatRating(selectedSalon.rating)} (
                                 {selectedSalon.totalReviews || 0} reviews)
                               </Badge>
 

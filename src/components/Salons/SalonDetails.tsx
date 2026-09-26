@@ -25,6 +25,7 @@ import ReviewModal from "./ReviewModal";
 import SalonLocationCard from "./SalonLocationCard";
 import { getMyAppointments } from "@/services/appoinments/getMyAppointments";
 import { formatBDT } from "@/lib/money";
+import { formatRating } from "@/lib/rating";
 import { useAssistantLauncher } from "@/components/Assistant/AssistantContext";
 
 type OperatingHour = { open: string; close: string };
@@ -249,7 +250,7 @@ const SalonDetails = ({ salon }: { salon: any }) => {
                       <div className="mt-2 flex items-center gap-2 text-sm">
                         <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                         <span className="font-semibold text-foreground">
-                          {rating}
+                          {formatRating(rating)}
                         </span>
                         <span className="text-muted-foreground">
                           ({totalReviews} reviews)
