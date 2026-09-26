@@ -16,7 +16,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import L from "leaflet";
-import { Popup, useMap } from "react-leaflet";
+import { Circle, Popup, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { RotateCw, Star } from "lucide-react";
 
@@ -40,6 +40,14 @@ const FETCH_PAD = 0.25;
 const MOVED_PX = 80;
 const MAX_FIT_ZOOM = 16;
 const FIT_PADDING = L.point(32, 32);
+// Same blue as the "you are here" dot (map.css), so the ring reads as yours.
+const REACH_STYLE: L.PathOptions = {
+  color: "#2563eb",
+  weight: 1.5,
+  dashArray: "6 6",
+  fillColor: "#2563eb",
+  fillOpacity: 0.05,
+};
 
 export type SearchArea = { lat: number; lng: number; halfWidthKm: number };
 
@@ -149,6 +157,11 @@ function MapController({
 
   useEffect(() => {
     const f = fetches.current;
+    // Pins are limited to the reach around the origin, so a new origin makes
+    // every cached box stale.
+    f.key = "";
+    f.box = null;
+    const near = { lat, lng, radiusKm };
 
     const load = async () => {
       const view = toBox(map.getBounds());
@@ -162,7 +175,7 @@ function MapController({
       if (key === f.key) return;
 
       const id = ++f.id;
-      const res = await getSalonMarkers(box);
+      const res = await getSalonMarkers(box, near);
       if (id !== f.id) return;
       if (!res.success || !res.data) {
         // Keep the pins we have; the next move retries.
@@ -203,7 +216,7 @@ function MapController({
       clearTimeout(f.timer);
       f.id++; // drop a response still in flight
     };
-  }, [map, setMoved, setLayer]);
+  }, [map, setMoved, setLayer, lat, lng, radiusKm]);
 
   return null;
 }
@@ -303,6 +316,12 @@ export default function SalonsMap({
           mapRef={mapRef}
           setMoved={setMoved}
           setLayer={setLayer}
+        />
+        <Circle
+          center={origin}
+          radius={radiusKm * 1000}
+          pathOptions={REACH_STYLE}
+          interactive={false}
         />
         <PinMarker position={origin} kind="user" title={originLabel} />
         <MarkerClusterGroup

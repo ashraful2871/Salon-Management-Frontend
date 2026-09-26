@@ -9,7 +9,7 @@ import {
   MapPin,
   Search,
 } from "lucide-react";
-import React, { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -40,10 +40,6 @@ export type NearbyContext = {
   label: string;
 };
 
-const RADII_KM = [1, 3, 5, 10, 25];
-// The backend accepts up to 50 km, so the empty state can widen past 25.
-const WIDER_RADII_KM = [...RADII_KM, 50];
-
 const SORT_LABELS: Record<SalonSort, string> = {
   distance: "Nearest",
   rating: "Top rated",
@@ -52,11 +48,6 @@ const SORT_LABELS: Record<SalonSort, string> = {
 
 const plural = (n: number, word: string) =>
   `${n} ${word}${n === 1 ? "" : "s"}`;
-
-const nearestRadius = (km: number) =>
-  RADII_KM.reduce((best, r) =>
-    Math.abs(r - km) < Math.abs(best - km) ? r : best,
-  );
 
 const cardId = (salonId: string) => `salon-card-${salonId}`;
 
@@ -150,7 +141,6 @@ const Salons = ({ allSalons, meta, nearby, sort, error }: SalonsProps) => {
     ? { lat: String(nearby.lat), lng: String(nearby.lng) }
     : {};
 
-  const setRadius = (km: number) => navigate({ ...pin, r: String(km) });
   const setSort = (value: SalonSort) => navigate({ ...pin, sort: value });
   const showAllSalons = () =>
     navigate({
@@ -163,7 +153,9 @@ const Salons = ({ allSalons, meta, nearby, sort, error }: SalonsProps) => {
   const goToPage = (p: number) =>
     navigate({ page: p > 1 ? String(p) : null }, { keepPage: true });
 
-  const searchArea = ({ lat, lng, halfWidthKm }: SearchArea) => {
+  // The reach stays NEARBY_RADIUS_KM however far the map is zoomed out; only
+  // the point it is measured from moves.
+  const searchArea = ({ lat, lng }: SearchArea) => {
     if (!isInBangladesh(lat, lng)) {
       toast.error("Move the map back over Bangladesh to search there.");
       return;
@@ -171,7 +163,7 @@ const Salons = ({ allSalons, meta, nearby, sort, error }: SalonsProps) => {
     navigate({
       lat: String(roundCoord(lat)),
       lng: String(roundCoord(lng)),
-      r: String(nearestRadius(halfWidthKm)),
+      r: null,
       near: null,
     });
   };
@@ -198,21 +190,6 @@ const Salons = ({ allSalons, meta, nearby, sort, error }: SalonsProps) => {
     );
   };
 
-  const onRadiusKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
-    const step =
-      e.key === "ArrowRight" || e.key === "ArrowDown"
-        ? 1
-        : e.key === "ArrowLeft" || e.key === "ArrowUp"
-          ? -1
-          : 0;
-    if (!step) return;
-    e.preventDefault();
-    const next = (index + step + RADII_KM.length) % RADII_KM.length;
-    const group = e.currentTarget.parentElement;
-    group?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[next]?.focus();
-    setRadius(RADII_KM[next]);
-  };
-
   /** ✅ Normalize your API data into the same fields your UI already expects */
   const normalizedSalons = useMemo(
     () => (allSalons || []).map(toSalonCardData),
@@ -234,10 +211,6 @@ const Salons = ({ allSalons, meta, nearby, sort, error }: SalonsProps) => {
   const total = meta?.total ?? normalizedSalons.length;
   const page = meta?.page ?? 1;
   const totalPage = meta?.limit ? Math.max(1, Math.ceil(total / meta.limit)) : 1;
-  const widerRadius = nearby
-    ? WIDER_RADII_KM.find((km) => km > nearby.radiusKm)
-    : undefined;
-  const radiusIsPreset = nearby ? RADII_KM.includes(nearby.radiusKm) : false;
 
   const countText = nearby
     ? `${plural(total, "salon")} within ${nearby.radiusKm} km`
@@ -433,44 +406,8 @@ const Salons = ({ allSalons, meta, nearby, sort, error }: SalonsProps) => {
               )}
             </div>
 
-            {/* Sort + radius: one scrollable row on phones */}
+            {/* Sort. The reach is fixed at NEARBY_RADIUS_KM, so there is no radius to pick. */}
             <div className="-mx-4 flex items-center gap-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:justify-between sm:overflow-visible sm:px-0">
-              {nearby && (
-                <div className="flex shrink-0 items-center gap-2 sm:order-first">
-                  <span aria-hidden="true" className="hidden text-sm text-muted-foreground sm:inline">
-                    Within:
-                  </span>
-                  <div
-                    role="radiogroup"
-                    aria-label="Search radius"
-                    className="flex items-center gap-2"
-                  >
-                    {RADII_KM.map((km, index) => {
-                      const checked = km === nearby.radiusKm;
-                      return (
-                        <button
-                          key={km}
-                          type="button"
-                          role="radio"
-                          aria-checked={checked}
-                          tabIndex={checked || (!radiusIsPreset && index === 0) ? 0 : -1}
-                          onClick={() => !checked && setRadius(km)}
-                          onKeyDown={(e) => onRadiusKeyDown(e, index)}
-                          className={cn(
-                            "shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                            checked
-                              ? "border-primary bg-primary text-primary-foreground shadow-gold"
-                              : "bg-background text-muted-foreground hover:border-gold hover:text-foreground",
-                          )}
-                        >
-                          {km} km
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
               <div className="order-first flex shrink-0 items-center gap-2 sm:order-last">
                 <span className="hidden text-sm text-muted-foreground sm:inline">
                   Sort:
@@ -544,11 +481,13 @@ const Salons = ({ allSalons, meta, nearby, sort, error }: SalonsProps) => {
                     No salons within {nearby.radiusKm} km of {nearby.label}.
                   </p>
                   <div className="mt-5 flex flex-wrap justify-center gap-2">
-                    {widerRadius && (
-                      <Button variant="gold" onClick={() => setRadius(widerRadius)}>
-                        Search within {widerRadius} km
-                      </Button>
-                    )}
+                    <Button
+                      variant="gold"
+                      onClick={() => setLocationOpen(true)}
+                      aria-haspopup="dialog"
+                    >
+                      Change location
+                    </Button>
                     <Button variant="outline" onClick={showAllSalons}>
                       Show all salons
                     </Button>

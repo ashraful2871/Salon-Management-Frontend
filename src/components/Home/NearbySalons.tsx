@@ -10,10 +10,10 @@ import { SalonCardSkeleton } from "../Shared/SkeletonCard";
 import LocationDialog from "../Location/LocationDialog";
 import { useSavedLocation } from "@/hooks/useSavedLocation";
 import { useLocateAndSave } from "@/hooks/useLocateAndSave";
+import { NEARBY_RADIUS_KM } from "@/lib/geo";
 import { toSalonCardData, type SalonCardData } from "@/lib/salon-card";
 import { getNearbySalons } from "@/services/salon/getNearbySalons";
 
-const RADIUS_KM = 10;
 const LIMIT = 6;
 
 const noopSubscribe = () => () => {};
@@ -45,7 +45,7 @@ export default function NearbySalons() {
   useEffect(() => {
     if (lat == null || lng == null) return;
     let active = true;
-    getNearbySalons({ lat, lng, limit: LIMIT, radiusKm: RADIUS_KM }).then(
+    getNearbySalons({ lat, lng, limit: LIMIT, radiusKm: NEARBY_RADIUS_KM }).then(
       (res) => {
         if (!active) return;
         setResult({
@@ -120,7 +120,7 @@ export default function NearbySalons() {
   const loading = !mounted || result?.key !== key;
   const salons = loading ? [] : (result?.salons ?? []);
   const seeAllHref = saved
-    ? `/salons?lat=${saved.lat}&lng=${saved.lng}&r=${RADIUS_KM}&sort=distance`
+    ? `/salons?lat=${saved.lat}&lng=${saved.lng}&r=${NEARBY_RADIUS_KM}&sort=distance`
     : "/salons";
 
   return (
@@ -135,7 +135,7 @@ export default function NearbySalons() {
               {place ? `Salons near ${place}` : "Salons near you"}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Within {RADIUS_KM} km, closest first
+              Within {NEARBY_RADIUS_KM} km, closest first
               {saved && (
                 <>
                   {" · "}
@@ -182,7 +182,7 @@ export default function NearbySalons() {
         ) : salons.length === 0 ? (
           <div className="rounded-2xl border bg-muted/40 px-6 py-8 text-center">
             <p className="font-semibold text-foreground">
-              No salons within {RADIUS_KM} km
+              No salons within {NEARBY_RADIUS_KM} km
               {place ? ` of ${place}` : ""} yet.
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">

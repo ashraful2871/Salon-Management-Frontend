@@ -5,11 +5,15 @@ import Salons, { type SalonSort } from "@/components/Salons/Salons";
 import { SalonListSkeleton } from "@/components/Shared/SkeletonCard";
 import { getAllSalon } from "@/services/salon/getAllSalon";
 import { reversePlace } from "@/services/geo/reversePlace";
-import { isInBangladesh, roundCoord, shortPlaceLabel } from "@/lib/geo";
+import {
+  NEARBY_RADIUS_KM,
+  isInBangladesh,
+  roundCoord,
+  shortPlaceLabel,
+} from "@/lib/geo";
 import { LOCATION_COOKIE, parseSavedLocation } from "@/lib/location-cookie";
 
 const PAGE_SIZE = 12;
-const DEFAULT_RADIUS_KM = 5;
 const SORTS: SalonSort[] = ["distance", "rating", "newest"];
 
 const toNumber = (value?: string) =>
@@ -39,10 +43,11 @@ export default async function SalonsStorePage({
     point = saved;
   }
 
+  // Never past NEARBY_RADIUS_KM, even for an older shared link with ?r=5.
   const r = toNumber(resolvedSearchParams.r);
   const radiusKm = Number.isFinite(r)
-    ? Math.min(50, Math.max(0.5, r))
-    : DEFAULT_RADIUS_KM;
+    ? Math.min(NEARBY_RADIUS_KM, Math.max(0.5, r))
+    : NEARBY_RADIUS_KM;
 
   const requestedSort = SORTS.find((s) => s === resolvedSearchParams.sort);
   // "distance" needs a point; let the backend pick its default otherwise.

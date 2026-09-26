@@ -4,9 +4,11 @@ import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse, Bbox, SalonMarkersResult } from "@/lib/api-types";
 
 // Server action for the /salons map. Every box is different, so caching the
-// fetch would only fill the data cache.
+// fetch would only fill the data cache. `near` limits the pins to the same
+// reach as the list beside the map.
 export const getSalonMarkers = async (
   bbox: Bbox,
+  near?: { lat: number; lng: number; radiusKm: number },
 ): Promise<ApiResponse<SalonMarkersResult>> => {
   try {
     const coords = bbox.map(Number);
@@ -16,6 +18,11 @@ export const getSalonMarkers = async (
     const params = new URLSearchParams({
       bbox: coords.map((n) => n.toFixed(5)).join(","),
     });
+    if (near && Number.isFinite(near.lat) && Number.isFinite(near.lng)) {
+      params.set("lat", String(near.lat));
+      params.set("lng", String(near.lng));
+      params.set("radiusKm", String(near.radiusKm));
+    }
 
     const response = await serverFetch.get(`/salons/map?${params}`, {
       cache: "no-store",
