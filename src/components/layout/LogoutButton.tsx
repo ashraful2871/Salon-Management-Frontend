@@ -2,8 +2,16 @@
 import { logOutUser } from "@/services/auth/logoutUser";
 import { Button } from "../ui/button";
 import { LogOut } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const LogoutButton = () => {
+const LogoutButton = ({
+  iconOnly = false,
+  className,
+}: {
+  /** The collapsed dashboard sidebar: just the icon, the label for screen readers. */
+  iconOnly?: boolean;
+  className?: string;
+}) => {
   const handleLogout = async () => {
     await logOutUser();
   };
@@ -11,10 +19,16 @@ const LogoutButton = () => {
     <Button
       variant="ghost"
       size="sm"
-      className="w-full justify-start text-red-500 hover:text-red-600"
+      title={iconOnly ? "Log out" : undefined}
+      className={cn(
+        "w-full cursor-pointer text-red-500 hover:bg-red-50 hover:text-red-600",
+        iconOnly ? "justify-center px-0" : "justify-start",
+        className,
+      )}
       onClick={handleLogout}
     >
-      <LogOut className="mr-2 h-4 w-4" /> Log out
+      <LogOut className={cn("h-4 w-4", !iconOnly && "mr-2")} />
+      {iconOnly ? <span className="sr-only">Log out</span> : "Log out"}
     </Button>
   );
 };

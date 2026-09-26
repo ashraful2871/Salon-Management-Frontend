@@ -68,10 +68,26 @@ export const toSalonCardData = (salon: Salon) => {
     salon.services?.find((s) => s.category)?.category ?? "Salon"
   ).replaceAll("_", " ");
 
-  const locationParts = [salon.city, salon.state].filter(Boolean);
+  // "Mohammadpur, Dhaka": the neighbourhood is what tells two salons apart,
+  // so it leads; the city alone ("Dhaka") says nothing on a Dhaka list.
+  const locationParts: string[] = [];
+  for (const raw of [salon.area, salon.district || salon.city, salon.state]) {
+    const part = raw?.trim();
+    if (
+      part &&
+      locationParts.length < 2 &&
+      !locationParts.some((p) => p.toLowerCase() === part.toLowerCase())
+    ) {
+      locationParts.push(part);
+    }
+  }
   const location = locationParts.length
     ? locationParts.join(", ")
     : salon.address || "Unknown";
+
+  const prices = (salon.services || [])
+    .filter((s) => s?.isActive !== false && (s.priceMinor ?? 0) > 0)
+    .map((s) => s.priceMinor as number);
 
   return {
     id: salon.id,
@@ -81,8 +97,9 @@ export const toSalonCardData = (salon: Salon) => {
     specialty, // used for filter categories
     location,
     image: usableImage(salon.images?.[0]),
-    services: services.length ? services : ["Service"], // keep badges visible
-    openNow: isOpenNow(salon.operatingHours),
+    services,
+    minPriceMinor: prices.length ? Math.min(...prices) : null,
+    openNow: salon.operatingHours ? isOpenNow(salon.operatingHours) : null,
     distance:
       salon.distanceMeters != null
         ? formatDistance(

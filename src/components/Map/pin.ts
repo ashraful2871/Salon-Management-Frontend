@@ -58,6 +58,20 @@ export function userDot(): L.DivIcon {
   return userIcon;
 }
 
+let centerIcon: L.DivIcon | null = null;
+
+// The point a nearby search is measured from: a dark dot in a gold ring, so it
+// never reads as the live blue "you are here" dot. Styles live in ./map.css.
+export function searchCenter(): L.DivIcon {
+  centerIcon ??= L.divIcon({
+    className: "sm-map-pin",
+    html: '<span class="sm-search-center" aria-hidden="true"></span>',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  });
+  return centerIcon;
+}
+
 // Gold count bubble for a marker cluster. Sized by magnitude so a cluster of
 // 120 reads bigger than one of 3. Styles live in ./map.css.
 export function clusterIcon(count: number): L.DivIcon {

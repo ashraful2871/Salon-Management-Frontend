@@ -15,6 +15,7 @@ import { sendAssistantAction } from "@/services/assistant/sendAssistantAction";
 import { sendAssistantMessage } from "@/services/assistant/sendAssistantMessage";
 import { confirmAssistantBooking } from "@/services/assistant/confirmAssistantBooking";
 import { startAssistantTopup } from "@/services/assistant/startAssistantTopup";
+import type { ProviderId } from "@/lib/payment-providers";
 import { startConversation } from "@/services/assistant/startConversation";
 
 /** Survives a navigation inside the site, not a new tab: one chat per tab is
@@ -105,7 +106,12 @@ const openPaymentTab = (): Window | null => {
 
 export type AssistantError = { message: string; retry: () => void };
 
-type TopupRequest = { amountMinor: number; autoConfirm: boolean; label: string };
+type TopupRequest = {
+  amountMinor: number;
+  autoConfirm: boolean;
+  label: string;
+  provider?: ProviderId;
+};
 
 export type AssistantController = {
   conversationId: string | null;
@@ -135,7 +141,12 @@ export type AssistantController = {
   confirmedToken: string | null;
   /** Open the gateway for a wallet top-up. Must be called from the tap
    *  itself: it opens the payment tab before its first await. */
-  topup: (amountMinor: number, autoConfirm: boolean, label: string) => void;
+  topup: (
+    amountMinor: number,
+    autoConfirm: boolean,
+    label: string,
+    provider?: ProviderId,
+  ) => void;
   toppingUp: boolean;
   /** A background `check_payment`: draws only what the server wrote. */
   checkPayment: () => void;
@@ -518,11 +529,16 @@ export function useAssistant(): AssistantController {
    * Out to the gateway. Desktop keeps the chat in this tab and pays in a new
    * one; a phone leaves for the gateway and comes back through the wallet
    * result page's "Back to your booking" (the `sm_chat_resume` cookie set by
-   * the server action). The API answers a double tap on the same amount with
-   * the payment it already opened, so one tap is one intent.
+   * the server action). The API answers a double tap on the same amount and
+   * gateway with the payment it already opened, so one tap is one intent.
    */
   const topup = useCallback(
-    (amountMinor: number, autoConfirm: boolean, label: string) => {
+    (
+      amountMinor: number,
+      autoConfirm: boolean,
+      label: string,
+      provider?: ProviderId,
+    ) => {
       const id = idRef.current;
       if (!id || busy.current) return;
       busy.current = true;
@@ -541,7 +557,7 @@ export function useAssistant(): AssistantController {
           setFailed({
             message,
             action: null,
-            topup: { amountMinor, autoConfirm, label },
+            topup: { amountMinor, autoConfirm, label, provider },
           });
         };
 
@@ -553,6 +569,7 @@ export function useAssistant(): AssistantController {
             amountMinor,
             autoConfirm,
             label,
+            provider,
           );
           const data = result.data;
 
@@ -618,7 +635,12 @@ export function useAssistant(): AssistantController {
     }
     // "Try again" is itself a tap, so the payment tab can open inside it.
     if (failed.topup) {
-      topup(failed.topup.amountMinor, failed.topup.autoConfirm, failed.topup.label);
+      topup(
+        failed.topup.amountMinor,
+        failed.topup.autoConfirm,
+        failed.topup.label,
+        failed.topup.provider,
+      );
       return;
     }
     if (failed.text) {

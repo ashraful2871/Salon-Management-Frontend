@@ -29,6 +29,9 @@ export type SessionUser = {
   role: UserRole;
   email: string;
   name: string;
+  /** False when the token predates the `name` claim and `name` is only the
+   *  email prefix standing in for it. */
+  hasName: boolean;
 };
 
 type DecodedToken = JwtPayload & {
@@ -137,6 +140,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
       role: decoded.role,
       email: decoded.email,
       name: decoded.name || decoded.email.split("@")[0],
+      hasName: Boolean(decoded.name),
     };
   } catch (error) {
     console.error("Token verification failed:", error);

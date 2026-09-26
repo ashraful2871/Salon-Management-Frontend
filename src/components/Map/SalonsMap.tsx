@@ -27,7 +27,7 @@ import { formatDistance, haversineMeters, type LatLng } from "@/lib/geo";
 import { usableImage } from "@/lib/salon-card";
 import type { Bbox, SalonMarker } from "@/lib/api-types";
 import { getSalonMarkers } from "@/services/salon/getSalonMarkers";
-import LeafletMap, { PinMarker } from "./LeafletMap";
+import LeafletMap, { LocateControl, PinMarker } from "./LeafletMap";
 import { clusterIcon } from "./pin";
 
 const FETCH_DEBOUNCE_MS = 500;
@@ -40,13 +40,14 @@ const FETCH_PAD = 0.25;
 const MOVED_PX = 80;
 const MAX_FIT_ZOOM = 16;
 const FIT_PADDING = L.point(32, 32);
-// Same blue as the "you are here" dot (map.css), so the ring reads as yours.
+// Gold like the search-centre marker: this is the area searched, which is not
+// necessarily where the customer is standing (that is the blue live dot).
 const REACH_STYLE: L.PathOptions = {
-  color: "#2563eb",
+  color: "#b8860b",
   weight: 1.5,
   dashArray: "6 6",
-  fillColor: "#2563eb",
-  fillOpacity: 0.05,
+  fillColor: "#d4a017",
+  fillOpacity: 0.06,
 };
 
 export type SearchArea = { lat: number; lng: number; halfWidthKm: number };
@@ -323,7 +324,12 @@ export default function SalonsMap({
           pathOptions={REACH_STYLE}
           interactive={false}
         />
-        <PinMarker position={origin} kind="user" title={originLabel} />
+        <PinMarker
+          position={origin}
+          kind="center"
+          title={originLabel ? `Searching near ${originLabel}` : "Search centre"}
+        />
+        <LocateControl zoom={15} />
         <MarkerClusterGroup
           chunkedLoading
           showCoverageOnHover={false}

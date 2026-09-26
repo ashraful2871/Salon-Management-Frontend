@@ -12,9 +12,12 @@ import type { PaymentMethodOption } from "@/services/payments/getPaymentMethods"
  * Stand-in for the bKash logo. The official artwork, once we have it, goes at
  * `public/payments/bkash.svg` and replaces this tile.
  */
-const BkashMark = () => (
+const BkashMark = ({ compact }: { compact?: boolean }) => (
   <span
-    className="flex h-10 w-14 shrink-0 items-center justify-center rounded-md text-sm font-bold tracking-tight text-white"
+    className={cn(
+      "flex shrink-0 items-center justify-center rounded-md font-bold tracking-tight text-white",
+      compact ? "h-8 w-11 text-[11px]" : "h-10 w-14 text-sm",
+    )}
     style={{ backgroundColor: BKASH_PINK }}
     aria-hidden
   >
@@ -22,29 +25,37 @@ const BkashMark = () => (
   </span>
 );
 
-const CardMark = () => (
+const CardMark = ({ compact }: { compact?: boolean }) => (
   <span
-    className="flex h-10 w-14 shrink-0 items-center justify-center rounded-md bg-muted text-charcoal"
+    className={cn(
+      "flex shrink-0 items-center justify-center rounded-md bg-muted text-charcoal",
+      compact ? "h-8 w-11" : "h-10 w-14",
+    )}
     aria-hidden
   >
-    <CreditCard className="h-5 w-5" />
+    <CreditCard className={compact ? "h-4 w-4" : "h-5 w-5"} />
   </span>
 );
 
 /**
  * A radio group of the gateways that are switched on. Arrow keys move the
  * selection like native radios do; only the selected card is a tab stop.
+ *
+ * `compact` is the chat's version: tighter cards, no description line, so two
+ * methods fit the narrow panel without pushing the pay button off screen.
  */
 export default function PaymentMethodPicker({
   methods,
   value,
   onChange,
   disabled = false,
+  compact = false,
 }: {
   methods: PaymentMethodOption[];
   value: ProviderId | null;
   onChange: (id: ProviderId) => void;
   disabled?: boolean;
+  compact?: boolean;
 }) {
   const enabled = methods.filter((m) => m.enabled);
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -91,7 +102,8 @@ export default function PaymentMethodPicker({
             disabled={disabled}
             onClick={() => onChange(m.id)}
             className={cn(
-              "flex w-full min-w-0 items-center gap-3 rounded-lg border bg-background p-3 text-left transition-colors",
+              "flex w-full min-w-0 cursor-pointer items-center rounded-lg border bg-background text-left transition-colors",
+              compact ? "gap-2.5 p-2" : "gap-3 p-3",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
               "disabled:cursor-not-allowed disabled:opacity-60",
               selected
@@ -99,11 +111,19 @@ export default function PaymentMethodPicker({
                 : "hover:border-sage/50 hover:bg-muted/40"
             )}
           >
-            {m.id === "BKASH" ? <BkashMark /> : <CardMark />}
+            {m.id === "BKASH" ? (
+              <BkashMark compact={compact} />
+            ) : (
+              <CardMark compact={compact} />
+            )}
 
             <span className="min-w-0 flex-1">
-              <span className="flex flex-wrap items-center gap-2">
-                <span className="font-medium">{m.name}</span>
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <span
+                  className={cn("font-medium", compact && "text-sm leading-tight")}
+                >
+                  {m.name}
+                </span>
                 {m.testMode && (
                   <Badge
                     variant="secondary"
@@ -113,9 +133,11 @@ export default function PaymentMethodPicker({
                   </Badge>
                 )}
               </span>
-              <span className="mt-0.5 block text-xs text-muted-foreground">
-                {m.description}
-              </span>
+              {!compact && (
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  {m.description}
+                </span>
+              )}
             </span>
 
             <span

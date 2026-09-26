@@ -140,32 +140,38 @@ export function ServicesSkeleton() {
   );
 }
 
+// Mirrors the /salons layout (Salons.tsx) so the page does not jump when the
+// list arrives.
 export function SalonListSkeleton() {
   return (
     <div>
-      <section className="py-16 bg-muted/50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-8 space-y-4">
-            <Skeleton className="h-10 w-64 mx-auto" />
-            <Skeleton className="h-5 w-96 mx-auto" />
+      <section className="border-b border-border/60 bg-gradient-to-b from-cream/70 to-background">
+        <div className="container mx-auto px-4 py-8 sm:px-6 md:py-12">
+          <div className="max-w-3xl space-y-3">
+            <Skeleton className="h-6 w-28 rounded-full" />
+            <Skeleton className="h-10 w-72 max-w-full" />
+            <Skeleton className="h-5 w-96 max-w-full" />
           </div>
-          <div className="max-w-4xl mx-auto space-y-3">
-            <div className="flex gap-3">
-              <Skeleton className="h-12 flex-1 rounded-lg" />
-              <Skeleton className="h-12 w-24 rounded-lg" />
-            </div>
-            <div className="flex gap-3">
-              <Skeleton className="h-12 flex-1 rounded-lg" />
-              <Skeleton className="h-12 flex-1 rounded-lg" />
-              <Skeleton className="h-12 flex-1 rounded-lg" />
-            </div>
+          <Skeleton className="mt-6 h-[4.25rem] w-full rounded-2xl" />
+          <div className="mt-3 hidden gap-3 md:grid md:grid-cols-3">
+            <Skeleton className="h-11 rounded-xl" />
+            <Skeleton className="h-11 rounded-xl" />
+            <Skeleton className="h-11 rounded-xl" />
+          </div>
+          <div className="mt-4 flex gap-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-9 w-24 shrink-0 rounded-full" />
+            ))}
           </div>
         </div>
       </section>
-      <section className="py-12">
-        <div className="container mx-auto px-4">
-          <Skeleton className="h-5 w-32 mb-8" />
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <section className="py-6 md:py-10">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <Skeleton className="h-7 w-44" />
+            <Skeleton className="h-10 w-40 rounded-xl" />
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
             {Array.from({ length: 6 }).map((_, i) => (
               <SalonCardSkeleton key={i} />
             ))}
@@ -176,23 +182,27 @@ export function SalonListSkeleton() {
   );
 }
 
+// Same shape as SalonCard: 4:3 photo, name + rating, place, chips, footer.
 export function SalonCardSkeleton() {
   return (
-    <Card className="overflow-hidden">
-      <Skeleton className="h-48 w-full rounded-none" />
-      <CardContent className="p-5 space-y-3">
-        <Skeleton className="h-5 w-3/4" />
-        <Skeleton className="h-4 w-1/2" />
-        <div className="flex gap-2">
-          <Skeleton className="h-5 w-16 rounded-full" />
-          <Skeleton className="h-5 w-20 rounded-full" />
+    <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+      <Skeleton className="aspect-[4/3] w-full rounded-none" />
+      <div className="space-y-3 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <Skeleton className="h-5 w-3/5" />
+          <Skeleton className="h-4 w-12" />
         </div>
+        <Skeleton className="h-4 w-2/5" />
         <div className="flex gap-2">
-          <Skeleton className="h-5 w-24 rounded-full" />
-          <Skeleton className="h-5 w-16 rounded-full" />
+          <Skeleton className="h-6 w-20 rounded-full" />
+          <Skeleton className="h-6 w-24 rounded-full" />
         </div>
-      </CardContent>
-    </Card>
+        <div className="flex items-center justify-between border-t border-border/70 pt-3">
+          <Skeleton className="h-5 w-20" />
+          <Skeleton className="h-9 w-28 rounded-full" />
+        </div>
+      </div>
+    </div>
   );
 }
 

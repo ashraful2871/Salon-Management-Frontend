@@ -10,7 +10,8 @@ export const LOCATION_CHANGE_EVENT = "sm_loc:change";
 
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 const MAX_LABEL_LENGTH = 80;
-const SOURCES = ["gps", "search", "area"] as const;
+// "map": the customer placed the pin themselves in the location dialog.
+const SOURCES = ["gps", "search", "area", "map"] as const;
 
 export type LocationSource = (typeof SOURCES)[number];
 

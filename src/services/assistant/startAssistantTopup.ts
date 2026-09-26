@@ -3,6 +3,7 @@
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse } from "@/lib/api-types";
 import type { AssistantTopupResult } from "@/lib/assistant-types";
+import type { ProviderId } from "@/lib/payment-providers";
 import {
   CHAT_RESUME_COOKIE,
   CHAT_RESUME_COOKIE_OPTIONS,
@@ -27,6 +28,8 @@ export const startAssistantTopup = async (
   amountMinor: number,
   autoConfirm: boolean,
   label?: string,
+  /** Absent: the API's default gateway (SSLCommerz). */
+  provider?: ProviderId,
 ): Promise<ApiResponse<AssistantTopupResult>> => {
   try {
     const response = await serverFetch.post("/assistant/payments/topup", {
@@ -36,6 +39,7 @@ export const startAssistantTopup = async (
         amountMinor,
         autoConfirm,
         ...(label ? { label } : {}),
+        ...(provider ? { provider } : {}),
       }),
       cache: "no-store",
     });

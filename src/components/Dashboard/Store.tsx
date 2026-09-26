@@ -450,7 +450,7 @@ export default function Store({
             className="lg:col-span-2"
           >
             {/* ✅ Sticky + Fixed Height Container */}
-            <div className="lg:sticky lg:top-6 h-auto lg:h-[calc(100vh-120px)]">
+            <div className="lg:sticky lg:top-24 h-auto lg:h-[calc(100vh-8rem)]">
               <Card className="shadow-card h-full flex flex-col">
                 {/* Fixed Header */}
                 <CardHeader className="shrink-0 border-b">

@@ -1,6 +1,7 @@
-import { DashboardSidebar } from "@/components/layout/DashboardSidebar";
+import { DashboardShell } from "@/components/layout/DashboardSidebar";
 import SessionKeeper from "@/components/Shared/SessionKeeper";
 import { requireUser } from "@/lib/auth-guard";
+import { getDisplayUser } from "@/services/auth/displayUser";
 import React from "react";
 
 export const dynamic = "force-dynamic";
@@ -25,18 +26,16 @@ const CommonDashboardLayout = async ({
   children: React.ReactNode;
 }) => {
   const user = await requireUser();
+  // Same session, with the real name filled in for the top bar.
+  const display = (await getDisplayUser()) ?? user;
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <DashboardShell
+      user={{ role: user.role, name: display.name, email: user.email }}
+    >
       <SessionKeeper />
-      <DashboardSidebar userRole={user.role} />
-
-      <main className="flex-1 overflow-y-auto bg-gray-50">
-        <div className="ml-64 min-h-screen p-6 transition-all duration-300">
-          {children}
-        </div>
-      </main>
-    </div>
+      {children}
+    </DashboardShell>
   );
 };
 

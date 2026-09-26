@@ -12,7 +12,9 @@ import type { SalonsMapProps } from "./SalonsMap";
 
 export type {
   DraggablePinProps,
+  GeoFix,
   LeafletMapProps,
+  LocateControlProps,
   PinMarkerProps,
 } from "./LeafletMap";
 export type { SalonsMapProps, SearchArea } from "./SalonsMap";
@@ -51,6 +53,18 @@ export const DraggablePin = dynamic(
 
 export const InvalidateSize = dynamic(
   () => import("./LeafletMap").then((m) => m.InvalidateSize),
+  { ssr: false },
+);
+
+// Live "where am I" button + blue dot. A child of <LeafletMap>.
+export const LocateControl = dynamic(
+  () => import("./LeafletMap").then((m) => m.LocateControl),
+  { ssr: false },
+);
+
+// Reports the map centre as the customer pans. A child of <LeafletMap>.
+export const CenterTracker = dynamic(
+  () => import("./LeafletMap").then((m) => m.CenterTracker),
   { ssr: false },
 );
 
