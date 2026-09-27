@@ -4,6 +4,7 @@ import { useState, useEffect, useTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -88,6 +89,11 @@ export const SlotManagement = ({ salons }: { salons: any[] }) => {
     return Math.round((end - start) / 86_400_000) + 1;
   })();
 
+  // Which salon and date the list on screen belongs to. Until it matches the
+  // selection, the list shows a skeleton rather than "No slots on this date".
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const slotsLoading = !!salonId && loadedKey !== `${salonId}|${selectedDate}`;
+
   const fetchSlots = async (sId: string, date: string) => {
     const res = await getSlots({ salonId: sId, date });
     if (res?.success && res.data) {
@@ -95,6 +101,7 @@ export const SlotManagement = ({ salons }: { salons: any[] }) => {
     } else {
       setSlots([]);
     }
+    setLoadedKey(`${sId}|${date}`);
   };
 
   useEffect(() => {
@@ -405,7 +412,9 @@ export const SlotManagement = ({ salons }: { salons: any[] }) => {
           <div className="space-y-1">
             <CardTitle>Existing slots</CardTitle>
             <p className="text-sm text-muted-foreground">
-              {filteredSlots.length} slot{filteredSlots.length === 1 ? "" : "s"} on{" "}
+              {slotsLoading
+                ? "Slots for"
+                : `${filteredSlots.length} slot${filteredSlots.length === 1 ? "" : "s"} on`}{" "}
               {new Date(`${selectedDate}T00:00:00`).toLocaleDateString("en-GB", {
                 weekday: "short",
                 day: "numeric",
@@ -468,7 +477,17 @@ export const SlotManagement = ({ salons }: { salons: any[] }) => {
             </div>
           )}
 
-          {slots.length === 0 ? (
+          {slotsLoading ? (
+            <div
+              aria-busy="true"
+              aria-label="Loading slots"
+              className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8"
+            >
+              {Array.from({ length: 12 }, (_, i) => (
+                <Skeleton key={i} className="h-32 rounded-xl" />
+              ))}
+            </div>
+          ) : slots.length === 0 ? (
             <EmptyState
               icon={Calendar}
               title="No slots on this date"
