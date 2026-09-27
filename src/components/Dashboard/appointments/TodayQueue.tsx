@@ -1,16 +1,22 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ListOrdered } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { Appointment } from "@/lib/api-types";
 import { useLiveQueue } from "@/hooks/useLiveQueue";
-import { StatusBadge } from "./StatusBadge";
-import { PaymentBadge } from "./PaymentBadge";
-import { NextAction } from "./NextAction";
-import { formatTime12 } from "./format";
+import { DataList } from "@/components/Shared/DataList";
+import { EmptyState } from "@/components/Shared/EmptyState";
+import {
+  SalonRowActions,
+  queueColumns,
+  toAppointmentRow,
+  type AppointmentRow,
+} from "./AppointmentRow";
+import { dhakaToday } from "./format";
 import { useAppointmentActions } from "./useAppointmentActions";
+import { useBookingDialogs } from "./useBookingDialogs";
 
 // "2:30 PM" in Dhaka, so the server's render and the browser's agree.
 const clock = new Intl.DateTimeFormat("en-US", {
@@ -23,11 +29,21 @@ const DONE = new Set(["COMPLETED", "CANCELLED", "NO_SHOW"]);
 
 // Serial is the slot's position in the day, so it is the calling order. Rows
 // without one (older bookings) fall back to their start time.
-const bySerial = (a: Appointment, b: Appointment) =>
-  (a.serialNumber ?? Infinity) - (b.serialNumber ?? Infinity) ||
-  a.startTime.localeCompare(b.startTime);
+const bySerial = (a: AppointmentRow, b: AppointmentRow) =>
+  (a.serial ?? Infinity) - (b.serial ?? Infinity) ||
+  a.raw.startTime.localeCompare(b.raw.startTime);
 
-export const TodayQueue = ({ appointments }: { appointments: Appointment[] }) => {
+/**
+ * Today's whole book, one section per service line in calling order. It uses
+ * the list's table and row actions, so both tabs read and work the same.
+ */
+export const TodayQueue = ({
+  appointments,
+  role,
+}: {
+  appointments: Appointment[];
+  role: string;
+}) => {
   const [showCancelled, setShowCancelled] = useState(false);
   const actions = useAppointmentActions();
   // Only the queue is polled, and never over a change still in flight.
@@ -37,35 +53,45 @@ export const TodayQueue = ({ appointments }: { appointments: Appointment[] }) =>
     actions.pendingId !== null,
   );
   const { withPending } = actions;
-  const bookings = useMemo(() => withPending(queue), [withPending, queue]);
+  const today = dhakaToday();
+  const rows = useMemo(
+    () => withPending(queue).map((a) => toAppointmentRow(a, updatedAt, today)),
+    [withPending, queue, updatedAt, today],
+  );
+  const columns = useMemo(() => queueColumns({ today }), [today]);
+  const { openCancel, openAssign, openView, dialogs } = useBookingDialogs({
+    actions,
+    rows,
+  });
 
-  const cancelledCount = bookings.filter(
-    (a) => a.status === "CANCELLED",
-  ).length;
+  // One line per service and counter, which is how serials are numbered; the
+  // salon is named too when the owner runs more than one.
+  const multiSalon = new Set(rows.map((r) => r.salonId)).size > 1;
+  const lineOf = (r: AppointmentRow) =>
+    [multiSalon ? r.salonName : null, r.service, r.counterName ?? "No counter"]
+      .filter(Boolean)
+      .join(" · ");
 
-  // One line per service and counter, which is how serials are numbered.
-  const lines = useMemo(() => {
-    const byLine = new Map<string, Appointment[]>();
-    for (const a of bookings) {
-      if (a.status === "CANCELLED" && !showCancelled) continue;
-      const key = `${a.service?.name ?? "Service"} · ${a.counter?.name ?? "No counter"}`;
-      byLine.set(key, [...(byLine.get(key) ?? []), a]);
-    }
-    return [...byLine.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, rows]) => ({ key, rows: rows.sort(bySerial) }));
-  }, [bookings, showCancelled]);
+  const cancelledCount = rows.filter((r) => r.status === "CANCELLED").length;
+  const shown = rows
+    .filter((r) => showCancelled || r.status !== "CANCELLED")
+    .sort((a, b) => lineOf(a).localeCompare(lineOf(b)) || bySerial(a, b));
+  const waiting = shown.filter((r) => !DONE.has(r.status)).length;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
-        <div>
-          <CardTitle>Today&apos;s queue</CardTitle>
+    <section aria-labelledby="today-queue-title" className="space-y-4">
+      <h2 id="today-queue-title" className="sr-only">
+        Today&apos;s queue
+      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">{waiting} waiting</span>
+          {" · "}
+          {shown.length - waiting} done
+          {" · "}
           {/* The server's render and the browser's can straddle a minute. */}
-          <p className="text-xs text-muted-foreground" suppressHydrationWarning>
-            Updated {clock.format(updatedAt)}
-          </p>
-        </div>
+          <span suppressHydrationWarning>Updated {clock.format(updatedAt)}</span>
+        </p>
         <div className="flex items-center gap-2">
           <Switch
             id="queue-show-cancelled"
@@ -76,76 +102,51 @@ export const TodayQueue = ({ appointments }: { appointments: Appointment[] }) =>
             Show cancelled{cancelledCount > 0 && ` (${cancelledCount})`}
           </Label>
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="space-y-6">
-        {lines.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">
-            No bookings in today&apos;s queue.
-          </p>
-        ) : (
-          lines.map(({ key, rows }) => {
-            const waiting = rows.filter((r) => !DONE.has(r.status)).length;
-            return (
-              <section key={key} className="space-y-2">
-                <div className="flex items-baseline justify-between gap-3">
-                  <h3 className="font-semibold">{key}</h3>
-                  <span className="text-xs text-muted-foreground">
-                    {waiting} waiting · {rows.length - waiting} done
-                  </span>
-                </div>
-
-                <ul className="space-y-2">
-                  {rows.map((a) => {
-                    const name =
-                      a.customer?.name?.trim() || a.customer?.email || "Unknown";
-                    return (
-                      <li
-                        key={a.id}
-                        className={`flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between ${
-                          DONE.has(a.status) ? "opacity-60" : ""
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className="inline-flex items-center justify-center min-w-9 h-9 px-2 rounded-md bg-primary/10 text-primary text-sm font-bold tabular-nums">
-                            {a.serialNumber != null ? `#${a.serialNumber}` : "—"}
-                          </span>
-                          <span className="text-sm font-bold tabular-nums whitespace-nowrap">
-                            {formatTime12(a.startTime)}
-                          </span>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">{name}</p>
-                            {/* Phone and token on their own line, so a narrow
-                                screen never cuts the number off. */}
-                            {(a.customer?.phone || a.token) && (
-                              <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-                                {a.customer?.phone && (
-                                  <span className="tabular-nums">{a.customer.phone}</span>
-                                )}
-                                {a.token && (
-                                  <span className="font-mono text-[11px] font-semibold tracking-wider">
-                                    {a.token}
-                                  </span>
-                                )}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                          <StatusBadge status={a.status} />
-                          <PaymentBadge appointment={a} viewer="owner" />
-                          <NextAction appointment={a} actions={actions} />
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
-            );
-          })
+      <DataList
+        items={shown}
+        rowKey={(r) => r.id}
+        columns={columns}
+        // The same switch point as the list, so both tabs change layout together.
+        tableFrom="4xl"
+        caption="Today's queue"
+        groupOf={lineOf}
+        groupHeader={(line, lineRows) => {
+          const left = lineRows.filter((r) => !DONE.has(r.status)).length;
+          return (
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-semibold text-foreground">{line}</span>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {left} waiting · {lineRows.length - left} done
+              </span>
+            </div>
+          );
+        }}
+        rowClassName={(r) => (DONE.has(r.status) ? "opacity-60" : "")}
+        empty={
+          <div className="rounded-2xl border border-border bg-surface">
+            <EmptyState
+              icon={ListOrdered}
+              title="No bookings in today's queue"
+              description="Today's bookings show up here as they come in."
+            />
+          </div>
+        }
+        rowActions={(row, layout) => (
+          <SalonRowActions
+            row={row}
+            layout={layout}
+            role={role}
+            actions={actions}
+            onAssign={openAssign}
+            onCancel={openCancel}
+            onView={openView}
+          />
         )}
-      </CardContent>
-    </Card>
+      />
+
+      {dialogs}
+    </section>
   );
 };

@@ -479,31 +479,34 @@ export function PaymentResultSkeleton() {
   );
 }
 
-/** The desk's queue card while today's bookings load. */
+/** The desk's queue (status line + table) while today's bookings load. */
 export function QueueSkeleton() {
   return (
-    <Card aria-busy="true" aria-label="Loading today's queue">
-      <CardHeader className="flex flex-row items-center justify-between gap-3">
-        <div className="space-y-2">
-          <Skeleton className="h-6 w-36" />
-          <Skeleton className="h-3 w-28" />
+    <div aria-busy="true" aria-label="Loading today's queue" className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <Skeleton className="h-4 w-56 max-w-[60%]" />
+        <Skeleton className="h-5 w-32" />
+      </div>
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+        <div className="h-11 border-b border-border bg-surface-subtle" />
+        <div className="border-b border-border bg-surface-subtle/60 px-4 py-3">
+          <Skeleton className="h-4 w-48" />
         </div>
-        <Skeleton className="h-6 w-32" />
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3 rounded-lg border p-3">
-            <Skeleton className="h-9 w-9 rounded-md" />
-            <Skeleton className="h-4 w-14" />
-            <div className="flex-1 space-y-1.5">
-              <Skeleton className="h-4 w-36 max-w-full" />
-              <Skeleton className="h-3 w-24" />
+        <div className="divide-y divide-border">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 px-4 py-3">
+              <Skeleton className="h-6 w-8 rounded-md" />
+              <div className="flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-36 max-w-full" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+              <Skeleton className="hidden h-6 w-24 rounded-full sm:block" />
+              <Skeleton className="h-9 w-24 rounded-full" />
             </div>
-            <Skeleton className="hidden h-8 w-24 rounded-full sm:block" />
-          </div>
-        ))}
-      </CardContent>
-    </Card>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 

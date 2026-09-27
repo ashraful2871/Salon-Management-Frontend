@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,35 +15,44 @@ import { COUNTER_PAYMENT_METHODS } from "./format";
 import type { AppointmentActions } from "./useAppointmentActions";
 
 // The one thing the desk should do next with a booking, given where it is in
-// CONFIRMED -> CHECKED_IN -> (IN_PROGRESS) -> COMPLETED.
+// CONFIRMED -> CHECKED_IN -> (IN_PROGRESS) -> COMPLETED. Renders its buttons
+// without a wrapper, so the parent's flex row lays them out.
 export const NextAction = ({
   appointment,
   actions,
   onDone,
+  className,
+  hideStart = false,
+  compact = false,
 }: {
   appointment: Appointment;
   actions: AppointmentActions;
   onDone?: () => unknown;
+  /** On each button, e.g. `flex-1` for a full-width card action. */
+  className?: string;
+  /** Leave Start out (a list puts it in its ⋯ menu instead). */
+  hideStart?: boolean;
+  /** "Collect ৳150" instead of "Complete & collect ৳150", for a table cell. */
+  compact?: boolean;
 }) => {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const isPending = actions.isPending(appointment.id);
-  const spinner = isPending && (
-    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-  );
 
   const dueMinor = appointment.amountDueMinor ?? 0;
   const completeLabel =
-    dueMinor > 0 ? `Complete & collect ${formatBDT(dueMinor)}` : "Complete";
+    dueMinor > 0
+      ? `${compact ? "Collect" : "Complete & collect"} ${formatBDT(dueMinor)}`
+      : "Complete";
 
   switch (appointment.status) {
     case "CONFIRMED":
       return (
         <Button
           size="sm"
-          disabled={isPending}
+          className={className}
+          loading={isPending}
           onClick={() => actions.checkIn(appointment.id, onDone)}
         >
-          {spinner}
           Check in
         </Button>
       );
@@ -52,11 +60,12 @@ export const NextAction = ({
     case "CHECKED_IN":
     case "IN_PROGRESS":
       return (
-        <div className="flex flex-wrap items-center gap-2">
-          {appointment.status === "CHECKED_IN" && (
+        <>
+          {appointment.status === "CHECKED_IN" && !hideStart && (
             <Button
               size="sm"
               variant="outline"
+              className={className}
               disabled={isPending}
               onClick={() => actions.start(appointment.id, onDone)}
             >
@@ -65,10 +74,10 @@ export const NextAction = ({
           )}
           <Button
             size="sm"
-            disabled={isPending}
+            className={className}
+            loading={isPending}
             onClick={() => setCheckoutOpen(true)}
           >
-            {spinner}
             {completeLabel}
           </Button>
           <CheckoutDialog
@@ -78,7 +87,7 @@ export const NextAction = ({
             onDone={onDone}
             complete={actions.complete}
           />
-        </div>
+        </>
       );
 
     case "COMPLETED":
@@ -87,8 +96,12 @@ export const NextAction = ({
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button size="sm" variant="outline" disabled={isPending}>
-              {spinner}
+            <Button
+              size="sm"
+              variant="outline"
+              className={className}
+              loading={isPending}
+            >
               Record payment
             </Button>
           </DropdownMenuTrigger>
@@ -114,3 +127,11 @@ export const NextAction = ({
       return null;
   }
 };
+
+/** Whether `NextAction` renders anything for this booking. */
+export const hasNextAction = (appointment: Appointment) =>
+  appointment.status === "CONFIRMED" ||
+  appointment.status === "CHECKED_IN" ||
+  appointment.status === "IN_PROGRESS" ||
+  (appointment.status === "COMPLETED" &&
+    appointment.paymentState === "UNRECORDED");

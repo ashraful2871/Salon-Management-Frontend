@@ -24,7 +24,8 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  cancelLabel = "Keep it",
+  tone,
   destructive = false,
   pending = false,
   onConfirm,
@@ -36,15 +37,18 @@ export function ConfirmDialog({
   confirmLabel?: string;
   cancelLabel?: string;
   /** Red confirm button and a warning icon. */
+  tone?: "danger";
+  /** Same as `tone="danger"`. */
   destructive?: boolean;
   pending?: boolean;
   onConfirm: () => void;
 }) {
+  const danger = destructive || tone === "danger";
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="rounded-2xl border-border bg-surface data-[size=default]:sm:max-w-md">
         <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:items-start sm:gap-4 sm:text-left">
-          {destructive && (
+          {danger && (
             <span className="mx-auto grid size-11 shrink-0 place-items-center rounded-full bg-danger-soft text-danger sm:mx-0">
               <TriangleAlert aria-hidden="true" className="size-5" />
             </span>
@@ -63,10 +67,10 @@ export function ConfirmDialog({
         <AlertDialogFooter>
           <AlertDialogCancel disabled={pending}>{cancelLabel}</AlertDialogCancel>
           <AlertDialogAction
-            variant={destructive ? "destructive" : "default"}
+            variant={danger ? "destructive" : "default"}
             disabled={pending}
             onClick={onConfirm}
-            className={cn(destructive && "text-white")}
+            className={cn(danger && "text-white")}
           >
             {pending && <Loader2 aria-hidden="true" className="animate-spin" />}
             {confirmLabel}

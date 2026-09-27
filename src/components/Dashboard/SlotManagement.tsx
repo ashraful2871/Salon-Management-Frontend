@@ -660,6 +660,7 @@ export const SlotManagement = ({ salons }: { salons: any[] }) => {
             : "The selected slots will be removed and customers can no longer book them. This can't be undone."
         }
         confirmLabel={confirmCount > 1 ? `Delete ${confirmCount} slots` : "Delete slot"}
+        cancelLabel={confirmCount > 1 ? "Keep them" : "Keep it"}
         pending={isPending}
         onConfirm={runConfirmedDelete}
       />

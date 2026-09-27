@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+import { ToneBadge } from "@/components/Shared/ToneBadge";
 import { formatBDT } from "@/lib/money";
 import type { Appointment } from "@/lib/api-types";
 import { paymentMethodLabel } from "./format";
@@ -30,6 +30,9 @@ const customerPaidLabel = (
   return `Paid ${formatBDT(paidMinor)} (${formatBDT(depositMinor)} deposit + ${formatBDT(counterMinor)} ${via})`;
 };
 
+// Long customer labels wrap inside the pill instead of widening the row.
+const WRAP = "max-w-full whitespace-normal text-left";
+
 // Reads the server's `paymentState` rather than working it out here, so the
 // owner and the customer can never disagree about whether a bill is paid.
 export const PaymentBadge = ({
@@ -49,17 +52,17 @@ export const PaymentBadge = ({
   switch (appointment.paymentState) {
     case "UNPAID":
       return (
-        <Badge variant="warning" className="max-w-full whitespace-normal">
+        <ToneBadge status="UNPAID" dot className={WRAP}>
           {viewer === "owner"
             ? `Due ${formatBDT(due)}`
             : deposit > 0
               ? `Deposit ${formatBDT(deposit)} paid · Pay ${formatBDT(due)} at salon`
               : `Pay ${formatBDT(due)} at salon`}
-        </Badge>
+        </ToneBadge>
       );
     case "PAID":
       return (
-        <Badge variant="success" className="max-w-full whitespace-normal">
+        <ToneBadge status="PAID" dot className={WRAP}>
           {/* No counter payment means the deposit alone covered the bill. */}
           {viewer === "customer"
             ? customerPaidLabel(
@@ -70,24 +73,34 @@ export const PaymentBadge = ({
             : method
               ? `Paid · ${method}`
               : "Paid · Deposit"}
-        </Badge>
+        </ToneBadge>
       );
     case "UNRECORDED":
       // The salon forgot to log the counter payment. That is theirs to fix;
       // the customer just sees "Completed" from the status badge.
       if (viewer === "customer") return null;
       return (
-        <Badge variant="danger" className="max-w-full whitespace-normal">
+        <ToneBadge status="UNRECORDED" tone="danger" dot className={WRAP}>
           Payment not recorded
-        </Badge>
+        </ToneBadge>
       );
     case "REFUNDED":
       return (
-        <Badge variant="secondary" className="max-w-full whitespace-normal">
+        <ToneBadge status="REFUNDED" dot className={WRAP}>
           Refunded
-        </Badge>
+        </ToneBadge>
       );
     default:
       return null;
   }
 };
+
+/** Whether `PaymentBadge` shows anything, so a list line can skip it. */
+export const hasPaymentBadge = (
+  state: string | null | undefined,
+  viewer: "owner" | "customer" = "owner",
+) =>
+  state === "UNPAID" ||
+  state === "PAID" ||
+  state === "REFUNDED" ||
+  (state === "UNRECORDED" && viewer === "owner");

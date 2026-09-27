@@ -37,11 +37,40 @@ export const dhakaToday = () =>
     new Date(),
   );
 
-// "2026-09-21" -> "Mon, 21 Sep". Dates are calendar days, so read them as UTC.
-export const formatDay = (ymd: string) =>
-  new Date(`${ymd.slice(0, 10)}T00:00:00Z`).toLocaleDateString("en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  });
+// "2026-09-26" -> "Sat 26 Sep". Dates are calendar days, so read them as UTC.
+// Built from parts: en-GB now prints "Sept", and en-US puts the month first.
+const DAY_PARTS = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+export const formatDay = (ymd: string, withYear = false) => {
+  const parts = Object.fromEntries(
+    DAY_PARTS.formatToParts(new Date(`${ymd.slice(0, 10)}T00:00:00Z`)).map(
+      (p) => [p.type, p.value],
+    ),
+  );
+  const day = `${parts.weekday} ${parts.day} ${parts.month}`;
+  return withYear ? `${day} ${parts.year}` : day;
+};
+
+// "2026-09-26", -1 -> "2026-09-25". Calendar arithmetic in UTC, so no DST edge.
+export const addDays = (ymd: string, delta: number) => {
+  const d = new Date(`${ymd.slice(0, 10)}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + delta);
+  return d.toISOString().slice(0, 10);
+};
+
+/**
+ * When the appointment actually begins. The backend reads "HH:mm" against the
+ * appointment's date in server-local time, so we do the same here - a mismatch
+ * would show a Cancel button the API is about to refuse.
+ */
+export const startsAtOf = (ymd: string, hhmm?: string) => {
+  if (!ymd || !hhmm) return null;
+  const parsed = new Date(`${ymd}T${hhmm.padStart(5, "0")}:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};

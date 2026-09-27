@@ -7,9 +7,14 @@ import type { getAllAppointments } from "@/services/appoinments/getAllAppointmen
 // the read before it awaits the list, so the two run side by side.
 export default async function QueueSection({
   read,
+  role,
 }: {
   read: ReturnType<typeof getAllAppointments>;
+  /** Decides the row menu (only the owner assigns and cancels). */
+  role: string;
 }) {
   const res = await read;
-  return <TodayQueue appointments={(res?.data ?? []) as Appointment[]} />;
+  return (
+    <TodayQueue appointments={(res?.data ?? []) as Appointment[]} role={role} />
+  );
 }

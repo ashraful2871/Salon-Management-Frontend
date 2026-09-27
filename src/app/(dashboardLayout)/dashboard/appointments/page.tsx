@@ -71,7 +71,7 @@ const AppointmentsPage = async ({
           queueSlot={
             queueRead && (
               <Suspense fallback={<QueueSkeleton />}>
-                <QueueSection read={queueRead} />
+                <QueueSection read={queueRead} role={userRole ?? "GUEST"} />
               </Suspense>
             )
           }

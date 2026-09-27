@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ToneBadge } from "@/components/Shared/ToneBadge";
 
 const LABELS: Record<string, string> = {
@@ -7,7 +8,20 @@ const LABELS: Record<string, string> = {
 };
 
 // Booking status only. Whether the bill is settled is PaymentBadge's job.
-export const StatusBadge = ({ status }: { status: string }) => {
+export const StatusBadge = ({
+  status,
+  children,
+  className,
+}: {
+  status: string;
+  /** Relabel, e.g. "Checked in – you're in the queue" for the customer. */
+  children?: ReactNode;
+  className?: string;
+}) => {
   const key = (status || "").toUpperCase().replace("-", "_");
-  return <ToneBadge status={key}>{LABELS[key]}</ToneBadge>;
+  return (
+    <ToneBadge status={key} dot className={className}>
+      {children ?? LABELS[key]}
+    </ToneBadge>
+  );
 };
