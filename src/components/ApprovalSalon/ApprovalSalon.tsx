@@ -1,8 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useMemo, useState, useOptimistic, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { showResultToast } from "@/components/Shared/showResultToast";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,6 +58,9 @@ import { LocationAccuracyBadge } from "@/components/Shared/LocationAccuracyBadge
 import { directionsUrl } from "@/lib/geo";
 import type { LocationAccuracy } from "@/lib/api-types";
 import { updateSalonStatus } from "@/services/salon/updateSalonStatus";
+import { PageHeader } from "@/components/Shared/PageHeader";
+import { StatCard } from "@/components/Shared/StatCard";
+import { ToneBadge } from "@/components/Shared/ToneBadge";
 
 /* ---------------- Types ---------------- */
 
@@ -88,21 +89,27 @@ type Salon = {
 };
 
 export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
-  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "ALL" | SalonStatus
   >("ALL");
 
-  const [selected, setSelected] = useState<Salon | null>(null);
+  const [picked, setSelected] = useState<Salon | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
+  // The salon whose status change is in flight; only its buttons wait.
+  const [pendingId, setPendingId] = useState<string | null>(null);
 
   const [optimisticSalons, updateOptimisticSalons] = useOptimistic(
     salons,
     (state, { id, newStatus }: { id: string; newStatus: SalonStatus }) =>
       state.map((s) => (s.id === id ? { ...s, status: newStatus } : s)),
   );
+  // The dialog reads its salon from the list, so it follows the optimistic
+  // status and the fresh data the action sends back.
+  const selected = picked
+    ? (optimisticSalons.find((s) => s.id === picked.id) ?? picked)
+    : null;
 
   /* ---------------- Stats ---------------- */
   const total = optimisticSalons.length;
@@ -130,17 +137,11 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
 
   /* ---------------- UI helpers ---------------- */
 
-  const statusBadge = (status: SalonStatus) => {
-    if (status === "PENDING_APPROVAL") return <Badge variant="secondary">Pending</Badge>;
-    if (status === "ACTIVE")
-      return (
-        <Badge className="bg-sage text-accent-foreground text-white">
-          Active
-        </Badge>
-      );
-    if (status === "INACTIVE") return <Badge variant="outline">Inactive</Badge>;
-    return <Badge variant="destructive">Rejected</Badge>;
-  };
+  const statusBadge = (status: SalonStatus) => (
+    <ToneBadge status={status}>
+      {status === "PENDING_APPROVAL" ? "Pending" : undefined}
+    </ToneBadge>
+  );
 
   const openDetails = (salon: Salon) => {
     setSelected(salon);
@@ -149,16 +150,13 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
 
   /* ---------------- Actions ---------------- */
 
-  const handleStatusChange = async (id: string, newStatus: SalonStatus) => {
-    updateOptimisticSalons({ id, newStatus });
-    if (selected?.id === id) {
-      setSelected({ ...selected, status: newStatus });
-    }
-
+  const handleStatusChange = (id: string, newStatus: SalonStatus) => {
+    setPendingId(id);
     startTransition(async () => {
+      updateOptimisticSalons({ id, newStatus });
       const res = await updateSalonStatus(id, newStatus);
       showResultToast(res, "Salon status updated successfully!", "Failed to update salon status.");
-      router.refresh();
+      setPendingId((current) => (current === id ? null : current));
     });
   };
 
@@ -175,61 +173,37 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
   };
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-4"
-      >
-        <div>
-          <h1 className="font-display text-3xl font-bold">Salon Approvals</h1>
-          <p className="text-muted-foreground mt-1">
-            Review and manage salon registration statuses
-          </p>
-        </div>
-
-        <Badge className="bg-primary/10 text-primary border border-border px-4 py-2 rounded-full">
-          Total: {total}
-        </Badge>
-      </motion.div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Salon approvals"
+        description="Review and manage salon registration statuses"
+        actions={
+          <Badge className="bg-primary/10 text-primary border border-border px-4 py-2 rounded-full">
+            Total: {total}
+          </Badge>
+        }
+      />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         {[
-          { label: "Total", value: total, icon: Store },
-          { label: "Pending", value: pending, icon: Calendar },
-          { label: "Active", value: active, icon: CheckCircle2 },
-          { label: "Rejected", value: rejected, icon: XCircle },
-        ].map((stat, index) => (
-          <motion.div
+          { label: "Total", value: total, icon: Store, tone: "neutral" as const },
+          { label: "Pending", value: pending, icon: Calendar, tone: "warning" as const },
+          { label: "Active", value: active, icon: CheckCircle2, tone: "success" as const },
+          { label: "Rejected", value: rejected, icon: XCircle, tone: "danger" as const },
+        ].map((stat) => (
+          <StatCard
             key={stat.label}
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.08 }}
-          >
-            <Card className="shadow-soft">
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                  <stat.icon className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+            label={stat.label}
+            value={stat.value}
+            icon={stat.icon}
+            tone={stat.tone}
+          />
         ))}
       </div>
 
       {/* Search + Filters */}
-      <motion.div
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
-        className="flex flex-col lg:flex-row gap-4"
-      >
+      <div className="flex flex-col lg:flex-row gap-4">
         {/* Search */}
         <div className="relative flex-1 max-w-xl">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -258,14 +232,10 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
             </Button>
           ))}
         </div>
-      </motion.div>
+      </div>
 
       {/* Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35 }}
-      >
+      <div>
         <Card className="shadow-card">
           <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <CardTitle>Salons</CardTitle>
@@ -395,7 +365,7 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
                             <Button
                               size="sm"
                               className="bg-sage text-white hover:opacity-90 font-semibold"
-                              disabled={isPending}
+                              disabled={pendingId === salon.id}
                               onClick={() => requestApprove(salon)}
                             >
                               Approve
@@ -410,7 +380,7 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
             </Table>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
 
       {/* Details Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -535,7 +505,7 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
                   {selected.status !== "ACTIVE" && (
                     <Button
                       className="bg-sage text-white hover:opacity-90 font-semibold"
-                      disabled={isPending}
+                      disabled={pendingId === selected.id}
                       onClick={() => requestApprove(selected)}
                     >
                       Set Active
@@ -544,7 +514,7 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
                   {selected.status !== "INACTIVE" && (
                      <Button
                        variant="outline"
-                       disabled={isPending}
+                       disabled={pendingId === selected.id}
                        onClick={() => handleStatusChange(selected.id, "INACTIVE")}
                        className="font-semibold"
                      >
@@ -554,7 +524,7 @@ export default function ApprovalSalon({ salons }: { salons: Salon[] }) {
                   {selected.status !== "REJECTED" && (
                     <Button
                       variant="destructive"
-                      disabled={isPending}
+                      disabled={pendingId === selected.id}
                       onClick={() => handleStatusChange(selected.id, "REJECTED")}
                       className="text-white font-semibold"
                     >

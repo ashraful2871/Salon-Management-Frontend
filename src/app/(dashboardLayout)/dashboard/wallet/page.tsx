@@ -11,6 +11,8 @@ import {
   ArrowDownRight,
   RefreshCcw,
   Loader2,
+  Lock,
+  Landmark,
 } from "lucide-react";
 import {
   getMyWallet,
@@ -27,6 +29,8 @@ import CopyButton from "@/components/Wallet/CopyButton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { PageHeader } from "@/components/Shared/PageHeader";
+import { StatCard } from "@/components/Shared/StatCard";
 
 const TransactionRow = ({ tx }: { tx: WalletTransaction }) => {
   const holdDeltaMinor =
@@ -209,23 +213,19 @@ export default function WalletPage() {
   }, [searchParams, router]);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-        <div>
-          <h1 className="flex items-center gap-2 font-display text-3xl font-bold">
-            <Wallet className="h-8 w-8 text-primary" /> My Wallet
-          </h1>
-          <p className="mt-1 text-muted-foreground">
-            Manage your balance and view transaction history
-          </p>
-        </div>
-        <Button
-          onClick={() => setTopUpModalOpen(true)}
-          className="w-full bg-sage hover:bg-sage/90 md:w-auto"
-        >
-          <Plus className="mr-2 h-4 w-4" /> Add Money
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="My wallet"
+        description="Manage your balance and view transaction history"
+        actions={
+          <Button
+            onClick={() => setTopUpModalOpen(true)}
+            className="w-full sm:w-auto"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add Money
+          </Button>
+        }
+      />
 
       {loading ? (
         <div className="flex justify-center p-12">
@@ -233,45 +233,29 @@ export default function WalletPage() {
         </div>
       ) : (
         <>
-          <div className="grid gap-6 md:grid-cols-3">
-            <Card className="border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5 shadow-md">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Available Balance
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-4xl font-bold text-foreground">
-                  {formatBDT(wallet?.availableMinor || 0)}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-soft">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Held Balance (Deposits)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-muted-foreground">
-                  {formatBDT(wallet?.heldBalanceMinor || 0)}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-soft">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Balance
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-foreground">
-                  {formatBDT(wallet?.balanceMinor || 0)}
-                </p>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:gap-4">
+            <div className="col-span-2 sm:col-span-1">
+              <StatCard
+                label="Available balance"
+                value={formatBDT(wallet?.availableMinor || 0)}
+                hint="Ready to spend on bookings"
+                icon={Wallet}
+                tone="primary"
+              />
+            </div>
+            <StatCard
+              label="Held (deposits)"
+              value={formatBDT(wallet?.heldBalanceMinor || 0)}
+              hint="Returned or used when the booking ends"
+              icon={Lock}
+              tone="warning"
+            />
+            <StatCard
+              label="Total balance"
+              value={formatBDT(wallet?.balanceMinor || 0)}
+              hint="Available + held"
+              icon={Landmark}
+            />
           </div>
 
           <Card className="shadow-soft">

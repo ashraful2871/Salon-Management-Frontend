@@ -110,7 +110,7 @@ export default function SalonLocationTab({
           type="button"
           onClick={save}
           disabled={!canSave || isSaving}
-          className="shrink-0 bg-sage text-white hover:bg-sage/90"
+          className="shrink-0"
         >
           {isSaving ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

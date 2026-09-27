@@ -12,12 +12,23 @@ import { StatusBadge } from "./StatusBadge";
 import { PaymentBadge } from "./PaymentBadge";
 import { NextAction } from "./NextAction";
 import { dhakaToday, formatDay, formatTime12 } from "./format";
+import { useAppointmentActions } from "./useAppointmentActions";
 
 // For the customer who walks up and reads out their token.
 export const TokenLookup = () => {
   const [token, setToken] = useState("");
   const [found, setFound] = useState<Appointment | null>(null);
   const [isPending, startTransition] = useTransition();
+  const actions = useAppointmentActions();
+  // The card with any change still in flight laid over it.
+  const shown = found ? actions.withPending([found])[0] : null;
+
+  // The card is local state, so it is re-read after acting on it. The action
+  // waits for this, so the card never flicks back to the old status.
+  const reread = async (value: string) => {
+    const res = await lookupAppointmentByToken(value.trim());
+    if (res.success && res.data) setFound(res.data);
+  };
 
   const lookup = (value: string) => {
     const t = value.trim();
@@ -61,7 +72,7 @@ export const TokenLookup = () => {
           </Button>
         </form>
 
-        {found && (
+        {found && shown && (
           <div className="rounded-lg border p-4 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
@@ -97,18 +108,18 @@ export const TokenLookup = () => {
 
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge status={found.status} />
-                <PaymentBadge appointment={found} viewer="owner" />
+                <StatusBadge status={shown.status} />
+                <PaymentBadge appointment={shown} viewer="owner" />
                 {found.token && (
                   <span className="text-[11px] font-mono font-semibold tracking-wider text-muted-foreground">
                     {found.token}
                   </span>
                 )}
               </div>
-              {/* The card is local state, so re-read it after acting on it. */}
               <NextAction
-                appointment={found}
-                onDone={() => lookup(found.token ?? token)}
+                appointment={shown}
+                actions={actions}
+                onDone={() => reread(found.token ?? token)}
               />
             </div>
           </div>

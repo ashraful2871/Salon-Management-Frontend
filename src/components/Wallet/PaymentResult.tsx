@@ -367,7 +367,7 @@ export default function PaymentResult({
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back to wallet
                   </Link>
                 </Button>
-                <Button asChild className="bg-sage hover:bg-sage/90">
+                <Button asChild>
                   <Link href="/assistant?resume=1">
                     <CalendarCheck className="mr-2 h-4 w-4" /> Back to your
                     booking
@@ -375,7 +375,7 @@ export default function PaymentResult({
                 </Button>
               </>
             ) : (
-              <Button asChild className="bg-sage hover:bg-sage/90">
+              <Button asChild>
                 <Link href="/dashboard/wallet">
                   <ArrowLeft className="mr-2 h-4 w-4" /> Back to wallet
                 </Link>

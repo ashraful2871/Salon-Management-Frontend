@@ -1,5 +1,6 @@
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse, User } from "@/lib/api-types";
+import { TAGS } from "@/lib/cache-tags";
 
 export const getAllUsers = async (query?: {
   page?: number;
@@ -20,7 +21,7 @@ export const getAllUsers = async (query?: {
     const response = await serverFetch.get(url, {
       next: {
         revalidate: 60,
-        tags: ["users"],
+        tags: [TAGS.users],
       },
     });
 

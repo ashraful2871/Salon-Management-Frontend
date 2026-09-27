@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useActionState, useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -28,6 +27,8 @@ import {
   UserRound,
   Wallet,
 } from "lucide-react";
+
+import SafeImage from "@/components/Shared/SafeImage";
 
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -125,12 +126,6 @@ const formatClock = (time?: string) => {
   const suffix = hour >= 12 ? "PM" : "AM";
   return `${hour % 12 || 12}:${minute} ${suffix}`;
 };
-
-const isValidImage = (url?: string | null) =>
-  typeof url === "string" &&
-  (url.startsWith("http://") ||
-    url.startsWith("https://") ||
-    url.startsWith("/"));
 
 const DetailRow = ({
   icon: Icon,
@@ -325,19 +320,13 @@ const BookingSummary = ({
                 <Card className="overflow-hidden shadow-sm">
                   <div className="flex items-center gap-4 border-b bg-gradient-to-r from-primary/5 to-transparent p-5">
                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted">
-                      {isValidImage(salon.image) ? (
-                        <Image
-                          src={salon.image as string}
-                          alt={salon.name}
-                          fill
-                          sizes="64px"
-                          className="object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center">
-                          <Scissors className="h-6 w-6 text-muted-foreground" />
-                        </div>
-                      )}
+                      <SafeImage
+                        src={salon.image}
+                        alt={salon.name}
+                        fill
+                        sizes="64px"
+                        className="object-cover"
+                      />
                     </div>
                     <div className="min-w-0">
                       <h2 className="truncate text-lg font-bold">{salon.name}</h2>

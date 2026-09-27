@@ -1,8 +1,8 @@
 "use client";
 
-import { Fragment, useState, useTransition } from "react";
+import { Fragment, useOptimistic, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { AlertTriangle, ChevronDown, ChevronRight, Search } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronRight, Loader2, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -31,7 +31,12 @@ import type {
   AdminTopup,
   AdminTopupRefund,
 } from "@/services/payments/getAdminTopups";
+import {
+  refundTopup,
+  type RefundTopupResult,
+} from "@/services/payments/refundTopup";
 import { RefundDialog } from "./RefundDialog";
+import { PageHeader } from "@/components/Shared/PageHeader";
 
 export type TopupFilters = {
   page: number;
@@ -166,6 +171,29 @@ export function TopupsClient({
   const [isPending, startTransition] = useTransition();
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [refunding, setRefunding] = useState<AdminTopup | null>(null);
+  // Separate from `isPending` so a refund doesn't dim the filters.
+  const [, startRefund] = useTransition();
+  // The top-up whose refund is in flight. It clears once the action's
+  // response, which carries the re-rendered list, has landed.
+  const [refundingId, markRefunding] = useOptimistic<string | null, string>(
+    null,
+    (_, id) => id,
+  );
+
+  const sendRefund = (
+    topupId: string,
+    payload: Parameters<typeof refundTopup>[1],
+  ) =>
+    new Promise<ApiResponse<RefundTopupResult>>((resolve) => {
+      startRefund(async () => {
+        markRefunding(topupId);
+        try {
+          resolve(await refundTopup(topupId, payload));
+        } catch {
+          resolve({ success: false, message: "Failed to send the refund." });
+        }
+      });
+    });
 
   const topups = response.success && Array.isArray(response.data) ? response.data : [];
   const total = response.meta?.total ?? 0;
@@ -194,14 +222,11 @@ export function TopupsClient({
     });
 
   return (
-    <div className="min-w-0 space-y-8">
-      <div>
-        <h1 className="font-display text-3xl font-bold">Top-ups &amp; Refunds</h1>
-        <p className="mt-1 text-muted-foreground">
-          Refunds send money back to the customer&apos;s bKash or card and take it
-          out of their wallet.
-        </p>
-      </div>
+    <div className="min-w-0 space-y-6">
+      <PageHeader
+        title="Top-ups & refunds"
+        description="Refunds send money back to the customer's bKash or card and take it out of their wallet."
+      />
 
       <Card className="min-w-0">
         <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center">
@@ -369,10 +394,17 @@ export function TopupsClient({
                               type="button"
                               size="sm"
                               variant="outline"
-                              disabled={blocked !== null}
+                              disabled={blocked !== null || refundingId === topup.id}
                               onClick={() => setRefunding(topup)}
                             >
-                              Refund
+                              {refundingId === topup.id ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                                  Refunding…
+                                </>
+                              ) : (
+                                "Refund"
+                              )}
                             </Button>
                           </span>
                         </TableCell>
@@ -427,6 +459,7 @@ export function TopupsClient({
         <RefundDialog
           key={refunding.id}
           topup={refunding}
+          onRefund={sendRefund}
           onClose={() => setRefunding(null)}
         />
       ) : null}

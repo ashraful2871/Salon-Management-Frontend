@@ -6,7 +6,8 @@ import type {
   CheckoutReceipt,
   CounterPaymentMethod,
 } from "@/lib/api-types";
-import { revalidateTag } from "next/cache";
+import { revalidateTag, updateTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 
 // Completes the booking, applies the held deposit and records what was taken
 // at the counter, all in one server transaction. Repeating it returns the same
@@ -27,10 +28,11 @@ export const checkoutAppointment = async (
     const result: ApiResponse<CheckoutReceipt> = await response.json();
 
     if (result.success) {
-      revalidateTag("appointments", "seconds");
-      revalidateTag("my-appointments", "seconds");
-      revalidateTag("dashboard-stats", "seconds");
-      revalidateTag("earnings", "seconds");
+      updateTag(TAGS.appointments);
+      updateTag(TAGS.myAppointments);
+      updateTag(TAGS.dashboardStats);
+      revalidateTag(TAGS.earnings, "max");
+      revalidateTag(TAGS.slots, "max");
     }
 
     return result;

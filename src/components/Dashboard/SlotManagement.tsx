@@ -1,11 +1,9 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -27,9 +25,14 @@ import {
   Ban,
   CheckCircle2,
   MonitorSmartphone,
+  CalendarClock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/Shared/PageHeader";
+import { ConfirmDialog } from "@/components/Shared/ConfirmDialog";
+import { EmptyState } from "@/components/Shared/EmptyState";
+import { ToneBadge } from "@/components/Shared/ToneBadge";
 
 // Radix Select cannot hold an empty string, so "no counter" needs a sentinel.
 const NO_COUNTER = "NONE";
@@ -60,6 +63,16 @@ export const SlotManagement = ({ salons }: { salons: any[] }) => {
   const [filterServiceId, setFilterServiceId] = useState("ALL");
 
   const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]);
+  // Deleting can't be undone, so both paths ask first.
+  const [confirmDelete, setConfirmDelete] = useState<
+    { kind: "one"; id: string; time: string } | { kind: "selected" } | null
+  >(null);
+  // Separate from the content, so the text doesn't blank while the dialog fades out.
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const askToDelete = (target: NonNullable<typeof confirmDelete>) => {
+    setConfirmDelete(target);
+    setConfirmOpen(true);
+  };
 
   const selectedSalon = salons.find((s) => s.id === salonId);
   const services = selectedSalon?.services || [];
@@ -152,6 +165,13 @@ export const SlotManagement = ({ salons }: { salons: any[] }) => {
     });
   };
 
+  const runConfirmedDelete = () => {
+    if (!confirmDelete) return;
+    if (confirmDelete.kind === "one") handleDelete(confirmDelete.id);
+    else handleBulkDelete();
+    setConfirmOpen(false);
+  };
+
   const handleDelete = (id: string) => {
     startTransition(async () => {
       const res = await deleteSlot(id);
@@ -161,6 +181,7 @@ export const SlotManagement = ({ salons }: { salons: any[] }) => {
         "Failed to delete slot",
       );
       if (res.success) {
+        setSelectedSlotIds((prev) => prev.filter((slotId) => slotId !== id));
         fetchSlots(salonId, selectedDate);
       }
     });
@@ -190,6 +211,14 @@ export const SlotManagement = ({ salons }: { salons: any[] }) => {
     );
   };
 
+  const toggleGroupSelection = (ids: string[]) => {
+    setSelectedSlotIds((prev) =>
+      ids.every((id) => prev.includes(id))
+        ? prev.filter((id) => !ids.includes(id))
+        : [...new Set([...prev, ...ids])],
+    );
+  };
+
   const filteredSlots =
     filterServiceId === "ALL"
       ? slots
@@ -206,43 +235,44 @@ export const SlotManagement = ({ salons }: { salons: any[] }) => {
     {}
   );
 
+  const confirmCount =
+    confirmDelete?.kind === "one" ? 1 : selectedSlotIds.length;
+
   return (
-    <div className="space-y-8">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-4"
-      >
-        <div>
-          <h1 className="font-display text-3xl font-bold">Slot Management</h1>
-          <p className="text-muted-foreground mt-1">
-            Create and manage appointment slots for your salon.
-          </p>
-        </div>
-        <div className="w-full md:w-64">
-          <Select value={salonId} onValueChange={handleSalonChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select Salon" />
-            </SelectTrigger>
-            <SelectContent>
-              {salons.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </motion.div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Slots"
+        description="Create and manage appointment slots for your salon."
+        actions={
+          <div className="w-full sm:w-72">
+            <Select value={salonId} onValueChange={handleSalonChange}>
+              <SelectTrigger className="w-full" aria-label="Salon">
+                <SelectValue placeholder="Select Salon" />
+              </SelectTrigger>
+              <SelectContent>
+                {salons.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        }
+      />
 
       <Card>
         <CardHeader>
-          <CardTitle>Generate Slots</CardTitle>
+          <CardTitle>Generate slots</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Pick a date range, a time window and a service. Slots are cut to the
+            chosen length with the break between them.
+          </p>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-            <div>
-              <label className="text-sm font-medium">Start Date</label>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Start date</label>
               <Input
                 type="date"
                 value={startDate}
@@ -254,8 +284,8 @@ export const SlotManagement = ({ salons }: { salons: any[] }) => {
                 }}
               />
             </div>
-            <div>
-              <label className="text-sm font-medium">End Date</label>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">End date</label>
               <Input
                 type="date"
                 min={startDate}
@@ -263,27 +293,27 @@ export const SlotManagement = ({ salons }: { salons: any[] }) => {
                 onChange={(e) => setEndDate(e.target.value)}
               />
             </div>
-            <div>
-              <label className="text-sm font-medium">Start Time</label>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Start time</label>
               <Input
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
               />
             </div>
-            <div>
-              <label className="text-sm font-medium">End Time</label>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">End time</label>
               <Input
                 type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
               />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <label className="text-sm font-medium">Service</label>
               <Select value={serviceId} onValueChange={setServiceId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Service" />
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select service" />
                 </SelectTrigger>
                 <SelectContent>
                   {services.map((svc: any) => (
@@ -294,11 +324,11 @@ export const SlotManagement = ({ salons }: { salons: any[] }) => {
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="space-y-1.5">
               <label className="text-sm font-medium">Counter</label>
               <Select value={counterId} onValueChange={setCounterId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Counter" />
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select counter" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NO_COUNTER}>No counter</SelectItem>
@@ -311,15 +341,15 @@ export const SlotManagement = ({ salons }: { salons: any[] }) => {
                 </SelectContent>
               </Select>
               {counters.length === 0 && (
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground">
                   No counters yet — add one under Manage Salon.
                 </p>
               )}
             </div>
-            <div>
-              <label className="text-sm font-medium">Duration (min)</label>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Duration</label>
               <Select value={duration} onValueChange={setDuration}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -330,10 +360,10 @@ export const SlotManagement = ({ salons }: { salons: any[] }) => {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="text-sm font-medium">Break (min)</label>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Break</label>
               <Select value={breakDuration} onValueChange={setBreakDuration}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -345,7 +375,7 @@ export const SlotManagement = ({ salons }: { salons: any[] }) => {
               </Select>
             </div>
           </div>
-          <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="mt-5 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">
               {dayCount === 0
                 ? "End date must be on or after the start date."
@@ -361,170 +391,259 @@ export const SlotManagement = ({ salons }: { salons: any[] }) => {
             <Button
               onClick={handleGenerate}
               disabled={isPending || !salonId || !serviceId || dayCount === 0}
+              className="w-full sm:w-auto"
             >
-              Generate Slots
+              <CalendarClock />
+              Generate slots
             </Button>
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
-          <CardTitle>Existing Slots ({selectedDate})</CardTitle>
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="w-44">
-              <Input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-              />
-            </div>
-            <div className="w-48">
-              <Select
-                value={filterServiceId}
-                onValueChange={setFilterServiceId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by Service" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All Services</SelectItem>
-                  {services.map((svc: any) => (
-                    <SelectItem key={svc.id} value={svc.id}>
-                      {svc.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {selectedSlotIds.length > 0 && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleBulkDelete}
-                disabled={isPending}
-              >
-                Delete Selected ({selectedSlotIds.length})
-              </Button>
-            )}
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <CardTitle>Existing slots</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {filteredSlots.length} slot{filteredSlots.length === 1 ? "" : "s"} on{" "}
+              {new Date(`${selectedDate}T00:00:00`).toLocaleDateString("en-GB", {
+                weekday: "short",
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              type="date"
+              aria-label="Date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="w-full sm:w-44"
+            />
+            <Select value={filterServiceId} onValueChange={setFilterServiceId}>
+              <SelectTrigger className="w-full sm:w-48" aria-label="Service filter">
+                <SelectValue placeholder="Filter by service" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All services</SelectItem>
+                {services.map((svc: any) => (
+                  <SelectItem key={svc.id} value={svc.id}>
+                    {svc.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>
+          {/* Bulk bar: only while something is selected. */}
+          {selectedSlotIds.length > 0 && (
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-danger/20 bg-danger-soft px-4 py-3">
+              <p className="text-sm font-medium text-foreground">
+                {selectedSlotIds.length} slot
+                {selectedSlotIds.length === 1 ? "" : "s"} selected
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedSlotIds([])}
+                  disabled={isPending}
+                >
+                  Clear
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="text-white"
+                  onClick={() => askToDelete({ kind: "selected" })}
+                  disabled={isPending}
+                >
+                  <Trash2 />
+                  Delete selected
+                </Button>
+              </div>
+            </div>
+          )}
+
           {slots.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              No slots generated for this date.
-            </p>
+            <EmptyState
+              icon={Calendar}
+              title="No slots on this date"
+              description="Generate slots above, or pick another date."
+            />
           ) : Object.keys(groupedSlots).length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              No slots found for this service.
-            </p>
+            <EmptyState
+              icon={Calendar}
+              title="No slots for this service"
+              description="Choose another service or show all services."
+            />
           ) : (
             <div className="space-y-8">
               {Object.entries(groupedSlots).map(
-                ([serviceName, serviceSlots]) => (
-                  <div key={serviceName}>
-                    <h3 className="text-lg font-semibold mb-4 border-b pb-2">
-                      {serviceName}
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                      {serviceSlots?.map((slot: any) => {
-                        const isBooked =
-                          slot.status === "BOOKED" || slot.isBooked;
-                        return (
-                          <div
-                            key={slot.id}
-                            className="border rounded-lg p-3 flex flex-col gap-2 items-center justify-center text-center bg-muted/20 relative"
+                ([serviceName, serviceSlots]) => {
+                  const selectable = serviceSlots
+                    .filter((slot) => !(slot.status === "BOOKED" || slot.isBooked))
+                    .map((slot) => slot.id as string);
+                  const allSelected =
+                    selectable.length > 0 &&
+                    selectable.every((id) => selectedSlotIds.includes(id));
+                  return (
+                    <section key={serviceName}>
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
+                        <h3 className="font-semibold">
+                          {serviceName}
+                          <span className="ml-2 text-sm font-normal text-muted-foreground">
+                            {serviceSlots.length} slot
+                            {serviceSlots.length === 1 ? "" : "s"}
+                          </span>
+                        </h3>
+                        {selectable.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleGroupSelection(selectable)}
                           >
-                            {!isBooked && (
-                              <input
-                                type="checkbox"
-                                className="absolute top-2 left-2 cursor-pointer h-4 w-4"
-                                checked={selectedSlotIds.includes(slot.id)}
-                                onChange={() => toggleSlotSelection(slot.id)}
-                              />
-                            )}
-                            <span className="text-xs font-semibold px-2 py-1 bg-primary/10 text-primary rounded-full mb-1 line-clamp-1">
-                              {slot.service?.name ||
-                                services.find(
-                                  (s: any) => s.id === slot.serviceId,
-                                )?.name ||
-                                "Service"}
-                            </span>
-                            <span className="font-medium">
-                              {slot.startTime}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              to {slot.endTime}
-                            </span>
-                            <span
+                            {allSelected ? "Unselect all" : "Select all"}
+                          </Button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8">
+                        {serviceSlots?.map((slot: any) => {
+                          const isBooked =
+                            slot.status === "BOOKED" || slot.isBooked;
+                          const selected = selectedSlotIds.includes(slot.id);
+                          return (
+                            <div
+                              key={slot.id}
                               className={cn(
-                                "flex items-center gap-1 text-[11px]",
-                                slot.counter?.name
-                                  ? "text-foreground"
-                                  : "text-muted-foreground italic",
+                                "flex flex-col gap-2 rounded-xl border bg-surface p-3 transition-colors",
+                                selected
+                                  ? "border-primary ring-1 ring-primary/30"
+                                  : "border-border",
                               )}
                             >
-                              <MonitorSmartphone className="h-3 w-3 shrink-0" />
-                              <span className="line-clamp-1">
-                                {slot.counter?.name ?? "No counter"}
-                              </span>
-                            </span>
-                            <Badge
-                              variant={
-                                slot.status === "AVAILABLE"
-                                  ? "default"
-                                  : "secondary"
-                              }
-                            >
-                              {slot.status}
-                            </Badge>
-                            <div className="flex gap-2 mt-2">
-                              {slot.status === "AVAILABLE" && (
-                                <>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6"
-                                    onClick={() =>
-                                      handleUpdateStatus(slot.id, "BLOCKED")
-                                    }
-                                  >
-                                    <Ban className="h-4 w-4 text-amber-500" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6"
-                                    onClick={() => handleDelete(slot.id)}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
-                                </>
-                              )}
-                              {slot.status === "BLOCKED" && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6"
-                                  onClick={() =>
-                                    handleUpdateStatus(slot.id, "AVAILABLE")
-                                  }
-                                >
-                                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                                </Button>
+                              <div className="flex items-center justify-between gap-2">
+                                {isBooked ? (
+                                  <span aria-hidden="true" className="size-4" />
+                                ) : (
+                                  <input
+                                    type="checkbox"
+                                    aria-label={`Select the ${slot.startTime} slot`}
+                                    className="size-4 cursor-pointer accent-primary"
+                                    checked={selected}
+                                    onChange={() => toggleSlotSelection(slot.id)}
+                                  />
+                                )}
+                                <ToneBadge status={slot.status} />
+                              </div>
+                              <div>
+                                <p className="text-lg font-semibold leading-tight tabular-nums">
+                                  {slot.startTime}
+                                </p>
+                                <p className="text-xs text-muted-foreground tabular-nums">
+                                  to {slot.endTime}
+                                </p>
+                              </div>
+                              <p
+                                className={cn(
+                                  "flex min-w-0 items-center gap-1 text-xs",
+                                  slot.counter?.name
+                                    ? "text-foreground"
+                                    : "text-muted-foreground",
+                                )}
+                              >
+                                <MonitorSmartphone className="size-3 shrink-0" />
+                                <span className="truncate">
+                                  {slot.counter?.name ?? "No counter"}
+                                </span>
+                              </p>
+                              {(slot.status === "AVAILABLE" ||
+                                slot.status === "BLOCKED") && (
+                                <div className="-mx-1 mt-auto flex items-center justify-end gap-1 border-t border-border pt-2">
+                                  {slot.status === "AVAILABLE" ? (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="size-8 text-warning hover:bg-warning-soft hover:text-warning"
+                                      aria-label={`Block the ${slot.startTime} slot`}
+                                      title="Block"
+                                      disabled={isPending}
+                                      onClick={() =>
+                                        handleUpdateStatus(slot.id, "BLOCKED")
+                                      }
+                                    >
+                                      <Ban />
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="size-8 text-success hover:bg-success-soft hover:text-success"
+                                      aria-label={`Unblock the ${slot.startTime} slot`}
+                                      title="Unblock"
+                                      disabled={isPending}
+                                      onClick={() =>
+                                        handleUpdateStatus(slot.id, "AVAILABLE")
+                                      }
+                                    >
+                                      <CheckCircle2 />
+                                    </Button>
+                                  )}
+                                  {slot.status === "AVAILABLE" && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="size-8 text-danger hover:bg-danger-soft hover:text-danger"
+                                      aria-label={`Delete the ${slot.startTime} slot`}
+                                      title="Delete"
+                                      disabled={isPending}
+                                      onClick={() =>
+                                        askToDelete({
+                                          kind: "one",
+                                          id: slot.id,
+                                          time: `${slot.startTime}–${slot.endTime}`,
+                                        })
+                                      }
+                                    >
+                                      <Trash2 />
+                                    </Button>
+                                  )}
+                                </div>
                               )}
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ),
+                          );
+                        })}
+                      </div>
+                    </section>
+                  );
+                },
               )}
             </div>
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        destructive
+        title={
+          confirmDelete?.kind === "one"
+            ? "Delete this slot?"
+            : `Delete ${confirmCount} slot${confirmCount === 1 ? "" : "s"}?`
+        }
+        description={
+          confirmDelete?.kind === "one"
+            ? `The ${confirmDelete.time} slot will be removed and customers can no longer book it. This can't be undone.`
+            : "The selected slots will be removed and customers can no longer book them. This can't be undone."
+        }
+        confirmLabel={confirmCount > 1 ? `Delete ${confirmCount} slots` : "Delete slot"}
+        pending={isPending}
+        onConfirm={runConfirmedDelete}
+      />
     </div>
   );
 };

@@ -1,7 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useId, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,28 +13,24 @@ import {
 } from "@/components/ui/dialog";
 import { formatBDT } from "@/lib/money";
 import type { Appointment, CounterPaymentMethod } from "@/lib/api-types";
-import { checkoutAppointment } from "@/services/appoinments/checkoutAppointment";
-import { showResultToast } from "@/components/Shared/showResultToast";
 import { COUNTER_PAYMENT_METHODS } from "./format";
+import type { AppointmentActions } from "./useAppointmentActions";
 
 export const CheckoutDialog = ({
   appointment,
   open,
   onOpenChange,
   onDone,
+  complete,
 }: {
   appointment: Appointment | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onDone?: () => void;
+  onDone?: () => unknown;
+  complete: AppointmentActions["complete"];
 }) => {
   const [method, setMethod] = useState<CounterPaymentMethod>("CASH");
   const [reference, setReference] = useState("");
-  const [isPending, startTransition] = useTransition();
-  // `isPending` only disables the button after a re-render; this closes the
-  // gap so a fast double click still sends one checkout.
-  const submitting = useRef(false);
-  const router = useRouter();
   const radioName = useId();
 
   const totalMinor = appointment?.totalMinor ?? 0;
@@ -58,30 +53,22 @@ export const CheckoutDialog = ({
     onOpenChange(next);
   };
 
+  // The row shows the booking completed at once and spins until the server
+  // answers (a failure puts it back and says why), so the dialog closes now.
+  // The action ignores a second click for a booking already in flight.
   const handleConfirm = () => {
-    if (!appointment || submitting.current) return;
-    submitting.current = true;
-    startTransition(async () => {
-      // The API always wants a method; with nothing due no payment row is
-      // written, so the choice is moot.
-      const res = await checkoutAppointment(appointment.id, {
+    if (!appointment) return;
+    // The API always wants a method; with nothing due no payment row is
+    // written, so the choice is moot.
+    complete(
+      appointment,
+      {
         paymentMethod: nothingToCollect ? "CASH" : method,
         reference: takesReference ? reference.trim() || undefined : undefined,
-      });
-      submitting.current = false;
-      showResultToast(
-        res,
-        nothingToCollect
-          ? "Booking completed"
-          : `Collected ${formatBDT(res.data?.collectedMinor ?? dueMinor)} · booking completed`,
-        "Failed to complete the booking",
-      );
-      if (res.success) {
-        handleOpenChange(false);
-        onDone?.();
-        router.refresh();
-      }
-    });
+      },
+      onDone,
+    );
+    handleOpenChange(false);
   };
 
   return (
@@ -184,20 +171,17 @@ export const CheckoutDialog = ({
               type="button"
               variant="outline"
               onClick={() => handleOpenChange(false)}
-              disabled={isPending}
             >
               Cancel
             </Button>
             <Button
               type="button"
               onClick={handleConfirm}
-              disabled={isPending || !appointment}
+              disabled={!appointment}
             >
-              {isPending
-                ? "Completing..."
-                : nothingToCollect
-                  ? "Complete"
-                  : `Confirm · collect ${formatBDT(dueMinor)}`}
+              {nothingToCollect
+                ? "Complete"
+                : `Confirm · collect ${formatBDT(dueMinor)}`}
             </Button>
           </div>
         </div>

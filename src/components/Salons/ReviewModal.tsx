@@ -12,19 +12,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Star } from "lucide-react";
 import { createReview } from "@/services/review/createReview";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 
 interface ReviewModalProps {
   open: boolean;
   onClose: () => void;
   appointmentId: string;
+  /** Lets the action refresh this salon's rating on the page behind the modal. */
+  salonId?: string;
 }
 
-const ReviewModal = ({ open, onClose, appointmentId }: ReviewModalProps) => {
+const ReviewModal = ({ open, onClose, appointmentId, salonId }: ReviewModalProps) => {
   const [rating, setRating] = useState<number>(0);
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const handleSubmit = async () => {
     if (rating === 0) {
@@ -33,7 +33,7 @@ const ReviewModal = ({ open, onClose, appointmentId }: ReviewModalProps) => {
     }
 
     setLoading(true);
-    const res = await createReview({ appointmentId, rating, comment });
+    const res = await createReview({ appointmentId, rating, comment }, salonId);
     setLoading(false);
 
     if (res.success) {
@@ -41,7 +41,6 @@ const ReviewModal = ({ open, onClose, appointmentId }: ReviewModalProps) => {
       setRating(0);
       setComment("");
       onClose();
-      router.refresh();
     } else {
       toast.error(res.message || "Failed to submit review");
     }

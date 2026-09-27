@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -31,7 +30,7 @@ import type { ApiResponse } from "@/lib/api-types";
 import { formatBDT, toMinor, toTaka } from "@/lib/money";
 import { providerLabel } from "@/lib/payment-providers";
 import type { AdminTopup } from "@/services/payments/getAdminTopups";
-import { refundTopup } from "@/services/payments/refundTopup";
+import type { RefundTopupResult } from "@/services/payments/refundTopup";
 
 const REASON_MIN = 3;
 const REASON_MAX = 255;
@@ -57,12 +56,17 @@ const SummaryRow = ({ label, children }: { label: string; children: ReactNode })
 
 export function RefundDialog({
   topup,
+  onRefund,
   onClose,
 }: {
   topup: AdminTopup;
+  /** Sends the refund and marks the row as refunding until the fresh list lands. */
+  onRefund: (
+    topupId: string,
+    payload: { amount?: number; reason: string },
+  ) => Promise<ApiResponse<RefundTopupResult>>;
   onClose: () => void;
 }) {
-  const router = useRouter();
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [reasonTouched, setReasonTouched] = useState(false);
@@ -104,13 +108,12 @@ export function RefundDialog({
     setSending(true);
     setError(null);
 
-    const result = await refundTopup(topup.id, {
+    const result = await onRefund(topup.id, {
       amount: typed ? Number(typed) : undefined,
       reason: reason.trim(),
     });
 
     setSending(false);
-    router.refresh();
 
     if (result.success && result.data?.status === "COMPLETED") {
       toast.success("Refund sent", {

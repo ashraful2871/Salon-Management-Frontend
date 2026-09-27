@@ -32,7 +32,8 @@ export default function AddCounterModal({
   open: boolean;
   setOpen: (v: boolean) => void;
   salonId: string;
-  onCreate: () => void;
+  /** The list refreshes itself: the create action sends the updated page back. */
+  onCreate?: () => void;
 }) {
   const [state, formAction, isPending] = useActionState(createCounter, null);
   const [form, setForm] = React.useState<AddCounterPayload>({
@@ -53,7 +54,7 @@ export default function AddCounterModal({
 
     if (state?.success) {
       toast.success(state?.message || "Counter Added Successfully");
-      onCreate();
+      onCreate?.();
       setOpen(false);
 
       setTimeout(() => {

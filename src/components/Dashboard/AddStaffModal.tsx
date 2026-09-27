@@ -43,7 +43,8 @@ export default function AddStaffModal({
   open: boolean;
   setOpen: (v: boolean) => void;
   salonId: string;
-  onCreate: (payload: AddStaffPayload) => Promise<void> | void;
+  /** The list refreshes itself: the create action sends the updated page back. */
+  onCreate?: (payload: AddStaffPayload) => Promise<void> | void;
 }) {
   // ✅ Hook Server Action (same as AddSalonModal)
   const [state, formAction, isPending] = useActionState(addStaff, null);
@@ -67,7 +68,7 @@ export default function AddStaffModal({
 
     if (state?.success) {
       toast.success(state?.message || "Staff Added Successfully");
-      onCreate(state.data as unknown as AddStaffPayload); // Pass data back if you want
+      onCreate?.(state.data as unknown as AddStaffPayload); // Pass data back if you want
       setOpen(false);
 
       // Reset (same pattern you used)

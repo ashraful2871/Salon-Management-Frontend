@@ -1,10 +1,14 @@
+import { Suspense } from "react";
 import { getMyWallet, type Wallet } from "@/services/wallet/getMyWallet";
 import { getDisplayUser } from "@/services/auth/displayUser";
 import NavbarClient from "./NavbarClient";
 import { getMyEarnings } from "@/services/settlement/getMyEarnings";
 import { getPlatformEarnings } from "@/services/settlement/getPlatformEarnings";
 
-const Navbar = async () => {
+// Only the account half of the header waits on the API. The logo, links and
+// location chip render at once around a skeleton, so a slow or down API never
+// holds the whole page behind the navbar.
+async function NavbarAccount() {
   // Reading the token directly is what used to make the header flip to
   // "Sign in" an hour after sign-in while the session itself was still good.
   // `getSessionUser` (inside `getDisplayUser`) renews an expired token before
@@ -46,6 +50,12 @@ const Navbar = async () => {
       adminRevenueMinor={adminRevenueMinor}
     />
   );
-};
+}
 
-export default Navbar;
+export default function Navbar() {
+  return (
+    <Suspense fallback={<NavbarClient user={null} wallet={null} accountLoading />}>
+      <NavbarAccount />
+    </Suspense>
+  );
+}

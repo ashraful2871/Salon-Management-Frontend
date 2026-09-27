@@ -4,7 +4,7 @@ import "./globals.css";
 import { Suspense } from "react";
 import LoginSuccessToast from "@/components/Shared/LoginSuccessToast";
 import LogoutSuccessToast from "@/components/Shared/LogoutSuccessToast";
-import { RouteProgressBar } from "@/components/Shared/RouteProgressBar";
+import { NavProgress } from "@/components/Shared/NavProgress";
 import { AppToaster } from "@/components/Shared/AppToaster";
 
 const outfit = Outfit({
@@ -48,7 +48,7 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <LoginSuccessToast />
           <LogoutSuccessToast />
-          <RouteProgressBar />
+          <NavProgress />
         </Suspense>
       </body>
     </html>

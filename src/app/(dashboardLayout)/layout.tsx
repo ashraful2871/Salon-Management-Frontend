@@ -2,6 +2,7 @@ import { DashboardShell } from "@/components/layout/DashboardSidebar";
 import SessionKeeper from "@/components/Shared/SessionKeeper";
 import { requireUser } from "@/lib/auth-guard";
 import { getDisplayUser } from "@/services/auth/displayUser";
+import { cookies } from "next/headers";
 import React from "react";
 
 export const dynamic = "force-dynamic";
@@ -28,10 +29,13 @@ const CommonDashboardLayout = async ({
   const user = await requireUser();
   // Same session, with the real name filled in for the top bar.
   const display = (await getDisplayUser()) ?? user;
+  // The sidebar's collapse toggle writes this, so a reload renders it as left.
+  const collapsed = (await cookies()).get("sm_sidebar")?.value === "1";
 
   return (
     <DashboardShell
       user={{ role: user.role, name: display.name, email: user.email }}
+      initialCollapsed={collapsed}
     >
       <SessionKeeper />
       {children}

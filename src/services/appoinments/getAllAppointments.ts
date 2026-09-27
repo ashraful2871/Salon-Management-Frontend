@@ -1,5 +1,6 @@
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse, Appointment } from "@/lib/api-types";
+import { TAGS } from "@/lib/cache-tags";
 
 export type AppointmentListParams = {
   date?: string;
@@ -24,7 +25,7 @@ export const getAllAppointments = async (
       {
         next: {
           revalidate: 30,
-          tags: ["appointments"],
+          tags: [TAGS.appointments],
         },
       },
     );

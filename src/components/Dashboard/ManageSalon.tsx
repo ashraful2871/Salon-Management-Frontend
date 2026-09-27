@@ -2,8 +2,7 @@
 "use client";
 
 import React, { useState, useActionState, useEffect } from "react";
-import { motion } from "framer-motion";
-import Image from "next/image";
+import SafeImage from "@/components/Shared/SafeImage";
 import {
   MapPin,
   Phone,
@@ -37,10 +36,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner"; // Assuming you use sonner or similar for toasts
 import { updateSalon } from "@/services/salon/updateSalon";
-import AddStaffModal, { AddStaffPayload } from "./AddStaffModal";
+import AddStaffModal from "./AddStaffModal";
 import AddCounterModal from "./AddCounterModal";
 import SalonLocationTab, { type SalonLocationFields } from "./SalonLocationTab";
-import { useRouter } from "next/navigation";
 
 /* ---------------- Types ---------------- */
 
@@ -110,21 +108,6 @@ const formatTime = (time: string) => {
   return `${hour12}:${String(mm).padStart(2, "0")} ${suffix}`;
 };
 
-const getValidImage = (url?: string | null) => {
-  const dummyImage = "https://i.ibb.co/jZWzbYnM/lindsay-cash-Md-Dha-Fsn-CQ-unsplash.jpg";
-  if (!url) return dummyImage;
-  const trimmed = url.trim();
-  if (
-    trimmed === "" || 
-    trimmed === "null" || 
-    trimmed === "undefined" ||
-    !(trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("/") || trimmed.startsWith("data:"))
-  ) {
-    return dummyImage;
-  }
-  return trimmed;
-};
-
 const getStatusBadge = (status: string) => {
   switch (status) {
     case "APPROVED":
@@ -158,13 +141,23 @@ export default function ManageSalon({
 
   // 2. Local State for Inputs (Immediate UI Feedback)
   const [salon, setSalon] = useState<SalonData>(initialData);
+  // The page an add-staff, add-counter or save action sends back brings fresh
+  // lists, which only the server changes; the form fields stay as typed.
+  const [syncedData, setSyncedData] = useState(initialData);
+  if (syncedData !== initialData) {
+    setSyncedData(initialData);
+    setSalon((prev) => ({
+      ...prev,
+      staff: initialData.staff,
+      counters: initialData.counters,
+    }));
+  }
   // `?tab=location` (from the "Set exact location" banner) opens that tab.
   const [tab, setTab] = useState(
     initialTab && TABS.includes(initialTab) ? initialTab : "edit",
   );
   const [openAddStaff, setOpenAddStaff] = useState(false);
   const [openAddCounter, setOpenAddCounter] = useState(false);
-  const router = useRouter();
 
   // 3. Handle Success/Error Toasts
   useEffect(() => {
@@ -195,17 +188,14 @@ export default function ManageSalon({
   return (
     <div className="space-y-6 pb-20">
       {/* --- Header Section --- */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col gap-6"
-      >
+      <div className="flex flex-col gap-6">
         <div className="relative h-48 w-full rounded-2xl overflow-hidden bg-muted">
           {/* Cover Image Logic */}
-          <Image
-            src={getValidImage(salon?.images?.[0])}
+          <SafeImage
+            src={salon?.images?.[0]}
             alt="Salon Cover"
             fill
+            sizes="(min-width: 1024px) 60vw, 100vw"
             className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -220,7 +210,7 @@ export default function ManageSalon({
             {getStatusBadge(salon.status)}
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* --- Tabs for Management --- */}
       <Tabs value={tab} onValueChange={setTab} className="w-full">
@@ -244,7 +234,6 @@ export default function ManageSalon({
               type="submit"
               form="salon-update-form" // This links the button to the form inside the Tab
               disabled={isPending}
-              className="bg-sage hover:bg-sage/90 text-white"
             >
               {isPending ? (
                 <>
@@ -366,7 +355,7 @@ export default function ManageSalon({
 
         {/* ================= EDIT TAB (FORM START) ================= */}
         <TabsContent value="edit">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <div>
             {/* ✅ FORM WRAPPER */}
             <form id="salon-update-form" action={formAction}>
               {/* ✅ HIDDEN INPUTS TO PASS COMPLEX STATE */}
@@ -564,7 +553,7 @@ export default function ManageSalon({
                 </div>
               </div>
             </form>
-          </motion.div>
+          </div>
         </TabsContent>
 
         {/* ================= STAFF TAB ================= */}
@@ -640,7 +629,6 @@ export default function ManageSalon({
                 longitude,
                 locationAccuracy: "EXACT",
               }));
-              router.refresh();
             }}
           />
         </TabsContent>
@@ -707,19 +695,11 @@ export default function ManageSalon({
         open={openAddStaff}
         setOpen={setOpenAddStaff}
         salonId={salon.id}
-        onCreate={async (payload: AddStaffPayload) => {
-          // Staff is created via useActionState inside AddStaffModal.
-          // This callback fires on success — we just need to refresh the data.
-          router.refresh();
-        }}
       />
       <AddCounterModal
         open={openAddCounter}
         setOpen={setOpenAddCounter}
         salonId={salon.id}
-        onCreate={() => {
-          router.refresh();
-        }}
       />
     </div>
   );

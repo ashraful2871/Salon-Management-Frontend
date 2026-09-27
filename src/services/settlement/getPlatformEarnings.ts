@@ -3,6 +3,7 @@
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse } from "@/lib/api-types";
 import type { PlatformEarnings } from "./settlement-types";
+import { TAGS } from "@/lib/cache-tags";
 
 /** The platform's own side of the ledger. ADMIN only. */
 export const getPlatformEarnings = async (): Promise<
@@ -10,7 +11,7 @@ export const getPlatformEarnings = async (): Promise<
 > => {
   try {
     const response = await serverFetch.get("/settlements/platform-earnings", {
-      next: { revalidate: 30, tags: ["earnings", "dashboard-stats"] },
+      next: { revalidate: 30, tags: [TAGS.earnings, TAGS.dashboardStats] },
     });
 
     return await response.json();

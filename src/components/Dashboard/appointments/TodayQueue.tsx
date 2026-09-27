@@ -5,10 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { Appointment } from "@/lib/api-types";
+import { useLiveQueue } from "@/hooks/useLiveQueue";
 import { StatusBadge } from "./StatusBadge";
 import { PaymentBadge } from "./PaymentBadge";
 import { NextAction } from "./NextAction";
 import { formatTime12 } from "./format";
+import { useAppointmentActions } from "./useAppointmentActions";
+
+// "2:30 PM" in Dhaka, so the server's render and the browser's agree.
+const clock = new Intl.DateTimeFormat("en-US", {
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: "Asia/Dhaka",
+});
 
 const DONE = new Set(["COMPLETED", "CANCELLED", "NO_SHOW"]);
 
@@ -20,15 +29,24 @@ const bySerial = (a: Appointment, b: Appointment) =>
 
 export const TodayQueue = ({ appointments }: { appointments: Appointment[] }) => {
   const [showCancelled, setShowCancelled] = useState(false);
+  const actions = useAppointmentActions();
+  // Only the queue is polled, and never over a change still in flight.
+  const { queue, updatedAt } = useLiveQueue(
+    appointments,
+    20_000,
+    actions.pendingId !== null,
+  );
+  const { withPending } = actions;
+  const bookings = useMemo(() => withPending(queue), [withPending, queue]);
 
-  const cancelledCount = appointments.filter(
+  const cancelledCount = bookings.filter(
     (a) => a.status === "CANCELLED",
   ).length;
 
   // One line per service and counter, which is how serials are numbered.
   const lines = useMemo(() => {
     const byLine = new Map<string, Appointment[]>();
-    for (const a of appointments) {
+    for (const a of bookings) {
       if (a.status === "CANCELLED" && !showCancelled) continue;
       const key = `${a.service?.name ?? "Service"} · ${a.counter?.name ?? "No counter"}`;
       byLine.set(key, [...(byLine.get(key) ?? []), a]);
@@ -36,12 +54,18 @@ export const TodayQueue = ({ appointments }: { appointments: Appointment[] }) =>
     return [...byLine.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([key, rows]) => ({ key, rows: rows.sort(bySerial) }));
-  }, [appointments, showCancelled]);
+  }, [bookings, showCancelled]);
 
   return (
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
-        <CardTitle>Today&apos;s queue</CardTitle>
+        <div>
+          <CardTitle>Today&apos;s queue</CardTitle>
+          {/* The server's render and the browser's can straddle a minute. */}
+          <p className="text-xs text-muted-foreground" suppressHydrationWarning>
+            Updated {clock.format(updatedAt)}
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           <Switch
             id="queue-show-cancelled"
@@ -90,18 +114,19 @@ export const TodayQueue = ({ appointments }: { appointments: Appointment[] }) =>
                             {formatTime12(a.startTime)}
                           </span>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">
-                              {name}
-                              {a.customer?.phone && (
-                                <span className="font-normal text-muted-foreground">
-                                  {" "}
-                                  ({a.customer.phone})
-                                </span>
-                              )}
-                            </p>
-                            {a.token && (
-                              <p className="text-[11px] font-mono font-semibold tracking-wider text-muted-foreground">
-                                {a.token}
+                            <p className="text-sm font-medium truncate">{name}</p>
+                            {/* Phone and token on their own line, so a narrow
+                                screen never cuts the number off. */}
+                            {(a.customer?.phone || a.token) && (
+                              <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                                {a.customer?.phone && (
+                                  <span className="tabular-nums">{a.customer.phone}</span>
+                                )}
+                                {a.token && (
+                                  <span className="font-mono text-[11px] font-semibold tracking-wider">
+                                    {a.token}
+                                  </span>
+                                )}
                               </p>
                             )}
                           </div>
@@ -110,7 +135,7 @@ export const TodayQueue = ({ appointments }: { appointments: Appointment[] }) =>
                         <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                           <StatusBadge status={a.status} />
                           <PaymentBadge appointment={a} viewer="owner" />
-                          <NextAction appointment={a} />
+                          <NextAction appointment={a} actions={actions} />
                         </div>
                       </li>
                     );

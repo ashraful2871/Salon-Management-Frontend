@@ -43,7 +43,8 @@ export default function AddServiceModal({
   open: boolean;
   setOpen: (v: boolean) => void;
   salons: { id: string; name: string }[];
-  onCreate: () => void;
+  /** The list refreshes itself: the create action sends the updated page back. */
+  onCreate?: () => void;
 }) {
   const [state, formAction, isPending] = useActionState(createService, null);
 
@@ -67,7 +68,7 @@ export default function AddServiceModal({
     
     if (state?.success) {
       toast.success(state?.message || "Service Created Successfully");
-      onCreate();
+      onCreate?.();
       setOpen(false);
       setTimeout(() => {
         setForm({

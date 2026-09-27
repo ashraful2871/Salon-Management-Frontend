@@ -16,6 +16,8 @@ export const TONE_CLASSES: Record<Tone, { soft: string; text: string; dot: strin
 // Anything not listed (INACTIVE, OFF, UNRECORDED, NOT_APPLICABLE, …) is neutral.
 const STATUS_TONE: Record<string, Tone> = {
   PENDING: "warning",
+  PENDING_APPROVAL: "warning",
+  INITIATED: "warning",
   CONFIRMED: "info",
   CHECKED_IN: "primary",
   IN_PROGRESS: "primary",

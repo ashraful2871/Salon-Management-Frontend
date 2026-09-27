@@ -1,5 +1,6 @@
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse, Salon, SalonQuery } from "@/lib/api-types";
+import { TAGS } from "@/lib/cache-tags";
 
 export const getAllSalon = async (
   query?: SalonQuery,
@@ -32,7 +33,7 @@ export const getAllSalon = async (
         : {
             next: {
               revalidate: 60,
-              tags: ["salons"],
+              tags: [TAGS.salons],
             },
           },
     );

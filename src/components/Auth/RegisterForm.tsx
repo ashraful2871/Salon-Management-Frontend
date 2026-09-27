@@ -10,6 +10,7 @@ import {
   Eye,
   Sparkles,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 import { Input } from "../ui/input";
@@ -39,10 +40,12 @@ const RegisterForm = ({ googleEnabled = false }: { googleEnabled?: boolean }) =>
       {/* Left Side - Image Showcase */}
       <div className="hidden lg:flex lg:w-1/2 relative p-4">
         <div className="w-full h-full rounded-[2.5rem] bg-slate-900 overflow-hidden relative shadow-2xl">
-          <img 
-            src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1200&h=1600&fit=crop" 
-            alt="Salon Journey" 
-            className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay"
+          <Image
+            src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1200&h=1600&fit=crop"
+            alt="Salon Journey"
+            fill
+            sizes="(min-width: 1024px) 50vw, 0px"
+            className="object-cover opacity-60 mix-blend-overlay"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
           

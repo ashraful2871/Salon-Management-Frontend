@@ -1,12 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { motion } from "framer-motion";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -16,7 +14,6 @@ import {
 } from "@/components/ui/select";
 import {
   Calendar as CalendarIcon,
-  Plus,
   Clock,
   User,
   Search,
@@ -25,8 +22,8 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
-  Filter,
   ListFilter,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -42,25 +39,28 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { formatBDT } from "@/lib/money";
-import { updateAppointmentStatus } from "@/services/appoinments/updateAppointmentStatus";
-import { cancelAppointment } from "@/services/appoinments/cancelAppointment";
 import { getStaffBySalon } from "@/services/staff/getStaffBySalon";
-import { checkInAppointment } from "@/services/appoinments/checkInAppointment";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import type {
   Appointment,
   AppointmentStatus,
-  CashSummary as CashSummaryData,
   PaginationMeta,
 } from "@/lib/api-types";
+import { useFilterNavigation } from "@/hooks/useFilterNavigation";
+import { PendingBar, PendingRegion } from "@/components/Shared/PendingRegion";
+import { Skeleton } from "@/components/ui/skeleton";
 import { showResultToast } from "@/components/Shared/showResultToast";
 import { StatusBadge } from "@/components/Dashboard/appointments/StatusBadge";
 import { PaymentBadge } from "@/components/Dashboard/appointments/PaymentBadge";
 import { CheckoutDialog } from "@/components/Dashboard/appointments/CheckoutDialog";
 import { TokenLookup } from "@/components/Dashboard/appointments/TokenLookup";
-import { CashSummary } from "@/components/Dashboard/appointments/CashSummary";
-import { TodayQueue } from "@/components/Dashboard/appointments/TodayQueue";
 import { QueueTabs } from "@/components/Dashboard/appointments/QueueTabs";
+import { useAppointmentActions } from "@/components/Dashboard/appointments/useAppointmentActions";
+import { PageHeader } from "@/components/Shared/PageHeader";
+import { StatCard } from "@/components/Shared/StatCard";
+import { ToneBadge } from "@/components/Shared/ToneBadge";
+import { EmptyState } from "@/components/Shared/EmptyState";
+import { toneOf, TONE_CLASSES } from "@/lib/status-tone";
 
 type ApiAppointment = any;
 
@@ -136,18 +136,17 @@ const Appointments = ({
   userRole = "GUEST",
   meta,
   filters = { date: null, status: "ALL", searchTerm: "" },
-  queue = [],
-  cashSummary = null,
-  cashDate = null,
+  queueSlot = null,
+  cashSlot = null,
 }: {
   appointments: ApiAppointment[];
   userRole?: string;
   meta?: PaginationMeta;
   filters?: AppointmentFilters;
-  /** Every booking today, unpaginated. Salon desk only. */
-  queue?: Appointment[];
-  cashSummary?: CashSummaryData | null;
-  cashDate?: string | null;
+  /** Today's whole queue, streamed in on its own. Salon desk only. */
+  queueSlot?: ReactNode;
+  /** The day's takings, streamed in on its own. Owners only. */
+  cashSlot?: ReactNode;
 }) => {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [cancelId, setCancelId] = useState<string | null>(null);
@@ -156,6 +155,7 @@ const Appointments = ({
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [staffList, setStaffList] = useState<any[]>([]);
   const [selectedStaff, setSelectedStaff] = useState("");
+  const [staffLoading, setStaffLoading] = useState(false);
   const [assigningAppointment, setAssigningAppointment] = useState<{ id: string, salonId: string, currentStatus: string } | null>(null);
 
   // Collect Modal State
@@ -163,8 +163,9 @@ const Appointments = ({
   const [collectingAppointment, setCollectingAppointment] =
     useState<Appointment | null>(null);
 
-  const [isPending, startTransition] = useTransition();
-  const router = useRouter();
+  const actions = useAppointmentActions();
+  const { withPending, isPending } = actions;
+  const { navigate } = useFilterNavigation();
   const pathname = usePathname();
 
   // Filters live in the URL and the server applies them, so a refresh or a
@@ -185,7 +186,9 @@ const Appointments = ({
     if (next.searchTerm) params.set("searchTerm", next.searchTerm);
     if (next.page > 1) params.set("page", String(next.page));
     const qs = params.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname);
+    // In a transition: the current list stays up, dimmed, until the new one
+    // is ready, rather than the route falling back to its skeleton.
+    navigate(qs ? `${pathname}?${qs}` : pathname);
   };
 
   // Typed locally and sent on Enter; re-synced when the URL changes under it
@@ -197,17 +200,9 @@ const Appointments = ({
     setSearchInput(filters.searchTerm);
   }
 
-  // ✅ Auto-polling: refresh data every 15 seconds for real-time updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      router.refresh();
-    }, 15000);
-    return () => clearInterval(interval);
-  }, [router]);
-
   // The clock the action gating reads. It ticks on its own so a Cancel button
   // disappears the moment the appointment starts, rather than sitting there
-  // until the next poll for the customer to click and be refused.
+  // until the page is next loaded for the customer to click and be refused.
   const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
     const interval = setInterval(() => setNowMs(Date.now()), 30000);
@@ -216,10 +211,16 @@ const Appointments = ({
 
   const isCustomer = userRole === "CUSTOMER";
 
+  // The server's rows with any change still in flight laid over them.
+  const items = useMemo(
+    () => withPending(appointments || []),
+    [withPending, appointments],
+  );
+
   const normalized = useMemo(() => {
     const today = todayYMD();
 
-    return (appointments || []).map((apt) => {
+    return items.map((apt) => {
       const date = toYMD(apt.appointmentDate);
       const startsAt = startsAtOf(date, apt?.startTime);
       const name = apt?.customer?.name?.trim();
@@ -280,8 +281,8 @@ const Appointments = ({
       };
     });
     // `nowMs` ticks so a Cancel button disappears on its own at the start time
-    // rather than waiting for the next poll.
-  }, [appointments, nowMs]);
+    // rather than waiting for the next page load.
+  }, [items, nowMs]);
 
   // Server totals across every page for the current date and search; the
   // status filter is left out of them so each chip shows its own total.
@@ -312,29 +313,23 @@ const Appointments = ({
   const totalPages = Math.max(Math.ceil(total / limit), 1);
   const firstShown = (page - 1) * limit + 1;
 
-  const handleCheckIn = (appointmentId: string) => {
-    startTransition(async () => {
-      const res = await checkInAppointment(appointmentId);
-      showResultToast(res, "Checked in", "Failed to check in");
-      router.refresh();
-    });
-  };
+  const handleCheckIn = (appointmentId: string) => actions.checkIn(appointmentId);
 
+  // The row shows Cancelled at once (and goes back, with an error toast, if the
+  // API refuses), so the dialog has nothing left to wait for.
   const handleCancel = () => {
     if (!cancelId) return;
-    startTransition(async () => {
-      const res = await cancelAppointment(cancelId);
-      showResultToast(res, "Appointment cancelled successfully", "Failed to cancel appointment");
-      setCancelId(null);
-      router.refresh();
-    });
+    setCancelId(null);
+    actions.cancel(cancelId);
   };
 
   const handleOpenAssignModal = async (appointmentId: string, salonId: string, currentStatus: string) => {
     setAssigningAppointment({ id: appointmentId, salonId, currentStatus });
     setAssignModalOpen(true);
     setStaffList([]); // Reset before fetch
+    setStaffLoading(true);
     const res = await getStaffBySalon(salonId);
+    setStaffLoading(false);
     if (res?.success && res.data) {
       setStaffList(res.data);
     } else {
@@ -344,146 +339,119 @@ const Appointments = ({
 
   const handleAssignStaff = () => {
     if (!assigningAppointment || !selectedStaff) return;
-    startTransition(async () => {
-      const statusToSet = assigningAppointment.currentStatus === "PENDING" ? "CONFIRMED" : assigningAppointment.currentStatus;
-      const res = await updateAppointmentStatus(assigningAppointment.id, statusToSet, selectedStaff);
-      showResultToast(res, "Staff assigned successfully", "Failed to assign staff");
-      setAssignModalOpen(false);
-      setSelectedStaff("");
-      router.refresh();
-    });
+    const statusToSet = (assigningAppointment.currentStatus === "PENDING" ? "CONFIRMED" : assigningAppointment.currentStatus) as AppointmentStatus;
+    const staff = staffList.find((s) => s.id === selectedStaff);
+    actions.assign(
+      assigningAppointment.id,
+      selectedStaff,
+      statusToSet,
+      staff && { id: staff.id, user: staff.user },
+    );
+    setAssignModalOpen(false);
+    setSelectedStaff("");
   };
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-4"
-      >
-        <div>
-          <h1 className="font-display text-3xl font-bold">Appointments</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your salon appointments
-          </p>
-        </div>
-      </motion.div>
+    <div className="space-y-6">
+      <PageHeader
+        title={isCustomer ? "My bookings" : "Appointments"}
+        description={
+          isCustomer
+            ? "Your upcoming and past salon bookings"
+            : "Manage your salon appointments"
+        }
+      />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: "Total", value: totalCount, icon: CalendarIcon },
-          { label: "Pending", value: pendingCount, icon: Clock },
-          { label: "Confirmed", value: confirmedCount, icon: User },
-          { label: "Completed", value: completedCount, icon: CheckCircle2 },
-        ].map((stat, index) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card>
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                  <stat.icon className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+        <StatCard label="Total" value={totalCount} icon={CalendarIcon} />
+        <StatCard label="Pending" value={pendingCount} icon={Clock} tone="warning" />
+        <StatCard label="Confirmed" value={confirmedCount} icon={User} tone="info" />
+        <StatCard
+          label="Completed"
+          value={completedCount}
+          icon={CheckCircle2}
+          tone="success"
+        />
       </div>
 
       {/* Counter desk: token lookup and the day's takings */}
       {opensOnToday && (
         <div className="space-y-4">
           <TokenLookup />
-          {cashSummary && cashDate && (
-            <CashSummary summary={cashSummary} date={cashDate} />
-          )}
+          {cashSlot}
         </div>
       )}
 
-      <QueueTabs enabled={opensOnToday} queue={<TodayQueue appointments={queue} />}>
-      {/* Filters Toolbar */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
-      >
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex flex-col lg:flex-row gap-3">
-              {/* Status Dropdown */}
-              <div className="flex items-center gap-2">
-                <ListFilter className="h-4 w-4 text-muted-foreground shrink-0" />
-                <Select
-                  value={statusFilter}
-                  onValueChange={(val) => pushFilters({ status: val })}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        <div className="flex items-center justify-between gap-3 w-full">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`h-2 w-2 rounded-full ${
-                                opt.value === "ALL"
-                                  ? "bg-foreground"
-                                  : opt.value === "PENDING"
-                                    ? "bg-yellow-500"
-                                    : opt.value === "CONFIRMED"
-                                      ? "bg-emerald-500"
-                                      : opt.value === "IN_PROGRESS"
-                                        ? "bg-amber-500"
-                                        : opt.value === "COMPLETED"
-                                          ? "bg-primary"
-                                          : "bg-destructive"
-                              }`}
-                            />
-                            <span>{opt.label}</span>
-                          </div>
-                          <span className="text-xs text-muted-foreground ml-auto">
-                            {opt.count}
-                          </span>
+      <QueueTabs enabled={opensOnToday} queue={queueSlot}>
+      {/* Filters Toolbar. Every group wraps as a unit, so nothing is pushed
+          past the card edge on a tablet or a narrow laptop. */}
+      <div className="relative">
+        <Card className="gap-0 py-0">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              {/* Status */}
+              <Select
+                value={statusFilter}
+                onValueChange={(val) => pushFilters({ status: val })}
+              >
+                <SelectTrigger className="w-full sm:w-48" aria-label="Status">
+                  <ListFilter className="text-muted-foreground" />
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <div className="flex w-full items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`h-2 w-2 rounded-full ${
+                              opt.value === "ALL"
+                                ? "bg-foreground"
+                                : TONE_CLASSES[toneOf(opt.value)].dot
+                            }`}
+                          />
+                          <span>{opt.label}</span>
                         </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                        <span className="ml-auto text-xs text-muted-foreground">
+                          {opt.count}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-              {/* Divider */}
-              <div className="hidden lg:block w-px bg-border" />
-
-              {/* Date Navigation */}
-              <div className="flex items-center gap-1 relative">
+              {/* Date: a quick pair and a stepper, each wrapping as one piece */}
+              <div className="flex items-center gap-1.5">
                 <Button
                   variant={selectedDate === null ? "default" : "outline"}
                   size="sm"
-                  className="text-xs"
                   onClick={() => {
                     pushFilters({ date: null });
                     setCalendarOpen(false);
                   }}
                 >
-                  All Dates
+                  All dates
                 </Button>
+                <Button
+                  variant={selectedDate === todayYMD() ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    pushFilters({ date: todayYMD() });
+                    setCalendarOpen(false);
+                  }}
+                >
+                  Today
+                </Button>
+              </div>
 
-                <div className="h-6 w-px bg-border mx-1" />
-
+              <div className="relative flex items-center rounded-full border border-border bg-surface">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="size-8 rounded-full"
+                  aria-label="Previous day"
                   onClick={() => {
                     const current = selectedDate || new Date().toISOString().slice(0, 10);
                     pushFilters({ date: addDays(current, -1) });
@@ -494,37 +462,27 @@ const Appointments = ({
 
                 <button
                   type="button"
-                  className={`px-3 py-1.5 text-sm font-medium hover:bg-muted rounded-md transition-colors flex items-center gap-2 cursor-pointer ${
-                    selectedDate ? "text-primary" : "text-muted-foreground"
+                  className={`flex h-8 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-sm font-medium transition-colors hover:bg-muted ${
+                    selectedDate ? "text-foreground" : "text-muted-foreground"
                   }`}
                   onClick={() => setCalendarOpen((v) => !v)}
+                  aria-expanded={calendarOpen}
                 >
                   <CalendarIcon className="h-4 w-4" />
-                  {selectedDate ? formatDateLabel(selectedDate) : "Select Date"}
+                  {selectedDate ? formatDateLabel(selectedDate) : "Pick a date"}
                 </button>
 
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="size-8 rounded-full"
+                  aria-label="Next day"
                   onClick={() => {
                     const current = selectedDate || new Date().toISOString().slice(0, 10);
                     pushFilters({ date: addDays(current, 1) });
                   }}
                 >
                   <ChevronRight className="h-4 w-4" />
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs"
-                  onClick={() => {
-                    pushFilters({ date: todayYMD() });
-                    setCalendarOpen(false);
-                  }}
-                >
-                  Today
                 </Button>
 
                 {/* Calendar Dropdown */}
@@ -540,148 +498,111 @@ const Appointments = ({
                 )}
               </div>
 
-              {/* Divider */}
-              <div className="hidden lg:block w-px bg-border" />
-
-              {/* Search */}
+              {/* Search takes what is left, or a line of its own */}
               <form
-                className="relative flex-1 min-w-[200px]"
+                className="relative w-full min-w-[220px] sm:w-auto sm:flex-1"
                 onSubmit={(e) => {
                   e.preventDefault();
                   pushFilters({ searchTerm: searchInput.trim() });
                 }}
               >
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="search"
                   placeholder="Name, phone or token, then Enter"
+                  aria-label="Search bookings"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  className="pl-9 h-9"
+                  className="pl-9"
                 />
               </form>
 
-              {/* Clear Filters */}
               {(statusFilter !== "ALL" || selectedDate !== null || filters.searchTerm) && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-xs text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground"
                   onClick={() => {
                     setSearchInput("");
                     setCalendarOpen(false);
                     pushFilters({ status: "ALL", date: null, searchTerm: "" });
                   }}
                 >
-                  <XCircle className="h-3.5 w-3.5 mr-1" />
+                  <XCircle className="h-3.5 w-3.5" />
                   Clear
                 </Button>
               )}
             </div>
-
-            {/* Active filters summary */}
-            {(statusFilter !== "ALL" || selectedDate !== null) && (
-              <div className="flex items-center gap-2 mt-3 pt-3 border-t">
-                <span className="text-xs text-muted-foreground">Active filters:</span>
-                {statusFilter !== "ALL" && (
-                  <Badge
-                    variant="secondary"
-                    className="text-xs cursor-pointer hover:bg-destructive/10"
-                    onClick={() => pushFilters({ status: "ALL" })}
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full mr-1.5 ${
-                        statusFilter === "PENDING"
-                          ? "bg-yellow-500"
-                          : statusFilter === "CONFIRMED"
-                            ? "bg-emerald-500"
-                            : statusFilter === "IN_PROGRESS"
-                              ? "bg-amber-500"
-                              : statusFilter === "COMPLETED"
-                                ? "bg-primary"
-                                : "bg-destructive"
-                      }`}
-                    />
-                    {statusOptions.find((o) => o.value === statusFilter)?.label}
-                    <XCircle className="h-3 w-3 ml-1" />
-                  </Badge>
-                )}
-                {selectedDate && (
-                  <Badge
-                    variant="secondary"
-                    className="text-xs cursor-pointer hover:bg-destructive/10"
-                    onClick={() => pushFilters({ date: null })}
-                  >
-                    <CalendarIcon className="h-3 w-3 mr-1" />
-                    {formatDateLabel(selectedDate)}
-                    <XCircle className="h-3 w-3 ml-1" />
-                  </Badge>
-                )}
-              </div>
-            )}
           </CardContent>
         </Card>
-      </motion.div>
+        {/* Sits in the gap below the toolbar, so showing it moves nothing. */}
+        <PendingBar className="absolute inset-x-4 top-full mt-3" />
+      </div>
 
       {/* Appointments List */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-      >
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+      <div>
+        <PendingRegion>
+        <Card className="gap-4">
+          <CardHeader className="flex flex-row items-center justify-between gap-3 px-4 sm:px-6">
             <CardTitle>
-              {selectedDate ? formatDateLabel(selectedDate) : "All Appointments"}
+              {selectedDate ? formatDateLabel(selectedDate) : "All appointments"}
             </CardTitle>
-            <span className="text-sm text-muted-foreground">
+            <span className="shrink-0 text-sm text-muted-foreground">
               {total} appointment{total !== 1 ? "s" : ""}
             </span>
           </CardHeader>
 
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="px-3 sm:px-6">
+            <div className="space-y-3">
               {normalized.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  No appointments found.
-                </p>
+                <EmptyState
+                  icon={CalendarIcon}
+                  title="No appointments found"
+                  description={
+                    statusFilter !== "ALL" || selectedDate !== null || filters.searchTerm
+                      ? "Try another date, or clear the filters."
+                      : isCustomer
+                        ? "Your salon bookings will show up here."
+                        : "New bookings will show up here."
+                  }
+                />
               ) : (
                 normalized.map((appointment) => (
                   <div
                     key={appointment.id}
-                    className="group flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-5 rounded-xl border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md hover:border-primary/20"
+                    className="grid gap-4 rounded-xl border border-border bg-surface p-4 transition-colors hover:border-primary/30 sm:p-5 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,17rem)] xl:items-center xl:gap-6"
                   >
-                    {/* Left */}
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-gold font-bold text-white shadow-gold transition-transform group-hover:scale-105">
+                    {/* Who and what */}
+                    <div className="flex min-w-0 items-start gap-3 sm:gap-4">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-sm font-semibold text-primary-hover sm:size-11">
                         {getInitials(appointment.customer)}
                       </div>
 
-                      <div className="flex flex-col">
+                      <div className="min-w-0 flex-1">
                         {isCustomer ? (
                           // A customer's own name tells them nothing; their
                           // place in the line and the token to quote do.
                           <>
-                            <p className="font-semibold text-base text-foreground leading-none mb-1.5 tabular-nums">
+                            <p className="font-semibold leading-snug text-foreground tabular-nums">
                               {appointment.serialLine}
                             </p>
                             {(appointment.salonName || appointment.staffName) && (
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
+                              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted-foreground">
                                 {appointment.salonName && (
                                   <span>{appointment.salonName}</span>
                                 )}
                                 {appointment.salonName && appointment.staffName && (
-                                  <span className="h-1 w-1 rounded-full bg-border" />
+                                  <span aria-hidden="true" className="size-1 rounded-full bg-border" />
                                 )}
                                 {appointment.staffName && (
-                                  <span className="flex items-center gap-1">
+                                  <span className="inline-flex items-center gap-1">
                                     <User className="h-3 w-3" /> {appointment.staffName}
                                   </span>
                                 )}
-                              </div>
+                              </p>
                             )}
                             {appointment.token && (
-                              <span className="mt-2 inline-flex w-fit items-center h-6 px-2 rounded-md border border-dashed border-primary/40 bg-muted/40 text-[11px] font-mono font-semibold tracking-wider text-foreground">
+                              <span className="mt-2 inline-flex h-6 w-fit items-center rounded-md border border-dashed border-primary/40 bg-surface-subtle px-2 font-mono text-[11px] font-semibold tracking-wider text-foreground">
                                 {appointment.token}
                               </span>
                             )}
@@ -692,196 +613,198 @@ const Appointments = ({
                                 and what the counter calls, so it sits above the
                                 name rather than buried in the detail line. */}
                             {(appointment.token || appointment.serialNumber !== null) && (
-                              <div className="flex items-center gap-2 mb-2">
+                              <div className="mb-2 flex flex-wrap items-center gap-2">
                                 {appointment.serialNumber !== null && (
-                                  <span className="inline-flex items-center justify-center min-w-7 h-6 px-1.5 rounded-md bg-primary/10 text-primary text-xs font-bold tabular-nums">
+                                  <span className="inline-flex h-6 min-w-7 items-center justify-center rounded-md bg-primary-soft px-1.5 text-xs font-bold text-primary-hover tabular-nums">
                                     #{appointment.serialNumber}
                                   </span>
                                 )}
                                 {appointment.token && (
-                                  <span className="inline-flex items-center h-6 px-2 rounded-md border border-dashed border-primary/40 bg-muted/40 text-[11px] font-mono font-semibold tracking-wider text-foreground">
+                                  <span className="inline-flex h-6 items-center rounded-md border border-dashed border-primary/40 bg-surface-subtle px-2 font-mono text-[11px] font-semibold tracking-wider text-foreground">
                                     {appointment.token}
                                   </span>
                                 )}
                               </div>
                             )}
-                            <p className="font-semibold text-base text-foreground leading-none mb-1.5">{appointment.customer}</p>
+                            <p className="break-words font-semibold leading-snug text-foreground">
+                              {appointment.customer}
+                            </p>
                             {appointment.customerEmail && appointment.customerEmail !== appointment.customer && (
-                              <p className="text-xs text-muted-foreground/80 mb-1 leading-none">{appointment.customerEmail}</p>
+                              <p className="truncate text-xs text-muted-foreground">
+                                {appointment.customerEmail}
+                              </p>
                             )}
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
-                              <span className="font-medium text-primary/80">{appointment.service}</span>
+                            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted-foreground">
+                              <span className="font-medium text-primary-hover">{appointment.service}</span>
                               {appointment.salonName && (
                                 <>
-                                  <span className="h-1 w-1 rounded-full bg-border" />
+                                  <span aria-hidden="true" className="size-1 rounded-full bg-border" />
                                   <span>{appointment.salonName}</span>
                                 </>
                               )}
-                            </div>
+                            </p>
 
-                            {/* Optional extra line (still clean) */}
                             {(appointment.staffName || appointment.counterName) && (
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1.5">
+                              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                                 {appointment.staffName && (
-                                  <span className="flex items-center gap-1">
+                                  <span className="inline-flex items-center gap-1">
                                     <User className="h-3 w-3" /> {appointment.staffName}
                                   </span>
                                 )}
                                 {appointment.staffName && appointment.counterName && (
-                                  <span className="h-1 w-1 rounded-full bg-border" />
+                                  <span aria-hidden="true" className="size-1 rounded-full bg-border" />
                                 )}
                                 {appointment.counterName && (
                                   <span>Counter: {appointment.counterName}</span>
                                 )}
-                              </div>
+                              </p>
                             )}
                           </>
                         )}
                       </div>
                     </div>
 
-                    {/* Right side data & actions */}
-                    <div className="flex flex-col md:flex-row items-end md:items-center justify-between md:justify-end gap-4 md:gap-8 border-t md:border-t-0 pt-4 md:pt-0 mt-3 md:mt-0 w-full md:w-auto">
-                      
-                      {/* Info grid */}
-                      <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-6 sm:gap-8 text-right">
-                        {/* Show date when viewing all dates */}
-                        {!selectedDate && (
-                          <div className="hidden sm:block">
-                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                              Date
-                            </p>
-                            <p className="text-sm font-medium text-foreground leading-none">
-                              {new Date(appointment.date + "T00:00:00").toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              })}
-                            </p>
-                          </div>
+                    {/* When and how much */}
+                    <dl className="grid grid-cols-3 gap-3 border-t border-border pt-3 xl:flex xl:gap-8 xl:border-0 xl:pt-0">
+                      <div className="min-w-0">
+                        <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                          Date
+                        </dt>
+                        <dd className="mt-1 whitespace-nowrap text-sm font-medium text-foreground">
+                          {new Date(appointment.date + "T00:00:00").toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: selectedDate ? undefined : "numeric",
+                          })}
+                        </dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                          Time
+                        </dt>
+                        <dd className="mt-1 whitespace-nowrap text-sm font-semibold text-foreground tabular-nums">
+                          {appointment.time}
+                          <span className="ml-1 text-xs font-normal text-muted-foreground">
+                            {appointment.duration}
+                          </span>
+                        </dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                          Price
+                        </dt>
+                        <dd className="mt-1 whitespace-nowrap text-sm font-semibold text-foreground tabular-nums">
+                          {formatBDT(appointment.priceMinor)}
+                        </dd>
+                      </div>
+                    </dl>
+
+                    {/* Status and the one thing to do next */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 xl:justify-end">
+                      <div className="flex min-w-0 flex-wrap items-center gap-1.5 xl:justify-end">
+                        {isCustomer && appointment.rawStatus === "CHECKED_IN" ? (
+                          <ToneBadge status="CHECKED_IN" className="whitespace-normal text-left">
+                            {"Checked in – you're in the queue"}
+                          </ToneBadge>
+                        ) : (
+                          <StatusBadge status={appointment.rawStatus} />
                         )}
-                        
-                        <div>
-                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                            Time
-                          </p>
-                          <div className="flex items-baseline justify-end gap-1.5">
-                            <p className="text-sm font-bold tabular-nums text-foreground leading-none">{appointment.time}</p>
-                            <p className="text-[11px] font-medium text-muted-foreground tabular-nums leading-none">
-                              {appointment.duration}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div>
-                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-                            Price
-                          </p>
-                          <p className="text-sm font-bold tabular-nums text-foreground leading-none">
-                            {formatBDT(appointment.priceMinor)}
-                          </p>
-                        </div>
+                        <PaymentBadge
+                          appointment={appointment.raw}
+                          viewer={isCustomer ? "customer" : "owner"}
+                        />
                       </div>
 
-                      {/* Status & Actions */}
-                      <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-3 md:pt-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          {isCustomer && appointment.rawStatus === "CHECKED_IN" ? (
-                            <Badge className="bg-sky-600 text-white">
-                              {"Checked in – you're in the queue"}
-                            </Badge>
-                          ) : (
-                            <StatusBadge status={appointment.rawStatus} />
-                          )}
-                          <PaymentBadge
-                            appointment={appointment.raw}
-                            viewer={isCustomer ? "customer" : "owner"}
-                          />
-                        </div>
-
-                        {/* Status Actions Dropdown.
-                            Confirm and Start are gone: a paid booking is
-                            confirmed at checkout, and a booking starts itself
-                            when its time comes. NO_SHOW shows nothing at all so
-                            the automatic forfeiture is left alone. */}
-                        {isCustomer
-                          ? // Only a booking nobody has acted on yet can be
-                            // cancelled; from check-in on, the API refuses.
-                            !appointment.hasStarted &&
-                            (appointment.rawStatus === "PENDING" ||
-                              appointment.rawStatus === "CONFIRMED") && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={isPending}
-                                className="text-destructive hover:text-destructive"
-                                onClick={() => setCancelId(appointment.id)}
-                              >
-                                <XCircle className="mr-2 h-4 w-4" />
-                                Cancel
-                              </Button>
-                            )
-                          : // The salon works today's book. An upcoming or past
-                            // appointment is not something to act on from here.
-                            appointment.isToday &&
-                            appointment.rawStatus !== "COMPLETED" &&
-                            appointment.rawStatus !== "CANCELLED" &&
-                            appointment.rawStatus !== "NO_SHOW" &&
-                            (userRole === "SALON_OWNER" ||
-                              appointment.rawStatus !== "PENDING") && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={isPending}
+                      {/* Status Actions Dropdown.
+                          Confirm and Start are gone: a paid booking is
+                          confirmed at checkout, and a booking starts itself
+                          when its time comes. NO_SHOW shows nothing at all so
+                          the automatic forfeiture is left alone. */}
+                      {isCustomer
+                        ? // Only a booking nobody has acted on yet can be
+                          // cancelled; from check-in on, the API refuses.
+                          !appointment.hasStarted &&
+                          (appointment.rawStatus === "PENDING" ||
+                            appointment.rawStatus === "CONFIRMED") && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={isPending(appointment.id)}
+                              className="shrink-0 text-danger hover:bg-danger-soft hover:text-danger"
+                              onClick={() => setCancelId(appointment.id)}
+                            >
+                              {isPending(appointment.id) ? (
+                                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                              ) : (
+                                <XCircle className="h-4 w-4" />
+                              )}
+                              Cancel
+                            </Button>
+                          )
+                        : // The salon works today's book. An upcoming or past
+                          // appointment is not something to act on from here.
+                          appointment.isToday &&
+                          appointment.rawStatus !== "COMPLETED" &&
+                          appointment.rawStatus !== "CANCELLED" &&
+                          appointment.rawStatus !== "NO_SHOW" &&
+                          (userRole === "SALON_OWNER" ||
+                            appointment.rawStatus !== "PENDING") && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="shrink-0"
+                                  disabled={isPending(appointment.id)}
+                                >
+                                  {isPending(appointment.id) && (
+                                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                                  )}
+                                  Actions
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {appointment.rawStatus === "CONFIRMED" && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleCheckIn(appointment.id)}
                                   >
-                                    Actions
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  {appointment.rawStatus === "CONFIRMED" && (
-                                    <DropdownMenuItem
-                                      onClick={() => handleCheckIn(appointment.id)}
-                                    >
-                                      <User className="mr-2 h-4 w-4 text-sky-600" />
-                                      Check in
-                                    </DropdownMenuItem>
-                                  )}
-                                  {/* A pending booking has no reserved slot to
-                                      complete; the API only checks out from
-                                      Confirmed onwards. */}
-                                  {appointment.rawStatus !== "PENDING" && (
-                                    <DropdownMenuItem
-                                      onClick={() => {
-                                        setCollectingAppointment(appointment.raw);
-                                        setCollectModalOpen(true);
-                                      }}
-                                    >
-                                      <CheckCircle2 className="mr-2 h-4 w-4 text-primary" />
-                                      {(appointment.raw.amountDueMinor ?? 0) > 0
-                                        ? `Complete & collect ${formatBDT(appointment.raw.amountDueMinor)}`
-                                        : "Complete"}
-                                    </DropdownMenuItem>
-                                  )}
-                                  {userRole === "SALON_OWNER" && (
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        handleOpenAssignModal(
-                                          appointment.id,
-                                          appointment.salonId,
-                                          appointment.rawStatus,
-                                        )
-                                      }
-                                    >
-                                      <User className="mr-2 h-4 w-4 text-blue-500" />
-                                      Assign Staff
-                                    </DropdownMenuItem>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                      </div>
+                                    <User className="mr-2 h-4 w-4 text-info" />
+                                    Check in
+                                  </DropdownMenuItem>
+                                )}
+                                {/* A pending booking has no reserved slot to
+                                    complete; the API only checks out from
+                                    Confirmed onwards. */}
+                                {appointment.rawStatus !== "PENDING" && (
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setCollectingAppointment(appointment.raw);
+                                      setCollectModalOpen(true);
+                                    }}
+                                  >
+                                    <CheckCircle2 className="mr-2 h-4 w-4 text-primary" />
+                                    {(appointment.raw.amountDueMinor ?? 0) > 0
+                                      ? `Complete & collect ${formatBDT(appointment.raw.amountDueMinor)}`
+                                      : "Complete"}
+                                  </DropdownMenuItem>
+                                )}
+                                {userRole === "SALON_OWNER" && (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      handleOpenAssignModal(
+                                        appointment.id,
+                                        appointment.salonId,
+                                        appointment.rawStatus,
+                                      )
+                                    }
+                                  >
+                                    <User className="mr-2 h-4 w-4 text-info" />
+                                    Assign Staff
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                     </div>
                   </div>
                 ))
@@ -919,7 +842,8 @@ const Appointments = ({
             )}
           </CardContent>
         </Card>
-      </motion.div>
+        </PendingRegion>
+      </div>
       </QueueTabs>
 
       {/* Cancel Confirmation Dialog */}
@@ -945,7 +869,6 @@ const Appointments = ({
               type="button"
               variant="outline"
               onClick={() => setCancelId(null)}
-              disabled={isPending}
             >
               Keep Appointment
             </Button>
@@ -953,10 +876,9 @@ const Appointments = ({
               type="button"
               variant="destructive"
               onClick={handleCancel}
-              disabled={isPending}
               className="text-white"
             >
-              {isPending ? "Cancelling..." : "Cancel Appointment"}
+              Cancel Appointment
             </Button>
           </div>
         </DialogContent>
@@ -984,6 +906,19 @@ const Appointments = ({
           <div className="p-6 bg-background space-y-4 shrink-0">
             <div className="space-y-2">
               <label className="text-sm font-medium">Select Staff</label>
+              {staffLoading ? (
+                <div aria-busy="true" aria-label="Loading staff" className="space-y-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 rounded-lg border p-2.5">
+                      <Skeleton className="size-8 rounded-full" />
+                      <div className="flex-1 space-y-1.5">
+                        <Skeleton className="h-3.5 w-32" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
               <Select value={selectedStaff} onValueChange={setSelectedStaff}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choose a staff member" />
@@ -996,18 +931,18 @@ const Appointments = ({
                   ))}
                   {staffList.length === 0 && (
                     <div className="p-2 text-sm text-muted-foreground text-center">
-                      No staff found or loading...
+                      No staff found
                     </div>
                   )}
                 </SelectContent>
               </Select>
+              )}
             </div>
             <div className="flex justify-end gap-3 pt-4 border-t">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setAssignModalOpen(false)}
-                disabled={isPending}
               >
                 Cancel
               </Button>
@@ -1015,9 +950,9 @@ const Appointments = ({
                 type="button"
                 className="bg-primary text-white"
                 onClick={handleAssignStaff}
-                disabled={isPending || !selectedStaff}
+                disabled={!selectedStaff}
               >
-                {isPending ? "Assigning..." : "Assign Staff"}
+                Assign Staff
               </Button>
             </div>
           </div>
@@ -1032,6 +967,7 @@ const Appointments = ({
           setCollectModalOpen(open);
           if (!open) setCollectingAppointment(null);
         }}
+        complete={actions.complete}
       />
     </div>
   );

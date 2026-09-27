@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidateTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse } from "@/lib/api-types";
@@ -42,14 +43,14 @@ export const sendAssistantAction = async (
     if (!result.success || !result.data) return result;
 
     if (action.type === "cancel_confirm") {
-      revalidateTag("appointments", "seconds");
-      revalidateTag("my-appointments", "seconds");
-      revalidateTag("dashboard-stats", "seconds");
-      revalidateTag("earnings", "seconds");
-      revalidateTag("slots", "max");
+      revalidateTag(TAGS.appointments, "max");
+      revalidateTag(TAGS.myAppointments, "max");
+      revalidateTag(TAGS.dashboardStats, "max");
+      revalidateTag(TAGS.earnings, "max");
+      revalidateTag(TAGS.slots, "max");
     } else if (action.type === "rate_booking") {
-      revalidateTag("salons", "seconds");
-      revalidateTag("my-appointments", "seconds");
+      revalidateTag(TAGS.salons, "max");
+      revalidateTag(TAGS.myAppointments, "max");
     }
 
     return {

@@ -93,6 +93,18 @@
 
   /* The fake caret in the one-time-code boxes (components/ui/input-otp). */
   --animate-caret-blink: caret-blink 1.25s ease-out infinite;
+  /* The indeterminate bar under a toolbar while a filter change loads
+     (components/Shared/PendingRegion). A 40% bar sweeping across the track. */
+  --animate-pending-bar: pending-bar 1.1s ease-in-out infinite;
+
+  @keyframes pending-bar {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(250%);
+    }
+  }
 
   @keyframes caret-blink {
     0%,

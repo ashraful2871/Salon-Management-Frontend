@@ -49,7 +49,7 @@ export const PaymentBadge = ({
   switch (appointment.paymentState) {
     case "UNPAID":
       return (
-        <Badge className="border-transparent bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
+        <Badge variant="warning" className="max-w-full whitespace-normal">
           {viewer === "owner"
             ? `Due ${formatBDT(due)}`
             : deposit > 0
@@ -59,7 +59,7 @@ export const PaymentBadge = ({
       );
     case "PAID":
       return (
-        <Badge className="border-transparent bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300">
+        <Badge variant="success" className="max-w-full whitespace-normal">
           {/* No counter payment means the deposit alone covered the bill. */}
           {viewer === "customer"
             ? customerPaidLabel(
@@ -77,13 +77,13 @@ export const PaymentBadge = ({
       // the customer just sees "Completed" from the status badge.
       if (viewer === "customer") return null;
       return (
-        <Badge className="border-transparent bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300">
+        <Badge variant="danger" className="max-w-full whitespace-normal">
           Payment not recorded
         </Badge>
       );
     case "REFUNDED":
       return (
-        <Badge className="border-transparent bg-muted text-muted-foreground">
+        <Badge variant="secondary" className="max-w-full whitespace-normal">
           Refunded
         </Badge>
       );

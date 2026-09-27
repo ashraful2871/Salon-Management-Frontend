@@ -1,11 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { motion } from "framer-motion";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -14,26 +12,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Mail, Phone, Calendar, Users } from "lucide-react";
+import { Search, Mail, Phone, Calendar, Users, UserCheck, UserX } from "lucide-react";
+import { PageHeader } from "@/components/Shared/PageHeader";
+import { ToneBadge } from "@/components/Shared/ToneBadge";
+import { StatCard } from "@/components/Shared/StatCard";
 
-const getStatusBadge = (status: string) => {
-  switch ((status || "").toUpperCase()) {
-    case "ACTIVE":
-      return (
-        <Badge className="bg-sage text-accent-foreground text-white">
-          Active
-        </Badge>
-      );
-    case "SUSPENDED":
-      return <Badge variant="destructive">Suspended</Badge>;
-    case "BLOCKED":
-      return <Badge variant="destructive">Blocked</Badge>;
-    case "INACTIVE":
-      return <Badge variant="secondary">Inactive</Badge>;
-    default:
-      return <Badge variant="secondary">{status}</Badge>;
-  }
-};
+const getStatusBadge = (status: string) => (
+  <ToneBadge status={(status || "UNKNOWN").toUpperCase()} />
+);
 
 const Customers = ({ usersResponse }: { usersResponse: any }) => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -60,67 +46,46 @@ const Customers = ({ usersResponse }: { usersResponse: any }) => {
   ).length;
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-4"
-      >
-        <div>
-          <h1 className="font-display text-3xl font-bold">Customers</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your customer database
-          </p>
-        </div>
-      </motion.div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Customers"
+        description="Manage your customer database"
+      />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:gap-4">
         {[
           {
-            label: "Total Customers",
+            label: "Total customers",
             value: totalCustomers,
             icon: Users,
+            tone: "neutral" as const,
           },
           {
             label: "Active",
             value: activeCustomers,
-            icon: Users,
+            icon: UserCheck,
+            tone: "success" as const,
           },
           {
-            label: "Suspended / Blocked",
+            label: "Suspended / blocked",
             value: suspendedCustomers,
-            icon: Users,
+            icon: UserX,
+            tone: "danger" as const,
           },
-        ].map((stat, index) => (
-          <motion.div
+        ].map((stat) => (
+          <StatCard
             key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card>
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                  <stat.icon className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground">{stat.label}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+            label={stat.label}
+            value={stat.value}
+            icon={stat.icon}
+            tone={stat.tone}
+          />
         ))}
       </div>
 
       {/* Customers Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-      >
+      <div>
         <Card>
           <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <CardTitle>All Customers</CardTitle>
@@ -204,7 +169,7 @@ const Customers = ({ usersResponse }: { usersResponse: any }) => {
             )}
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
     </div>
   );
 };

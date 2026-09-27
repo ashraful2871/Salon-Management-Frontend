@@ -1,7 +1,8 @@
 "use server";
 
 import { serverFetch } from "@/lib/server-fetch";
-import { revalidateTag } from "next/cache";
+import { revalidateTag, updateTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 import type { ApiResponse, Salon } from "@/lib/api-types";
 import { toMinor } from "@/lib/money";
 
@@ -44,9 +45,9 @@ export const updateSalon = async (
     const result: ApiResponse<Salon> = await response.json();
 
     if (result.success) {
-      revalidateTag("salons", "seconds");
-      revalidateTag(`salon-${salonId}`, "seconds");
-      revalidateTag("my-salons", "seconds");
+      revalidateTag(TAGS.salons, "max");
+      updateTag(TAGS.salon(salonId));
+      updateTag(TAGS.mySalons);
     }
 
     return result;

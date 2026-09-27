@@ -3,7 +3,7 @@
 import type { OperatingHours, Salon } from "./api-types";
 import { formatDistance } from "./geo";
 
-// Also the stand-in photo wherever a salon picture is only illustrative.
+// A stock photo for places where a salon picture is only illustrative.
 export const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&fit=crop";
 
@@ -44,9 +44,9 @@ export const isOpenNow = (operatingHours?: OperatingHours) => {
   return nowMinutes >= openMinutes || nowMinutes <= closeMinutes;
 };
 
-// Owners paste all sorts into the image field; anything next/image can't
-// load falls back to a stock photo.
-export const usableImage = (src?: string | null) => {
+// Owners paste all sorts into the image field; anything that isn't a URL
+// next/image can take becomes null, and SafeImage shows its placeholder.
+export const usableImage = (src?: string | null): string | null => {
   const img = src?.trim();
   return img &&
     img !== "null" &&
@@ -56,7 +56,7 @@ export const usableImage = (src?: string | null) => {
       img.startsWith("/") ||
       img.startsWith("data:"))
     ? img
-    : FALLBACK_IMAGE;
+    : null;
 };
 
 export const toSalonCardData = (salon: Salon) => {

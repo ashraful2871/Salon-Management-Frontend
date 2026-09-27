@@ -10,6 +10,7 @@
  */
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse, StaffMember } from "@/lib/api-types";
+import { TAGS } from "@/lib/cache-tags";
 
 export const getStaffBySalon = async (
   salonId: string,
@@ -18,7 +19,7 @@ export const getStaffBySalon = async (
     const response = await serverFetch.get(`/staff?salonId=${salonId}`, {
       next: {
         revalidate: 60,
-        tags: [`staff-${salonId}`],
+        tags: [TAGS.staff(salonId)],
       },
     });
 

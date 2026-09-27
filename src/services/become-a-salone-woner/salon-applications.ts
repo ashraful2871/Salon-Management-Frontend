@@ -1,5 +1,6 @@
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse, SalonApplication } from "@/lib/api-types";
+import { TAGS } from "@/lib/cache-tags";
 
 export const salonApplications =
   async (): Promise<ApiResponse<SalonApplication[]>> => {
@@ -9,7 +10,7 @@ export const salonApplications =
         {
           next: {
             revalidate: 30,
-            tags: ["salon-applications"],
+            tags: [TAGS.salonApplications],
           },
         },
       );

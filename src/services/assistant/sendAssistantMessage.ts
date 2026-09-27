@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidateTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse } from "@/lib/api-types";
@@ -41,11 +42,11 @@ export const sendAssistantMessage = async (
     if (!result.success || !result.data) return result;
 
     if (result.data.appointmentId) {
-      revalidateTag("appointments", "seconds");
-      revalidateTag("my-appointments", "seconds");
-      revalidateTag("dashboard-stats", "seconds");
-      revalidateTag("earnings", "seconds");
-      revalidateTag("slots", "max");
+      revalidateTag(TAGS.appointments, "max");
+      revalidateTag(TAGS.myAppointments, "max");
+      revalidateTag(TAGS.dashboardStats, "max");
+      revalidateTag(TAGS.earnings, "max");
+      revalidateTag(TAGS.slots, "max");
     }
 
     return {

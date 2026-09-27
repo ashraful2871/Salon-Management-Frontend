@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import Salons, { type SalonSort } from "@/components/Salons/Salons";
 import { SalonListSkeleton } from "@/components/Shared/SkeletonCard";
+import { FilterNavigationProvider } from "@/hooks/useFilterNavigation";
 import { getAllSalon } from "@/services/salon/getAllSalon";
 import { reversePlace } from "@/services/geo/reversePlace";
 import {
@@ -89,14 +90,16 @@ export default async function SalonsStorePage({
     : null;
 
   return (
-    <Suspense fallback={<SalonListSkeleton />}>
-      <Salons
-        allSalons={res?.data ?? []}
-        meta={res?.meta}
-        nearby={nearby}
-        sort={sort ?? (point ? "distance" : "newest")}
-        error={res?.success === false ? res.message : undefined}
-      />
-    </Suspense>
+    <FilterNavigationProvider>
+      <Suspense fallback={<SalonListSkeleton />}>
+        <Salons
+          allSalons={res?.data ?? []}
+          meta={res?.meta}
+          nearby={nearby}
+          sort={sort ?? (point ? "distance" : "newest")}
+          error={res?.success === false ? res.message : undefined}
+        />
+      </Suspense>
+    </FilterNavigationProvider>
   );
 }

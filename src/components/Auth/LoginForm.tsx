@@ -9,6 +9,7 @@ import {
   Scissors,
   Sparkles,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useActionState, useEffect, useRef, useState } from "react";
@@ -232,10 +233,12 @@ const LoginForm = ({
       {/* Right Side - Image Showcase */}
       <div className="hidden lg:flex lg:w-1/2 relative p-4">
         <div className="w-full h-full rounded-[2.5rem] bg-slate-900 overflow-hidden relative shadow-2xl">
-          <img
+          <Image
             src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&h=1600&fit=crop"
             alt="Salon Service"
-            className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay"
+            fill
+            sizes="(min-width: 1024px) 50vw, 0px"
+            className="object-cover opacity-60 mix-blend-overlay"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
 

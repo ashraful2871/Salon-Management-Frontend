@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreateAgentModal } from "./CreateAgentModal";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -15,22 +14,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { motion } from "framer-motion";
+import { PageHeader } from "@/components/Shared/PageHeader";
+import { ToneBadge } from "@/components/Shared/ToneBadge";
 
-const getStatusBadge = (status: string) => {
-  switch ((status || "").toUpperCase()) {
-    case "ACTIVE":
-      return <Badge className="bg-sage text-white">Active</Badge>;
-    case "SUSPENDED":
-      return <Badge variant="destructive">Suspended</Badge>;
-    case "BLOCKED":
-      return <Badge variant="destructive">Blocked</Badge>;
-    case "INACTIVE":
-      return <Badge variant="secondary">Inactive</Badge>;
-    default:
-      return <Badge variant="secondary">{status || "UNKNOWN"}</Badge>;
-  }
-};
+const getStatusBadge = (status: string) => (
+  <ToneBadge status={(status || "UNKNOWN").toUpperCase()} />
+);
 
 export function AgentsClient({ agentsResponse }: { agentsResponse: any }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -46,21 +35,19 @@ export function AgentsClient({ agentsResponse }: { agentsResponse: any }) {
   );
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-3xl font-bold">Agents</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage agents and their assigned territories
-          </p>
-        </div>
-        <Button onClick={() => setIsModalOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Agent
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Agents"
+        description="Manage agents and their assigned territories"
+        actions={
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Agent
+          </Button>
+        }
+      />
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+      <div>
         <Card>
           <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <CardTitle>All Agents</CardTitle>
@@ -140,7 +127,7 @@ export function AgentsClient({ agentsResponse }: { agentsResponse: any }) {
             )}
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
 
       <CreateAgentModal open={isModalOpen} setOpen={setIsModalOpen} />
     </div>

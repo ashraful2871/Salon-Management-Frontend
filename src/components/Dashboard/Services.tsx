@@ -1,6 +1,5 @@
 "use client";
-import { motion } from "framer-motion";
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,20 +19,17 @@ import {
   Trash2,
   Clock,
   DollarSign,
-  AlertTriangle,
+  Package,
+  Tags,
+  Banknote,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import AddServiceModal from "./AddServiceModal";
 import { deleteService } from "@/services/service/deleteService";
-import { useRouter } from "next/navigation";
 import { showResultToast } from "@/components/Shared/showResultToast";
 import { formatBDT } from "@/lib/money";
+import { PageHeader } from "@/components/Shared/PageHeader";
+import { StatCard } from "@/components/Shared/StatCard";
+import { ConfirmDialog } from "@/components/Shared/ConfirmDialog";
 
 export default function Services({
   servicesResponse,
@@ -45,12 +41,16 @@ export default function Services({
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [deleteServiceId, setDeleteServiceId] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
-  const router = useRouter();
+  const [, startTransition] = useTransition();
 
-  const servicesData = Array.isArray(servicesResponse?.data)
+  const serverServices = Array.isArray(servicesResponse?.data)
     ? servicesResponse.data
     : [];
+  // A deleted service leaves the list at once and comes back if the API refuses.
+  const [servicesData, removeService] = useOptimistic(
+    serverServices,
+    (list: { id: string }[], id: string) => list.filter((s) => s.id !== id),
+  );
   const salonsData = Array.isArray(salonsResponse?.data)
     ? salonsResponse.data
     : [];
@@ -65,45 +65,39 @@ export default function Services({
 
   const confirmDelete = () => {
     if (!deleteServiceId) return;
+    const id = deleteServiceId;
+    setDeleteServiceId(null);
 
     startTransition(async () => {
-      const res = await deleteService(deleteServiceId);
+      removeService(id);
+      const res = await deleteService(id);
       showResultToast(res, "Service deleted successfully", "Failed to delete service");
-      setDeleteServiceId(null);
-      router.refresh();
     });
   };
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-4"
-      >
-        <div>
-          <h1 className="font-display text-3xl font-bold">Services</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your salon services and pricing
-          </p>
-        </div>
-        <Button
-          onClick={() => setIsAddModalOpen(true)}
-          className="bg-sage hover:opacity-90 text-white"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Service
-        </Button>
-      </motion.div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Services"
+        description="Manage your salon services and pricing"
+        actions={
+          <Button
+            onClick={() => setIsAddModalOpen(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Service
+          </Button>
+        }
+      />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         {[
-          { label: "Total Services", value: servicesData.length },
-          { label: "Categories", value: categories.length },
+          { label: "Total services", value: servicesData.length, icon: Package },
+          { label: "Categories", value: categories.length, icon: Tags },
           {
-            label: "Avg. Duration",
+            label: "Avg. duration",
+            icon: Clock,
             value: `${
               servicesData.length
                 ? Math.round(
@@ -116,7 +110,8 @@ export default function Services({
             } min`,
           },
           {
-            label: "Avg. Price",
+            label: "Avg. price",
+            icon: Banknote,
             value: servicesData.length
               ? formatBDT(
                   Math.round(
@@ -128,29 +123,18 @@ export default function Services({
                 )
               : formatBDT(0),
           },
-        ].map((stat, index) => (
-          <motion.div
+        ].map((stat) => (
+          <StatCard
             key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card className="shadow-soft">
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold">{stat.value}</p>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
-              </CardContent>
-            </Card>
-          </motion.div>
+            label={stat.label}
+            value={stat.value}
+            icon={stat.icon}
+          />
         ))}
       </div>
 
       {/* Services Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-      >
+      <div>
         <Card className="shadow-card">
           <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <CardTitle>All Services</CardTitle>
@@ -216,7 +200,6 @@ export default function Services({
                             size="icon"
                             className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                             onClick={() => setDeleteServiceId(service.id)}
-                            disabled={isPending}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -229,57 +212,24 @@ export default function Services({
             )}
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
 
       {/* Add Modal */}
       <AddServiceModal
         open={isAddModalOpen}
         setOpen={setIsAddModalOpen}
         salons={salonsData}
-        onCreate={() => {
-          router.refresh();
-        }}
       />
 
-      {/* Delete Confirmation Modal */}
-      <Dialog
+      <ConfirmDialog
         open={!!deleteServiceId}
         onOpenChange={(open) => !open && setDeleteServiceId(null)}
-      >
-        <DialogContent className="sm:max-w-[425px] overflow-hidden rounded-2xl p-0">
-          <div className="p-6 pb-4 border-b bg-destructive/5 shrink-0">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-xl text-destructive">
-                <AlertTriangle className="h-5 w-5" />
-                Confirm Deletion
-              </DialogTitle>
-              <DialogDescription className="text-muted-foreground mt-2">
-                Are you sure you want to delete this service? This action cannot
-                be undone.
-              </DialogDescription>
-            </DialogHeader>
-          </div>
-          <div className="p-6 bg-background flex justify-end gap-3 shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setDeleteServiceId(null)}
-              disabled={isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={confirmDelete}
-              disabled={isPending}
-              className="text-white"
-            >
-              {isPending ? "Deleting..." : "Delete Service"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+        destructive
+        title="Delete this service?"
+        description="Customers will no longer be able to book it. This can't be undone."
+        confirmLabel="Delete service"
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

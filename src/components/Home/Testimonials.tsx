@@ -41,14 +41,20 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
+const initialsOf = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join("");
+
 function QuoteCard({
   testimonial,
   featured = false,
-  index,
 }: {
   testimonial: Testimonial;
   featured?: boolean;
-  index: number;
 }) {
   return (
     <div
@@ -74,8 +80,11 @@ function QuoteCard({
         </div>
         
         <div className="flex items-center gap-4 pt-8 mt-8 border-t border-slate-100">
-          <div className="w-12 h-12 rounded-full border-2 border-slate-100 overflow-hidden relative shadow-sm">
-            <img src={`https://i.pravatar.cc/150?img=${index + 20}`} alt={testimonial.name} className="w-full h-full object-cover" />
+          <div
+            aria-hidden="true"
+            className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground shadow-sm"
+          >
+            {initialsOf(testimonial.name)}
           </div>
           <div>
             <p className="font-bold font-display text-slate-900 text-lg">
@@ -114,10 +123,10 @@ const Testimonials = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <QuoteCard testimonial={testimonials[0]} featured index={0} />
-          <QuoteCard testimonial={testimonials[1]} index={1} />
+          <QuoteCard testimonial={testimonials[0]} featured />
+          <QuoteCard testimonial={testimonials[1]} />
           <div className="md:col-span-2 lg:col-span-3">
-            <QuoteCard testimonial={testimonials[2]} index={2} />
+            <QuoteCard testimonial={testimonials[2]} />
           </div>
         </div>
       </div>

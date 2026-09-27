@@ -1,9 +1,9 @@
 "use client";
 
 import { ArrowRight, MapPin, Star } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 
+import SafeImage from "@/components/Shared/SafeImage";
 import { formatRating } from "@/lib/rating";
 import { formatBDT } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,7 @@ interface SalonCardProps {
     rating: number;
     reviews: number;
     location: string;
-    image: string;
+    image?: string | null;
     services: string[];
     // null: the salon has not listed its hours, so say nothing rather than "Closed".
     openNow: boolean | null;
@@ -26,7 +26,7 @@ interface SalonCardProps {
   // Preformatted by formatDistance; a leading "~" marks an approximate pin.
   distance?: string;
   /** Above-the-fold cards load their photo eagerly. */
-  priority?: boolean;
+  preload?: boolean;
   className?: string;
 }
 
@@ -41,7 +41,7 @@ const SalonCard = ({
   salon,
   index,
   distance,
-  priority = false,
+  preload = false,
   className,
 }: SalonCardProps) => {
   const approximate = distance?.startsWith("~") ?? false;
@@ -63,11 +63,11 @@ const SalonCard = ({
       )}
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-        <Image
+        <SafeImage
           src={salon.image}
           alt=""
           fill
-          priority={priority}
+          preload={preload}
           sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 90vw"
           className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
         />

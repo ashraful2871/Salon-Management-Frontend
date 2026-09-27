@@ -23,7 +23,7 @@ export const QueueTabs = ({
         <TabsTrigger value="all">All bookings</TabsTrigger>
       </TabsList>
       <TabsContent value="queue">{queue}</TabsContent>
-      <TabsContent value="all" className="space-y-8">
+      <TabsContent value="all" className="space-y-6">
         {children}
       </TabsContent>
     </Tabs>

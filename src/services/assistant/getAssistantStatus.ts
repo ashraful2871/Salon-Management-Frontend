@@ -1,4 +1,5 @@
 import type { ApiResponse } from "@/lib/api-types";
+import { TAGS } from "@/lib/cache-tags";
 
 const BACKEND_API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
@@ -24,7 +25,7 @@ const OFF: AssistantStatus = { enabled: false, llm: false };
 export const getAssistantStatus = async (): Promise<AssistantStatus> => {
   try {
     const response = await fetch(`${BACKEND_API_URL}/assistant/status`, {
-      next: { revalidate: 60, tags: ["assistant-status"] },
+      next: { revalidate: 60, tags: [TAGS.assistantStatus] },
     });
     if (!response.ok) return OFF;
 

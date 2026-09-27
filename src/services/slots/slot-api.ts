@@ -1,7 +1,8 @@
 "use server";
 
 import { serverFetch } from "@/lib/server-fetch";
-import { revalidateTag } from "next/cache";
+import { updateTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 
 export type CreateBulkSlotsPayload = {
   salonId: string;
@@ -25,7 +26,7 @@ export const createBulkSlots = async (payload: CreateBulkSlotsPayload) => {
     });
     const data = await response.json();
     if (data.success) {
-      revalidateTag("slots", "max");
+      updateTag(TAGS.slots);
     }
     return data;
   } catch (error) {
@@ -54,7 +55,7 @@ export const getSlots = async (params: {
     if (params.upcomingOnly) searchParams.append("upcomingOnly", "true");
 
     const response = await serverFetch.get(`/slots?${searchParams.toString()}`, {
-      next: { tags: ["slots"] },
+      next: { tags: [TAGS.slots] },
       // An upcoming-only list is only correct at the moment it was built, and
       // no tag gets revalidated simply because time passed. Caching it would
       // let an 11am response still be offering 10am at half past four.
@@ -75,7 +76,7 @@ export const updateSlotStatus = async (slotId: string, status: string) => {
     });
     const data = await response.json();
     if (data.success) {
-      revalidateTag("slots", "max");
+      updateTag(TAGS.slots);
     }
     return data;
   } catch (error) {
@@ -88,7 +89,7 @@ export const deleteSlot = async (slotId: string) => {
     const response = await serverFetch.delete(`/slots/${slotId}`);
     const data = await response.json();
     if (data.success) {
-      revalidateTag("slots", "max");
+      updateTag(TAGS.slots);
     }
     return data;
   } catch (error) {
@@ -104,7 +105,7 @@ export const deleteBulkSlots = async (slotIds: string[]) => {
     });
     const data = await response.json();
     if (data.success) {
-      revalidateTag("slots", "max");
+      updateTag(TAGS.slots);
     }
     return data;
   } catch (error) {

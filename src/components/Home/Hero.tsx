@@ -1,7 +1,9 @@
 import { Button } from "../ui/button";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Sparkles, Star, CalendarCheck } from "lucide-react";
 import NearMeButton from "./NearMeButton";
+import heroImg from "@/assets/hero-salon.jpg";
 
 const Hero = () => {
   return (
@@ -50,24 +52,6 @@ const Hero = () => {
                 <Link href="/about">How it works</Link>
               </Button>
             </div>
-
-            <div className="mt-14 flex items-center justify-center lg:justify-start gap-8">
-              <div className="flex -space-x-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="w-12 h-12 rounded-full border-2 border-white overflow-hidden bg-slate-100 shadow-sm">
-                    <img src={`https://i.pravatar.cc/100?img=${i + 10}`} alt={`User ${i}`} className="w-full h-full object-cover" />
-                  </div>
-                ))}
-              </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1 text-gold mb-1">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <Star key={i} className="w-4 h-4 fill-current" />
-                  ))}
-                </div>
-                <span className="text-sm text-slate-500 font-medium">Over <strong className="text-slate-900">50,000+</strong> happy clients</span>
-              </div>
-            </div>
           </div>
 
           {/* Right Visual Content */}
@@ -77,7 +61,15 @@ const Hero = () => {
               {/* Main Image Plate */}
               <div className="absolute inset-0 rounded-[2.5rem] bg-white p-3 shadow-card border border-border rotate-2">
                 <div className="w-full h-full rounded-[2rem] overflow-hidden relative bg-slate-100 shadow-inner">
-                  <img src="https://i.ibb.co/VYNrdY4T/hero-salon.jpg" alt="Luxury Salon" className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+                  {/* Desktop only (the column is hidden below lg), so no preload. */}
+                  <Image
+                    src={heroImg}
+                    alt="Luxury Salon"
+                    fill
+                    sizes="(min-width: 1024px) 550px, 0px"
+                    placeholder="blur"
+                    className="object-cover"
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-80" />
                 </div>
               </div>

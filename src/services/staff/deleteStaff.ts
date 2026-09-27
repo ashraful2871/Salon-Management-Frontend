@@ -2,9 +2,13 @@
 
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse } from "@/lib/api-types";
-import { revalidateTag } from "next/cache";
+import { revalidateTag, updateTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 
-export const deleteStaff = async (id: string): Promise<ApiResponse<null>> => {
+export const deleteStaff = async (
+  id: string,
+  salonId?: string,
+): Promise<ApiResponse<null>> => {
   try {
     const response = await serverFetch.delete(`/staff/${id}`, {
       method: "DELETE",
@@ -13,8 +17,11 @@ export const deleteStaff = async (id: string): Promise<ApiResponse<null>> => {
     const result: ApiResponse<null> = await response.json();
 
     if (result.success) {
-      revalidateTag("my-salons", "seconds");
-      revalidateTag("staff", "seconds");
+      updateTag(TAGS.mySalons);
+      if (salonId) {
+        updateTag(TAGS.staff(salonId));
+        revalidateTag(TAGS.salon(salonId), "max");
+      }
     }
 
     return result;

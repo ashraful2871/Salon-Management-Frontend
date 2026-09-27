@@ -189,6 +189,7 @@ const LocationPicker = ({
         `/salons?lat=${stored.lat}&lng=${stored.lng}&r=5&sort=distance`,
       );
     } else {
+      // The location is a cookie the server components read, not a cache tag.
       router.refresh();
     }
   };
@@ -288,6 +289,7 @@ const LocationPicker = ({
     clearLocation();
     onDone();
     if (pathname === "/salons") router.push("/salons");
+    // The cookie is gone; the server components have to read that again.
     else router.refresh();
   };
 

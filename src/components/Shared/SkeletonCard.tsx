@@ -360,3 +360,169 @@ export function SkeletonError({
     </Card>
   );
 }
+
+function PageTitleSkeleton() {
+  return (
+    <div className="space-y-2">
+      <Skeleton className="h-9 w-48" />
+      <Skeleton className="h-5 w-72 max-w-full" />
+    </div>
+  );
+}
+
+/** Settings: three section cards of label + input rows. */
+export function SettingsSkeleton() {
+  return (
+    <div className="space-y-8">
+      <PageTitleSkeleton />
+      {[3, 2, 2].map((rows, card) => (
+        <Card key={card}>
+          <CardHeader className="space-y-2">
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-4 w-64 max-w-full" />
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {Array.from({ length: rows }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-10 w-full rounded-md" />
+              </div>
+            ))}
+            <Skeleton className="h-10 w-32 rounded-full" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+/** Slots: a 7-day date strip over a grid of slot pills. */
+export function SlotsSkeleton() {
+  return (
+    <div className="space-y-8">
+      <PageTitleSkeleton />
+      <Card>
+        <CardContent className="space-y-6 p-4 md:p-6">
+          <div className="flex gap-2 overflow-hidden">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-14 shrink-0 rounded-2xl" />
+            ))}
+          </div>
+          <div className="grid grid-cols-3 gap-2 md:grid-cols-6">
+            {Array.from({ length: 18 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 rounded-full" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+/** Wallet: the balance card and a list of transactions. */
+export function WalletSkeleton() {
+  return (
+    <div className="space-y-8">
+      <PageTitleSkeleton />
+      <Card>
+        <CardContent className="flex flex-col gap-6 p-6 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-10 w-44" />
+            <Skeleton className="h-4 w-56 max-w-full" />
+          </div>
+          <Skeleton className="h-10 w-36 rounded-full" />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-40" />
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 rounded-lg p-3">
+              <Skeleton className="size-10 shrink-0 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-40 max-w-full" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+              <Skeleton className="h-5 w-20" />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+/** A payment result: icon, heading, a few detail rows and the way on. */
+export function PaymentResultSkeleton() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <Card className="w-full max-w-md">
+        <CardContent className="flex flex-col items-center space-y-4 p-8">
+          <Skeleton className="size-16 rounded-full" />
+          <Skeleton className="h-7 w-48" />
+          <Skeleton className="h-4 w-64 max-w-full" />
+          <div className="w-full space-y-3 pt-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex justify-between gap-4">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-28" />
+              </div>
+            ))}
+          </div>
+          <Skeleton className="h-10 w-full rounded-full" />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+/** The desk's queue card while today's bookings load. */
+export function QueueSkeleton() {
+  return (
+    <Card aria-busy="true" aria-label="Loading today's queue">
+      <CardHeader className="flex flex-row items-center justify-between gap-3">
+        <div className="space-y-2">
+          <Skeleton className="h-6 w-36" />
+          <Skeleton className="h-3 w-28" />
+        </div>
+        <Skeleton className="h-6 w-32" />
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 rounded-lg border p-3">
+            <Skeleton className="h-9 w-9 rounded-md" />
+            <Skeleton className="h-4 w-14" />
+            <div className="flex-1 space-y-1.5">
+              <Skeleton className="h-4 w-36 max-w-full" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+            <Skeleton className="hidden h-8 w-24 rounded-full sm:block" />
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** The four takings tiles while the day's cash summary loads. */
+export function CashSummarySkeleton() {
+  return (
+    <section aria-busy="true" aria-label="Loading takings" className="space-y-2">
+      <Skeleton className="h-4 w-32" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i}>
+            <CardContent className="space-y-2 p-4">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-7 w-24" />
+              <Skeleton className="h-3 w-full" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </section>
+  );
+}

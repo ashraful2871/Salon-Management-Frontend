@@ -2,6 +2,7 @@
 
 import { randomUUID } from "crypto";
 import { revalidateTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse } from "@/lib/api-types";
@@ -46,11 +47,11 @@ export const confirmAssistantBooking = async (
       // Exactly what a booking invalidates, copied from `book-appoiments.ts`.
       // Miss one and the owner's dashboard will not show a booking the
       // customer can already see in the chat.
-      revalidateTag("appointments", "seconds");
-      revalidateTag("my-appointments", "seconds");
-      revalidateTag("dashboard-stats", "seconds");
-      revalidateTag("earnings", "seconds");
-      revalidateTag("slots", "max");
+      revalidateTag(TAGS.appointments, "max");
+      revalidateTag(TAGS.myAppointments, "max");
+      revalidateTag(TAGS.dashboardStats, "max");
+      revalidateTag(TAGS.earnings, "max");
+      revalidateTag(TAGS.slots, "max");
     }
 
     return result;

@@ -112,7 +112,8 @@ export default function AddSalonModal({
 }: {
   open: boolean;
   setOpen: (v: boolean) => void;
-  onCreate: (payload: AddSalonPayload) => Promise<void> | void;
+  /** The list refreshes itself: the create action sends the updated page back. */
+  onCreate?: (payload: AddSalonPayload) => Promise<void> | void;
 }) {
   // ✅ Hook Server Action
   const [state, formAction, isPending] = useActionState(createSalon, null);
@@ -157,7 +158,7 @@ export default function AddSalonModal({
 
     if (state.success) {
       toast.success(state.message || "Salon Created Successfully");
-      onCreate(state.data as unknown as AddSalonPayload); // Pass data back to parent if needed
+      onCreate?.(state.data as unknown as AddSalonPayload); // Pass data back to parent if needed
       setOpen(false);
       // Reset form (defer to avoid cascading renders)
       setTimeout(() => {

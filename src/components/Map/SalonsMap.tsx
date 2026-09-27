@@ -13,7 +13,6 @@ import {
   type RefObject,
   type SetStateAction,
 } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import L from "leaflet";
 import { Circle, Popup, useMap } from "react-leaflet";
@@ -21,10 +20,10 @@ import MarkerClusterGroup from "react-leaflet-cluster";
 import { RotateCw, Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import SafeImage from "@/components/Shared/SafeImage";
 import { cn } from "@/lib/utils";
 import { formatBDT } from "@/lib/money";
 import { formatDistance, haversineMeters, type LatLng } from "@/lib/geo";
-import { usableImage } from "@/lib/salon-card";
 import type { Bbox, SalonMarker } from "@/lib/api-types";
 import { getSalonMarkers } from "@/services/salon/getSalonMarkers";
 import LeafletMap, { LocateControl, PinMarker } from "./LeafletMap";
@@ -232,8 +231,8 @@ function SalonPopup({ marker, origin }: { marker: SalonMarker; origin: LatLng })
   return (
     <div>
       <div className="relative h-28 w-full bg-muted">
-        <Image
-          src={usableImage(marker.image)}
+        <SafeImage
+          src={marker.image}
           alt=""
           fill
           sizes="224px"

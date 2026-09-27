@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -51,6 +52,8 @@ interface NavbarClientProps {
   wallet: Wallet | null;
   ownerRevenueMinor?: number | null;
   adminRevenueMinor?: number | null;
+  /** The Suspense fallback: who is signed in isn't known yet. */
+  accountLoading?: boolean;
 }
 
 const NAV_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
@@ -99,6 +102,7 @@ const NavbarClient = ({
   wallet,
   ownerRevenueMinor,
   adminRevenueMinor,
+  accountLoading = false,
 }: NavbarClientProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -213,10 +217,13 @@ const NavbarClient = ({
               className="group flex min-w-0 shrink items-center gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               aria-label="SalonKhuji home"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src="/salon-logo.png"
                 alt="SalonKhuji Logo"
+                width={1534}
+                height={326}
+                sizes="(min-width: 1280px) 188px, (min-width: 640px) 170px, 151px"
+                preload
                 className="h-7 w-auto max-w-[140px] object-contain transition-transform group-hover:scale-105 min-[400px]:h-8 min-[400px]:max-w-none sm:h-9 xl:h-10"
               />
             </Link>
@@ -252,7 +259,13 @@ const NavbarClient = ({
               />
               <LocationChip variant="icon" className="sm:hidden lg:grid xl:hidden" />
 
-              {user ? (
+              {accountLoading ? (
+                // Fixed sizes, so nothing shifts when the account streams in.
+                <div aria-hidden="true" className="flex items-center gap-1.5 sm:gap-2.5">
+                  <div className="hidden h-10 w-36 animate-pulse rounded-full bg-muted md:block" />
+                  <div className="size-10 animate-pulse rounded-full bg-muted" />
+                </div>
+              ) : user ? (
                 <>
                   {/* Balance: from md up; smaller screens have it in the drawer. */}
                   <div className="hidden md:block">
@@ -405,8 +418,14 @@ const NavbarClient = ({
           )}
         >
           <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/salon-logo.png" alt="SalonKhuji" className="h-7 w-auto" />
+            <Image
+              src="/salon-logo.png"
+              alt="SalonKhuji"
+              width={1534}
+              height={326}
+              sizes="132px"
+              className="h-7 w-auto"
+            />
             <button
               ref={closeButtonRef}
               type="button"
@@ -419,7 +438,19 @@ const NavbarClient = ({
           </div>
 
           <div className="flex-1 space-y-6 overflow-y-auto overscroll-contain px-4 py-5">
-            {user ? (
+            {accountLoading ? (
+              <div
+                aria-hidden="true"
+                className="flex items-center gap-3 rounded-2xl p-3.5 ring-1 ring-border"
+              >
+                <div className="size-12 shrink-0 animate-pulse rounded-full bg-muted" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-20 animate-pulse rounded bg-muted" />
+                  <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+                  <div className="h-3 w-40 animate-pulse rounded bg-muted" />
+                </div>
+              </div>
+            ) : user ? (
               <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-br from-cream to-white p-3.5 ring-1 ring-gold/20">
                 <UserAvatar name={user.name} className="h-12 w-12 text-base" />
                 <div className="min-w-0 flex-1">
@@ -537,7 +568,9 @@ const NavbarClient = ({
           </div>
 
           <div className="shrink-0 border-t border-slate-100 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            {user ? (
+            {accountLoading ? (
+              <div aria-hidden="true" className="h-11 animate-pulse rounded-xl bg-muted" />
+            ) : user ? (
               <div className="rounded-xl border border-red-100 bg-red-50/50">
                 <LogoutButton />
               </div>

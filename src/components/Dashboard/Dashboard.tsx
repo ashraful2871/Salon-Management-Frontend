@@ -1,22 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   ArrowUpRight,
   Banknote,
   Calendar,
   CheckCircle2,
   Clock,
-  MoreHorizontal,
   Package,
   Percent,
   PiggyBank,
   Receipt,
   Store,
-  TrendingUp,
   Users,
   Wallet,
 } from "lucide-react";
@@ -24,25 +20,11 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { formatBDT } from "@/lib/money";
 import EarningsTrend from "@/components/Earnings/EarningsTrend";
-
-const getStatusColor = (status: string) => {
-  switch ((status || "").toLowerCase()) {
-    case "confirmed":
-      return "bg-sage text-accent-foreground  text-white";
-    case "in_progress":
-    case "in-progress":
-      return "bg-gold text-primary-foreground";
-    case "pending":
-      return "bg-secondary text-secondary-foreground";
-    case "completed":
-      return "bg-primary text-primary-foreground";
-    case "cancelled":
-    case "canceled":
-      return "bg-destructive text-destructive-foreground";
-    default:
-      return "bg-muted text-muted-foreground";
-  }
-};
+import { StatCard } from "@/components/Shared/StatCard";
+import { ToneBadge } from "@/components/Shared/ToneBadge";
+import { EmptyState } from "@/components/Shared/EmptyState";
+import type { Tone } from "@/lib/status-tone";
+import { PageHeader } from "@/components/Shared/PageHeader";
 
 const formatTime12 = (hhmm?: string) => {
   if (!hhmm) return "—";
@@ -77,98 +59,53 @@ const Dashboard = ({
   const showMoneyPanel = userRole === "ADMIN" || userRole === "SALON_OWNER";
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-4"
-      >
-        <div>
-          <h1 className="font-display text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">
-            Welcome back! Here is what is happening today.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {userRole === "SALON_OWNER" && (
+    <div className="space-y-6">
+      <PageHeader
+        title="Dashboard"
+        description="Welcome back! Here is what is happening today."
+        actions={
+          <>
+            {userRole === "SALON_OWNER" && (
+              <Button variant="outline" asChild>
+                <Link href="/dashboard/earnings">
+                  <Banknote className="mr-2 h-4 w-4" />
+                  Earnings
+                </Link>
+              </Button>
+            )}
             <Button variant="outline" asChild>
-              <Link href="/dashboard/earnings">
-                <Banknote className="mr-2 h-4 w-4" />
-                Earnings
+              <Link href="/dashboard/wallet">
+                <Wallet className="mr-2 h-4 w-4" />
+                Wallet
               </Link>
             </Button>
-          )}
-          <Button variant="outline" asChild>
-            <Link href="/dashboard/wallet">
-              <Wallet className="mr-2 h-4 w-4" />
-              Wallet
-            </Link>
-          </Button>
-          <Button asChild>
-            <Link href="/dashboard/appointments">
-              <Calendar className="mr-2 h-4 w-4" />
-              View Schedule
-            </Link>
-          </Button>
-        </div>
-      </motion.div>
+            <Button asChild>
+              <Link href="/dashboard/appointments">
+                <Calendar className="mr-2 h-4 w-4" />
+                View Schedule
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat: any, index: number) => (
-          <motion.div
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+        {stats.map((stat: any) => (
+          <StatCard
             key={stat.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card className="h-full">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div
-                    className={`flex h-12 w-12 items-center justify-center rounded-xl ${stat.color}`}
-                  >
-                    <stat.icon className="h-6 w-6 text-primary-foreground" />
-                  </div>
-                  {stat.change && (
-                    <div
-                      className={`flex items-center gap-1 text-sm ${
-                        stat.trend === "down" ? "text-destructive" : "text-sage"
-                      }`}
-                    >
-                      <TrendingUp
-                        className={`h-4 w-4 ${
-                          stat.trend === "down" ? "rotate-180" : ""
-                        }`}
-                      />
-                      {stat.change}
-                    </div>
-                  )}
-                </div>
-                <div className="mt-4">
-                  <p className="text-2xl font-bold">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground">{stat.title}</p>
-                  {stat.hint && (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {stat.hint}
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+            label={stat.title}
+            value={stat.value}
+            hint={stat.hint}
+            icon={stat.icon}
+            tone={stat.tone}
+          />
         ))}
       </div>
 
       {/* Money: the ledger view, for the two roles that have one */}
       {showMoneyPanel && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="grid gap-6 lg:grid-cols-3"
-        >
+        <div className="grid gap-4 lg:grid-cols-3 lg:gap-6">
           <Card className="lg:col-span-2">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Earnings over the last 6 months</CardTitle>
@@ -285,18 +222,13 @@ const Dashboard = ({
               )}
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
       )}
 
       {/* Main Content Grid */}
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid gap-4 lg:grid-cols-3 lg:gap-6">
         {/* Recent Appointments */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.4 }}
-          className="lg:col-span-2"
-        >
+        <div className="lg:col-span-2">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Recent Appointments</CardTitle>
@@ -308,29 +240,31 @@ const Dashboard = ({
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {recentAppointments.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    No recent appointments.
-                  </p>
+                  <EmptyState
+                    icon={Calendar}
+                    title="No recent appointments"
+                    description="Bookings will show up here as they come in."
+                  />
                 ) : (
                   recentAppointments.slice(0, 5).map((appointment: any) => (
                     <div
                       key={appointment.id}
-                      className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                      className="flex items-center justify-between gap-3 rounded-xl border border-border p-3 sm:p-4"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 font-semibold text-primary">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-sm font-semibold text-primary-hover">
                           {(appointment.customer?.name || "U")
                             .split(" ")
                             .map((n: string) => n[0])
                             .join("")}
                         </div>
-                        <div>
-                          <p className="font-medium">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">
                             {appointment.customer?.name || "Customer"}
                           </p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="truncate text-sm text-muted-foreground">
                             {appointment.service?.name || "Service"}
                             {appointment.salon?.name
                               ? ` • ${appointment.salon.name}`
@@ -338,26 +272,19 @@ const Dashboard = ({
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-4">
                         {typeof appointment.totalMinor === "number" &&
                           appointment.totalMinor > 0 && (
                             <span className="hidden text-sm font-medium sm:inline">
                               {money(appointment.totalMinor)}
                             </span>
                           )}
-                        <span className="text-sm text-muted-foreground">
+                        <span className="whitespace-nowrap text-sm text-muted-foreground tabular-nums">
                           {appointment.startTime
                             ? formatTime12(appointment.startTime)
                             : "—"}
                         </span>
-                        <Badge
-                          className={getStatusColor(appointment.status || "")}
-                        >
-                          {(appointment.status || "PENDING").replace("_", " ")}
-                        </Badge>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
+                        <ToneBadge status={appointment.status || "PENDING"} />
                       </div>
                     </div>
                   ))
@@ -365,14 +292,9 @@ const Dashboard = ({
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5 }}
-          className="space-y-6"
-        >
+        <div className="space-y-6">
           {/* Appointment Status Breakdown */}
           <Card>
             <CardHeader>
@@ -383,7 +305,7 @@ const Dashboard = ({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {data.appointmentsByStatus?.length > 0 ? (
                   <>
                     {data.appointmentsByStatus.map(
@@ -392,28 +314,15 @@ const Dashboard = ({
                           .replace(/_/g, " ")
                           .toLowerCase()
                           .replace(/\b\w/g, (c: string) => c.toUpperCase());
-                        const statusColor =
-                          item.status === "COMPLETED"
-                            ? "bg-primary text-primary-foreground"
-                            : item.status === "CONFIRMED"
-                              ? "bg-sage text-white"
-                              : item.status === "IN_PROGRESS"
-                                ? "bg-gold text-primary-foreground"
-                                : item.status === "CANCELLED"
-                                  ? "bg-destructive text-destructive-foreground"
-                                  : "bg-secondary text-secondary-foreground";
-
                         return (
                           <div
                             key={item.status || index}
-                            className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                            className="flex items-center justify-between rounded-xl border border-border px-3 py-2.5"
                           >
-                            <div className="flex items-center gap-3">
-                              <Badge className={statusColor}>
-                                {statusLabel}
-                              </Badge>
-                            </div>
-                            <span className="font-bold text-lg">
+                            <ToneBadge status={item.status || ""}>
+                              {statusLabel}
+                            </ToneBadge>
+                            <span className="text-lg font-semibold tabular-nums">
                               {item._count}
                             </span>
                           </div>
@@ -458,7 +367,7 @@ const Dashboard = ({
                 {data.recentPayouts.map((payout: any) => (
                   <div
                     key={payout.id}
-                    className="flex items-center justify-between rounded-lg bg-muted/50 p-3 text-sm"
+                    className="flex items-center justify-between rounded-xl border border-border p-3 text-sm"
                   >
                     <div>
                       <p className="font-medium">
@@ -471,13 +380,13 @@ const Dashboard = ({
                           : ""}
                       </p>
                     </div>
-                    <Badge variant="outline">{payout.status}</Badge>
+                    <ToneBadge status={payout.status} />
                   </div>
                 ))}
               </CardContent>
             </Card>
           )}
-        </motion.div>
+        </div>
       </div>
     </div>
   );
@@ -507,28 +416,28 @@ function buildStats(data: any, role: string) {
         title: "Total Revenue (commission)",
         value: money(data.totalRevenueMinor),
         icon: Banknote,
-        color: "bg-gradient-gold",
+        tone: "primary" as Tone,
         hint: `${money(data.monthRevenueMinor)} this month`,
       },
       {
         title: "Booked through the platform",
         value: money(data.grossBookingsMinor),
         icon: Receipt,
-        color: "bg-primary",
+        tone: "info" as Tone,
         hint: `${data.effectiveCommissionPercent ?? 0}% effective commission`,
       },
       {
         title: "Owed to salons",
         value: money(data.salonPayableMinor),
         icon: PiggyBank,
-        color: "bg-sage",
+        tone: "success" as Tone,
         hint: `${count(data.pendingPayoutCount)} payout(s) pending`,
       },
       {
         title: "Total Users",
         value: count(data.totalUsers),
         icon: Users,
-        color: "bg-gradient-rose",
+        tone: "neutral" as Tone,
         hint: `${count(data.totalSalons)} salons · ${count(
           data.activeSalons,
         )} active`,
@@ -537,21 +446,21 @@ function buildStats(data: any, role: string) {
         title: "Total Appointments",
         value: count(data.totalAppointments),
         icon: Calendar,
-        color: "bg-primary",
+        tone: "info" as Tone,
         hint: `${count(data.todayAppointments)} today`,
       },
       {
         title: "Wallet float",
         value: money(data.walletFloatMinor),
         icon: Wallet,
-        color: "bg-sage",
+        tone: "success" as Tone,
         hint: `${money(data.walletHeldMinor)} held against bookings`,
       },
       {
         title: "Paid out",
         value: money(data.paidOutMinor),
         icon: CheckCircle2,
-        color: "bg-gradient-gold",
+        tone: "primary" as Tone,
         hint:
           data.failedPayoutMinor > 0
             ? `${money(data.failedPayoutMinor)} failed`
@@ -561,7 +470,7 @@ function buildStats(data: any, role: string) {
         title: "Commission rate",
         value: `${data.standardCommissionPercent ?? 10}%`,
         icon: Percent,
-        color: "bg-gradient-rose",
+        tone: "neutral" as Tone,
         hint: "Flat rate on every completed booking",
       },
     ];
@@ -573,14 +482,14 @@ function buildStats(data: any, role: string) {
         title: "Net Earnings",
         value: money(data.netEarningsMinor),
         icon: Banknote,
-        color: "bg-gradient-gold",
+        tone: "primary" as Tone,
         hint: `${money(data.monthNetMinor)} this month`,
       },
       {
         title: "Next Payout",
         value: money(data.payableMinor),
         icon: PiggyBank,
-        color: "bg-sage",
+        tone: "success" as Tone,
         hint:
           data.processingPayoutMinor > 0
             ? `${money(data.processingPayoutMinor)} already batched`
@@ -590,47 +499,42 @@ function buildStats(data: any, role: string) {
         title: "Wallet Balance",
         value: money(data.walletBalanceMinor),
         icon: Wallet,
-        color: "bg-primary",
+        tone: "info" as Tone,
         hint: `${money(data.walletAvailableMinor)} available`,
       },
       {
         title: "Platform Commission",
         value: money(data.commissionMinor),
         icon: Percent,
-        color: "bg-gradient-rose",
+        tone: "neutral" as Tone,
         hint: `${data.standardCommissionPercent ?? 10}% on every booking`,
       },
       {
         title: "Today's Appointments",
         value: count(data.todayAppointments),
         icon: Calendar,
-        color: "bg-gradient-rose",
+        tone: "neutral" as Tone,
         hint: `${money(data.todayRevenueMinor)} billed today`,
       },
       {
         title: "Total Appointments",
         value: count(data.totalAppointments),
         icon: Clock,
-        color: "bg-primary",
+        tone: "info" as Tone,
         hint: `${count(data.completedAppointments)} completed`,
       },
       {
         title: "Pending",
         value: count(data.pendingAppointments),
         icon: Users,
-        color: "bg-sage",
-        change:
-          data.pendingAppointments > 0
-            ? `${data.pendingAppointments} awaiting`
-            : undefined,
-        trend: "up",
+        tone: "warning" as Tone,
         hint: `${count(data.totalCustomers)} customers served`,
       },
       {
         title: "Services & Staff",
         value: `${count(data.totalServices)} / ${count(data.totalStaff)}`,
         icon: Package,
-        color: "bg-gradient-gold",
+        tone: "primary" as Tone,
         hint: `${count(data.totalSalons)} salon(s)`,
       },
     ];
@@ -642,28 +546,28 @@ function buildStats(data: any, role: string) {
         title: "Total Appointments",
         value: count(data.totalAppointments),
         icon: Calendar,
-        color: "bg-gradient-rose",
+        tone: "neutral" as Tone,
         hint: `${count(data.todayAppointments)} today`,
       },
       {
         title: "Completed",
         value: count(data.completedAppointments),
         icon: CheckCircle2,
-        color: "bg-sage",
+        tone: "success" as Tone,
         hint: `${count(data.cancelledAppointments)} cancelled`,
       },
       {
         title: "Upcoming",
         value: count(data.upcomingAppointments),
         icon: Clock,
-        color: "bg-primary",
+        tone: "info" as Tone,
         hint: `${money(data.depositsHeldMinor)} held as deposits`,
       },
       {
         title: "Wallet Balance",
         value: money(data.walletBalanceMinor),
         icon: Wallet,
-        color: "bg-gradient-gold",
+        tone: "primary" as Tone,
         hint: `${money(data.totalSpentMinor)} spent all time`,
       },
     ];
@@ -675,13 +579,13 @@ function buildStats(data: any, role: string) {
       title: "Appointments",
       value: count(data.totalAppointments),
       icon: Calendar,
-      color: "bg-gradient-rose",
+      tone: "neutral" as Tone,
     },
     {
       title: "Salons",
       value: count(data.totalSalons),
       icon: Store,
-      color: "bg-gradient-gold",
+      tone: "primary" as Tone,
     },
   ];
 }

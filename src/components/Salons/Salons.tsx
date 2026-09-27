@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
+import { useFilterNavigation } from "@/hooks/useFilterNavigation";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -74,7 +75,10 @@ type SalonsProps = {
 const Salons = ({ allSalons, meta, nearby, sort, error }: SalonsProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
+  const { navigate: pushUrl, isPending: isNavigating } = useFilterNavigation();
+  // The retry below re-renders the route rather than changing the URL.
+  const [isRetrying, startRetry] = useTransition();
+  const isPending = isNavigating || isRetrying;
 
   const [search, setSearch] = useState(searchParams.get("searchTerm") || "");
   const [divisionFilter, setDivisionFilter] = useState(searchParams.get("division") || "");
@@ -146,11 +150,9 @@ const Salons = ({ allSalons, meta, nearby, sort, error }: SalonsProps) => {
     }
     if (!keepPage) params.delete("page");
     const qs = params.toString();
-    startTransition(() =>
-      // A page turn keeps the reader where the list starts rather than
-      // throwing them back up to the search box.
-      router.push(qs ? `/salons?${qs}` : "/salons", { scroll: !keepPage }),
-    );
+    // A page turn keeps the reader where the list starts rather than
+    // throwing them back up to the search box.
+    pushUrl(qs ? `/salons?${qs}` : "/salons", { scroll: !keepPage });
   };
 
   const updateUrl = (newDiv: string, newDist: string, newArea: string) => {
@@ -597,10 +599,11 @@ const Salons = ({ allSalons, meta, nearby, sort, error }: SalonsProps) => {
                     We couldn&apos;t load salons.
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">{error}</p>
+                  {/* A retry of the failed read, not a mutation: re-render the route. */}
                   <Button
                     variant="outline"
                     className="mt-4"
-                    onClick={() => startTransition(() => router.refresh())}
+                    onClick={() => startRetry(() => router.refresh())}
                   >
                     Try again
                   </Button>
@@ -689,7 +692,7 @@ const Salons = ({ allSalons, meta, nearby, sort, error }: SalonsProps) => {
                           salon={salon}
                           index={index}
                           distance={salon.distance}
-                          priority={index < 3}
+                          preload={index < 3}
                         />
                       </div>
                     );

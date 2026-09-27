@@ -1,4 +1,5 @@
 import { Scissors, Sparkles } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 
@@ -48,11 +49,12 @@ const AuthShell = ({ title, subtitle, showcase, children }: AuthShellProps) => {
       {/* Right Side - Image Showcase */}
       <div className="hidden lg:flex lg:w-1/2 relative p-4">
         <div className="w-full h-full rounded-[2.5rem] bg-slate-900 overflow-hidden relative shadow-2xl">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={showcase.image}
             alt="Salon Service"
-            className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay"
+            fill
+            sizes="(min-width: 1024px) 50vw, 0px"
+            className="object-cover opacity-60 mix-blend-overlay"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
 

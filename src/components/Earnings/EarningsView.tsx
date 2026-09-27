@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +27,8 @@ import { format } from "date-fns";
 import { formatBDT } from "@/lib/money";
 import type { MyEarnings, PayoutStatus } from "@/services/settlement/settlement-types";
 import EarningsTrend from "./EarningsTrend";
+import { PageHeader } from "@/components/Shared/PageHeader";
+import { StatCard } from "@/components/Shared/StatCard";
 
 const payoutStyles: Record<PayoutStatus, string> = {
   PAID: "bg-sage/15 text-sage border-sage/30",
@@ -66,7 +67,7 @@ const EarningsView = ({
           summary.completedBookings === 1 ? "" : "s"
         }`,
         icon: TrendingUp,
-        accent: "bg-gradient-gold",
+        tone: "primary" as const,
       },
       {
         label: "Next payout",
@@ -76,7 +77,7 @@ const EarningsView = ({
             ? `${formatBDT(summary.processingPayoutMinor)} already in a batch`
             : "Not yet rolled into a batch",
         icon: PiggyBank,
-        accent: "bg-sage",
+        tone: "success" as const,
       },
       {
         label: "Paid out to date",
@@ -86,14 +87,14 @@ const EarningsView = ({
             ? `${formatBDT(summary.failedPayoutMinor)} failed — contact support`
             : "Transferred to your account",
         icon: Banknote,
-        accent: "bg-primary",
+        tone: "info" as const,
       },
       {
         label: "Platform commission",
         value: formatBDT(summary.commissionMinor),
         hint: `${summary.standardCommissionPercent}% on every booking · ${summary.effectiveCommissionPercent}% effective`,
         icon: Percent,
-        accent: "bg-gradient-rose",
+        tone: "neutral" as const,
       },
     ];
   }, [summary]);
@@ -165,58 +166,38 @@ const EarningsView = ({
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col justify-between gap-4 md:flex-row md:items-center"
-      >
-        <div>
-          <h1 className="flex items-center gap-2 font-display text-3xl font-bold">
-            <Banknote className="h-8 w-8 text-primary" /> Earnings &amp; Payouts
-          </h1>
-          <p className="mt-1 text-muted-foreground">
-            Every figure below is read from the settlement ledger, so it always
-            matches what you are actually paid.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link href="/dashboard/wallet">
-              <Wallet className="mr-2 h-4 w-4" /> Wallet
-            </Link>
-          </Button>
-          <Button variant="outline" onClick={exportCsv} disabled={downloading}>
-            <Download className="mr-2 h-4 w-4" /> Export CSV
-          </Button>
-        </div>
-      </motion.div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Earnings & payouts"
+        description="Every figure below is read from the settlement ledger, so it always matches what you are actually paid."
+        actions={
+          <>
+            <Button asChild variant="outline">
+              <Link href="/dashboard/wallet">
+                <Wallet className="mr-2 h-4 w-4" /> Wallet
+              </Link>
+            </Button>
+            <Button variant="outline" onClick={exportCsv} disabled={downloading}>
+              <Download className="mr-2 h-4 w-4" /> Export CSV
+            </Button>
+          </>
+        }
+      />
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map((card, index) => (
-          <motion.div
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+        {cards.map((card) => (
+          <StatCard
             key={card.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.06 }}
-          >
-            <Card className="h-full">
-              <CardContent className="p-6">
-                <div
-                  className={`flex h-12 w-12 items-center justify-center rounded-xl ${card.accent}`}
-                >
-                  <card.icon className="h-6 w-6 text-primary-foreground" />
-                </div>
-                <p className="mt-4 text-2xl font-bold">{card.value}</p>
-                <p className="text-sm text-muted-foreground">{card.label}</p>
-                <p className="mt-2 text-xs text-muted-foreground">{card.hint}</p>
-              </CardContent>
-            </Card>
-          </motion.div>
+            label={card.label}
+            value={card.value}
+            hint={card.hint}
+            icon={card.icon}
+            tone={card.tone}
+          />
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3 lg:gap-6">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Last 6 months</CardTitle>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,41 +10,27 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatBDT } from "@/lib/money";
-import type { ApiResponse, Appointment } from "@/lib/api-types";
-import { checkInAppointment } from "@/services/appoinments/checkInAppointment";
-import { startAppointment } from "@/services/appoinments/startAppointment";
-import { recordPayment } from "@/services/appoinments/recordPayment";
-import { showResultToast } from "@/components/Shared/showResultToast";
+import type { Appointment } from "@/lib/api-types";
 import { CheckoutDialog } from "./CheckoutDialog";
 import { COUNTER_PAYMENT_METHODS } from "./format";
+import type { AppointmentActions } from "./useAppointmentActions";
 
 // The one thing the desk should do next with a booking, given where it is in
 // CONFIRMED -> CHECKED_IN -> (IN_PROGRESS) -> COMPLETED.
 export const NextAction = ({
   appointment,
+  actions,
   onDone,
 }: {
   appointment: Appointment;
-  onDone?: () => void;
+  actions: AppointmentActions;
+  onDone?: () => unknown;
 }) => {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
-  const router = useRouter();
-
-  const run = (
-    action: () => Promise<ApiResponse<unknown>>,
-    success: string,
-    failure: string,
-  ) => {
-    startTransition(async () => {
-      const res = await action();
-      showResultToast(res, success, failure);
-      if (res.success) {
-        onDone?.();
-        router.refresh();
-      }
-    });
-  };
+  const isPending = actions.isPending(appointment.id);
+  const spinner = isPending && (
+    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+  );
 
   const dueMinor = appointment.amountDueMinor ?? 0;
   const completeLabel =
@@ -56,15 +42,10 @@ export const NextAction = ({
         <Button
           size="sm"
           disabled={isPending}
-          onClick={() =>
-            run(
-              () => checkInAppointment(appointment.id),
-              "Checked in",
-              "Failed to check in",
-            )
-          }
+          onClick={() => actions.checkIn(appointment.id, onDone)}
         >
-          {isPending ? "Checking in..." : "Check in"}
+          {spinner}
+          Check in
         </Button>
       );
 
@@ -77,13 +58,7 @@ export const NextAction = ({
               size="sm"
               variant="outline"
               disabled={isPending}
-              onClick={() =>
-                run(
-                  () => startAppointment(appointment.id),
-                  "Service started",
-                  "Failed to start",
-                )
-              }
+              onClick={() => actions.start(appointment.id, onDone)}
             >
               Start
             </Button>
@@ -93,6 +68,7 @@ export const NextAction = ({
             disabled={isPending}
             onClick={() => setCheckoutOpen(true)}
           >
+            {spinner}
             {completeLabel}
           </Button>
           <CheckoutDialog
@@ -100,6 +76,7 @@ export const NextAction = ({
             open={checkoutOpen}
             onOpenChange={setCheckoutOpen}
             onDone={onDone}
+            complete={actions.complete}
           />
         </div>
       );
@@ -111,7 +88,8 @@ export const NextAction = ({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button size="sm" variant="outline" disabled={isPending}>
-              {isPending ? "Recording..." : "Record payment"}
+              {spinner}
+              Record payment
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -119,11 +97,7 @@ export const NextAction = ({
               <DropdownMenuItem
                 key={m.value}
                 onClick={() =>
-                  run(
-                    () => recordPayment(appointment.id, m.value),
-                    `Payment recorded · ${m.label}`,
-                    "Failed to record payment",
-                  )
+                  actions.recordPayment(appointment.id, m.value, onDone)
                 }
               >
                 <span className="mr-2" aria-hidden>

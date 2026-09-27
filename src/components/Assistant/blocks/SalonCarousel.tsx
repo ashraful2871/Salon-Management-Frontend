@@ -1,11 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import { Clock, MapPin, Star } from "lucide-react";
 
+import SafeImage from "@/components/Shared/SafeImage";
 import { formatDistance } from "@/lib/geo";
 import { formatBDT } from "@/lib/money";
-import { usableImage } from "@/lib/salon-card";
 import { cn } from "@/lib/utils";
 import type { AssistantSalonCard, Block } from "@/lib/assistant-types";
 import Chip from "../Chip";
@@ -48,8 +47,8 @@ const CarouselCard = ({
       )}
     >
       <div className="relative h-24 w-full overflow-hidden bg-muted">
-        <Image
-          src={usableImage(salon.image)}
+        <SafeImage
+          src={salon.image}
           alt=""
           width={464}
           height={192}
