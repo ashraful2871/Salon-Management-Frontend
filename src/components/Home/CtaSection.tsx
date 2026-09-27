@@ -5,10 +5,6 @@ import { Sparkles } from "lucide-react";
 const CtaSection = () => {
   return (
     <section className="relative py-24 md:py-32 bg-white border-t border-slate-100 overflow-hidden">
-      {/* Very subtle background accents */}
-      <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-rose/5 rounded-full blur-[100px] pointer-events-none" />
-
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-50 text-primary-700 rounded-full text-xs font-bold uppercase tracking-wider mb-8 border border-slate-200 shadow-sm">

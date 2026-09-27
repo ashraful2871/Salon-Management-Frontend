@@ -85,32 +85,32 @@ const Dashboard = ({
         className="flex flex-col md:flex-row md:items-center justify-between gap-4"
       >
         <div>
-          <h1 className="font-serif text-3xl font-bold">Dashboard</h1>
+          <h1 className="font-display text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground mt-1">
             Welcome back! Here is what is happening today.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {userRole === "SALON_OWNER" && (
-            <Link href="/dashboard/earnings">
-              <Button variant="outline">
+            <Button variant="outline" asChild>
+              <Link href="/dashboard/earnings">
                 <Banknote className="mr-2 h-4 w-4" />
                 Earnings
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           )}
-          <Link href="/dashboard/wallet">
-            <Button variant="outline">
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/wallet">
               <Wallet className="mr-2 h-4 w-4" />
               Wallet
-            </Button>
-          </Link>
-          <Link href="/dashboard/appointments">
-            <Button>
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href="/dashboard/appointments">
               <Calendar className="mr-2 h-4 w-4" />
               View Schedule
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </motion.div>
 
@@ -173,12 +173,12 @@ const Dashboard = ({
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Earnings over the last 6 months</CardTitle>
               {userRole === "SALON_OWNER" && (
-                <Link href="/dashboard/earnings">
-                  <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/dashboard/earnings">
                     Details
                     <ArrowUpRight className="ml-1 h-4 w-4" />
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               )}
             </CardHeader>
             <CardContent>
@@ -300,12 +300,12 @@ const Dashboard = ({
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Recent Appointments</CardTitle>
-              <Link href="/dashboard/appointments">
-                <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/dashboard/appointments">
                   View All
                   <ArrowUpRight className="ml-1 h-4 w-4" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">

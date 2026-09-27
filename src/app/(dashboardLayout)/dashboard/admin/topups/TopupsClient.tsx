@@ -196,7 +196,7 @@ export function TopupsClient({
   return (
     <div className="min-w-0 space-y-8">
       <div>
-        <h1 className="font-serif text-3xl font-bold">Top-ups &amp; Refunds</h1>
+        <h1 className="font-display text-3xl font-bold">Top-ups &amp; Refunds</h1>
         <p className="mt-1 text-muted-foreground">
           Refunds send money back to the customer&apos;s bKash or card and take it
           out of their wallet.

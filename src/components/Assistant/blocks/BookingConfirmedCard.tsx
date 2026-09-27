@@ -114,7 +114,7 @@ const BookingConfirmedCard = ({ block }: { block: ConfirmedBlock }) => (
         )}
 
         {block.serialNumber !== null && (
-          <p className="mt-1 font-serif text-base font-bold tabular-nums text-primary">
+          <p className="mt-1 font-display text-base font-bold tabular-nums text-primary">
             Serial #{block.serialNumber}
           </p>
         )}

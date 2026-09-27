@@ -49,7 +49,7 @@ export function AgentsClient({ agentsResponse }: { agentsResponse: any }) {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-serif text-3xl font-bold">Agents</h1>
+          <h1 className="font-display text-3xl font-bold">Agents</h1>
           <p className="text-muted-foreground mt-1">
             Manage agents and their assigned territories
           </p>

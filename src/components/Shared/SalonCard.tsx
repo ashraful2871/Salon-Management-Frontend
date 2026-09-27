@@ -1,6 +1,5 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, MapPin, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -45,18 +44,18 @@ const SalonCard = ({
   priority = false,
   className,
 }: SalonCardProps) => {
-  const reduceMotion = useReducedMotion();
   const approximate = distance?.startsWith("~") ?? false;
   const href = `/salons/${salon.id}`;
   const extraServices = salon.services.length - 2;
 
   return (
-    <motion.article
-      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      // Capped, so the twelfth card is not left waiting a second to appear.
-      transition={{ duration: 0.35, delay: Math.min(index, 6) * 0.05 }}
+    <article
+      // Capped, so the twelfth card is not left waiting to appear. Backwards
+      // fill keeps it hidden through its delay; not "both", which would leave
+      // blur(0) and a 3D transform on every finished card (a layer each).
+      style={{ animationDelay: `${Math.min(index, 6) * 40}ms` }}
       className={cn(
+        "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300 fill-mode-backwards",
         "group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-[box-shadow,transform,border-color] duration-300",
         "hover:-translate-y-0.5 hover:border-gold/40 hover:shadow-card",
         "focus-within:ring-2 focus-within:ring-primary/40 focus-within:ring-offset-2 focus-within:ring-offset-background",
@@ -84,7 +83,7 @@ const SalonCard = ({
                 ? "Approximate location. The salon hasn't pinned its exact spot yet."
                 : undefined
             }
-            className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-charcoal shadow-sm backdrop-blur-sm"
+            className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-charcoal shadow-sm"
           >
             <MapPin className="h-3.5 w-3.5 text-gold" aria-hidden="true" />
             {distance}
@@ -95,7 +94,7 @@ const SalonCard = ({
         )}
 
         {salon.openNow !== null && (
-          <span className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-charcoal shadow-sm backdrop-blur-sm">
+          <span className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-charcoal shadow-sm">
             <span
               aria-hidden="true"
               className={cn(
@@ -185,7 +184,7 @@ const SalonCard = ({
           </span>
         </div>
       </div>
-    </motion.article>
+    </article>
   );
 };
 

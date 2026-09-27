@@ -19,7 +19,7 @@ const Marquee = () => {
       <div className="absolute top-0 right-0 w-24 h-full bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
       
       {/* Marquee Content Container */}
-      <div className="flex whitespace-nowrap animate-marquee">
+      <div className="flex whitespace-nowrap animate-marquee motion-reduce:animate-none">
         {/* We duplicate the array multiple times to ensure seamless infinite scrolling */}
         {[...items, ...items, ...items, ...items].map((item, index) => (
           <div key={index} className="flex items-center mx-6">

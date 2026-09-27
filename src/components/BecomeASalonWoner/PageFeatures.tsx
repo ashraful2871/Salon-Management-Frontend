@@ -31,7 +31,7 @@ const PageFeatures = () => {
     <section className="py-20 bg-card">
       <div className="container mx-auto px-4">
         <div className="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
-          <div className="animate-slide-up">
+          <div>
             <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-6">
               Why partner with SalonKhuji?
             </h2>
@@ -65,7 +65,7 @@ const PageFeatures = () => {
             </div>
           </div>
 
-          <div className="relative animate-scale-in">
+          <div className="relative">
             <div className="rounded-2xl overflow-hidden border border-border shadow-card">
               <Image
                 src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1400&q=80"

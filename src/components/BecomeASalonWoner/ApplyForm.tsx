@@ -139,7 +139,7 @@ const ApplyForm = () => {
 
           <div className="grid gap-8 lg:grid-cols-5">
             {/* left info (like contact left column steps) */}
-            <div className="lg:col-span-2 space-y-6 animate-slide-up">
+            <div className="lg:col-span-2 space-y-6">
               <Card className="bg-card border border-border shadow-soft">
                 <CardHeader>
                   <CardTitle>How it works</CardTitle>
@@ -208,7 +208,7 @@ const ApplyForm = () => {
             </div>
 
             {/* form */}
-            <Card className="lg:col-span-3 bg-card border border-border shadow-card animate-scale-in">
+            <Card className="lg:col-span-3 bg-card border border-border shadow-card">
               <CardHeader>
                 <CardTitle>Business information</CardTitle>
                 <CardDescription>

@@ -194,7 +194,7 @@ const Settings = ({
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="font-serif text-3xl font-bold">Settings</h1>
+        <h1 className="font-display text-3xl font-bold">Settings</h1>
         <p className="text-muted-foreground mt-1">
           Manage your salon preferences and account settings
         </p>

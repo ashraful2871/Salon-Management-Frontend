@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Outfit, Inter } from "next/font/google";
 import "./globals.css";
 import { Suspense } from "react";
@@ -9,7 +9,7 @@ import { AppToaster } from "@/components/Shared/AppToaster";
 
 const outfit = Outfit({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: ["500", "600", "700"],
   variable: "--font-display",
   display: "swap",
 });
@@ -27,6 +27,11 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.png",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#fdfcf9",
+  colorScheme: "light",
 };
 
 export default function RootLayout({

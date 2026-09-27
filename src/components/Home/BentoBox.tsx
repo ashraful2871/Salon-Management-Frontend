@@ -128,11 +128,7 @@ const services = [
 
 const BentoBox = () => {
   return (
-    <section className="py-32 bg-slate-50 relative overflow-hidden">
-      {/* Decorative ambient lights */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-primary/5 rounded-full blur-[150px] mix-blend-multiply pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-rose/10 rounded-full blur-[120px] mix-blend-multiply pointer-events-none" />
-
+    <section className="py-32 bg-slate-50 bg-glow-soft relative overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Modern Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-8">
@@ -168,7 +164,7 @@ const BentoBox = () => {
 
             <div className="relative z-20 h-full flex flex-col justify-between">
               <div>
-                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md border border-white/40 flex items-center justify-center mb-8 shadow-glow">
+                <div className="w-16 h-16 rounded-2xl bg-white/20 border border-white/40 flex items-center justify-center mb-8 shadow-glow">
                   <Crown className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-3xl lg:text-4xl font-black font-display text-white mb-4 leading-tight">
@@ -182,7 +178,7 @@ const BentoBox = () => {
               </div>
 
               {/* Stats Bar */}
-              <div className="grid grid-cols-3 gap-6 mt-12 pt-8 border-t border-white/30 bg-white/10 p-6 rounded-2xl backdrop-blur-xl">
+              <div className="grid grid-cols-3 gap-6 mt-12 pt-8 border-t border-white/30 bg-white/10 p-6 rounded-2xl">
                 <div>
                   <div className="text-3xl font-black font-display text-white">
                     500<span className="text-primary-300">+</span>

@@ -230,7 +230,7 @@ export default function PaymentResult({
   const paidAt = intent?.completedAt ?? intent?.createdAt;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 animate-fade-in">
+    <div className="mx-auto max-w-2xl space-y-6">
       <Card className="overflow-hidden shadow-soft print:border-0 print:shadow-none">
         <CardContent className="p-0">
           <div className="flex flex-col items-center gap-4 px-6 pt-10 pb-8 text-center">
@@ -244,7 +244,7 @@ export default function PaymentResult({
             </div>
 
             <div className="space-y-2">
-              <h1 className="font-serif text-2xl font-bold text-foreground sm:text-3xl">
+              <h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
                 {heading.title}
               </h1>
               <p className="mx-auto max-w-md text-sm text-muted-foreground">

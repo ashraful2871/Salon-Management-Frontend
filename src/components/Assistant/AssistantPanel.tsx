@@ -476,7 +476,7 @@ const AssistantPanel = ({
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         onClick={close}
-        className="absolute inset-0 bg-black/50 backdrop-blur-[2px] md:bg-black/20 md:backdrop-blur-none"
+        className="absolute inset-0 bg-black/40 md:bg-black/20"
       />
 
       <motion.div

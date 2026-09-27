@@ -92,7 +92,6 @@ function QuoteCard({
 const Testimonials = () => {
   return (
     <section className="py-32 bg-slate-50 relative overflow-hidden border-t border-slate-200">
-      <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-rose/10 rounded-full blur-[150px] mix-blend-multiply pointer-events-none" />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="flex flex-col md:flex-row items-center justify-between mb-16 gap-8">

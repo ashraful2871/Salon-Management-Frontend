@@ -285,7 +285,7 @@ const BookingSummary = ({
 
           <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <h1 className="font-serif text-3xl font-bold tracking-tight md:text-4xl">
+              <h1 className="font-display text-3xl font-bold tracking-tight md:text-4xl">
                 Review &amp; confirm
               </h1>
               <p className="mt-1 text-muted-foreground">

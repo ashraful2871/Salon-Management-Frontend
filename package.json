@@ -6,7 +6,9 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "design:audit": "node scripts/design-audit.mjs",
+    "contrast": "node scripts/contrast.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",

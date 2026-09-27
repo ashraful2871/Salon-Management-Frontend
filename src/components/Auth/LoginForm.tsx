@@ -88,7 +88,7 @@ const LoginForm = ({
     <div className="min-h-screen flex bg-slate-50">
       {/* Left Side - Form */}
       <div className="flex-1 flex flex-col justify-center p-8 sm:px-12 lg:px-24">
-        <div className="w-full max-w-sm mx-auto animate-fade-in">
+        <div className="w-full max-w-sm mx-auto">
           <Link href="/" className="inline-flex items-center gap-2 mb-10 group">
             <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all">
               <Scissors className="w-5 h-5 text-primary" />
@@ -240,7 +240,7 @@ const LoginForm = ({
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
 
           <div className="absolute inset-0 p-16 flex flex-col justify-end">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white/90 text-xs font-bold uppercase tracking-wider mb-6 w-fit">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-full text-white/90 text-xs font-bold uppercase tracking-wider mb-6 w-fit">
               <Sparkles className="w-4 h-4 text-primary-300" />
               Premium Experience
             </div>

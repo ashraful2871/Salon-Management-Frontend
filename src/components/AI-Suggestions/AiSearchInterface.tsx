@@ -288,7 +288,7 @@ export default function AiSearchInterface() {
   const notes = result?.notes ?? [];
 
   return (
-    <div className="max-w-6xl mx-auto space-y-12 animate-fade-in">
+    <div className="max-w-6xl mx-auto space-y-12">
       {/* Search */}
       <div className="max-w-3xl mx-auto space-y-5">
         <form onSubmit={handleSearch} className="relative group" role="search">

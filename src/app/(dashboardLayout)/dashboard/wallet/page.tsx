@@ -209,10 +209,10 @@ export default function WalletPage() {
   }, [searchParams, router]);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8 animate-fade-in">
+    <div className="mx-auto max-w-5xl space-y-8">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="flex items-center gap-2 font-serif text-3xl font-bold">
+          <h1 className="flex items-center gap-2 font-display text-3xl font-bold">
             <Wallet className="h-8 w-8 text-primary" /> My Wallet
           </h1>
           <p className="mt-1 text-muted-foreground">

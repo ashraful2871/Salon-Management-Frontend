@@ -44,11 +44,11 @@ const ResetPasswordForm = ({ token }: { token: string }) => {
             </p>
           </div>
 
-          <Link href="/forgot-password" className="block">
-            <Button className="w-full h-12 rounded-xl bg-primary hover:bg-primary-600 text-white font-bold cursor-pointer">
+          <Button className="w-full h-12 rounded-xl bg-primary hover:bg-primary-600 text-white font-bold cursor-pointer" asChild>
+            <Link href="/forgot-password">
               Request a new link
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </AuthShell>
     );
@@ -71,11 +71,11 @@ const ResetPasswordForm = ({ token }: { token: string }) => {
             </p>
           </div>
 
-          <Link href="/login" className="block">
-            <Button className="w-full h-12 rounded-xl bg-primary hover:bg-primary-600 text-white font-bold shadow-premium hover:shadow-glow transition-all duration-300 cursor-pointer">
+          <Button className="w-full h-12 rounded-xl bg-primary hover:bg-primary-600 text-white font-bold shadow-premium hover:shadow-glow transition-all duration-300 cursor-pointer" asChild>
+            <Link href="/login">
               Sign in
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </AuthShell>
     );

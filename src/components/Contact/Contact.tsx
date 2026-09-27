@@ -64,7 +64,7 @@ export default function Contact() {
       {/* Hero */}
       <section className="py-20 bg-muted/50">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center animate-fade-in">
+          <div className="max-w-3xl mx-auto text-center">
             <span className="inline-block px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium mb-6">
               Get In Touch
             </span>
@@ -88,8 +88,7 @@ export default function Contact() {
             {contactInfo.map((info, index) => (
               <div
                 key={info.title}
-                className="p-6 rounded-2xl bg-card border border-border shadow-soft hover:shadow-card transition-all duration-300 text-center animate-slide-up"
-                style={{ animationDelay: `${index * 100}ms` }}
+                className="p-6 rounded-2xl bg-card border border-border shadow-soft hover:shadow-card transition-all duration-300 text-center"
               >
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                   <info.icon className="w-6 h-6 text-primary" />
@@ -111,7 +110,7 @@ export default function Contact() {
       <section className="py-20 bg-card">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto">
-            <div className="animate-slide-up">
+            <div>
               <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-6">
                 Send Us a Message
               </h2>
@@ -171,7 +170,7 @@ export default function Contact() {
 
             <form
               onSubmit={handleSubmit}
-              className="space-y-6 animate-scale-in"
+              className="space-y-6"
             >
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>

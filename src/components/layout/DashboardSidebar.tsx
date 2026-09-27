@@ -300,7 +300,7 @@ export const DashboardShell = ({
       {/* Mobile drawer */}
       <div
         className={cn(
-          "fixed inset-0 z-50 lg:hidden",
+          "fixed inset-0 z-50 transition-[visibility] duration-300 lg:hidden",
           mobileOpen ? "visible" : "invisible",
         )}
         aria-hidden={!mobileOpen}
@@ -311,7 +311,7 @@ export const DashboardShell = ({
           aria-hidden="true"
           onClick={() => setMobileOpen(false)}
           className={cn(
-            "absolute inset-0 cursor-default bg-slate-900/50 backdrop-blur-[2px] transition-opacity duration-300",
+            "absolute inset-0 cursor-default bg-black/40 transition-opacity duration-300",
             mobileOpen ? "opacity-100" : "opacity-0",
           )}
         />
@@ -365,7 +365,7 @@ export const DashboardShell = ({
         )}
       >
         {/* Top bar */}
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-slate-200/80 bg-white/85 px-4 backdrop-blur-xl sm:px-6">
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-slate-200/80 bg-white/95 px-4 sm:px-6 md:bg-white/85 md:backdrop-blur-sm">
           <button
             ref={menuRef}
             type="button"

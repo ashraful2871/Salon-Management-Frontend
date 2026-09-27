@@ -249,7 +249,7 @@ export default function Store({
           className="flex flex-col md:flex-row md:items-center justify-between gap-4"
         >
           <div>
-            <h1 className="font-serif text-3xl font-bold">My Salons</h1>
+            <h1 className="font-display text-3xl font-bold">My Salons</h1>
             <p className="text-muted-foreground mt-1">
               Manage your salons, status, staff, and operations
             </p>
@@ -664,11 +664,11 @@ export default function Store({
 
                           {/* CTA */}
                           <div className="flex gap-2">
-                            <Link href={`/dashboard/store/${selectedSalon.id}`}>
-                              <Button className="flex-1 bg-sage hover:opacity-90 text-white">
+                            <Button className="flex-1 bg-sage hover:opacity-90 text-white" asChild>
+                              <Link href={`/dashboard/store/${selectedSalon.id}`}>
                                 Manage Salon
-                              </Button>
-                            </Link>
+                              </Link>
+                            </Button>
                             <Button variant="outline" className="flex-1">
                               Edit Salon
                             </Button>

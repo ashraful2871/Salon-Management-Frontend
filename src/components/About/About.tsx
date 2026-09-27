@@ -71,7 +71,7 @@ export default function About() {
       {/* Hero */}
       <section className="py-20 bg-muted/50">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center animate-fade-in">
+          <div className="max-w-3xl mx-auto text-center">
             <span className="inline-block px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium mb-6">
               About Us
             </span>
@@ -97,8 +97,7 @@ export default function About() {
             {stats.map((stat, index) => (
               <div
                 key={stat.label}
-                className="text-center animate-slide-up"
-                style={{ animationDelay: `${index * 100}ms` }}
+                className="text-center"
               >
                 <div className="text-4xl md:text-5xl font-display font-bold text-primary mb-2">
                   {stat.value}
@@ -114,7 +113,7 @@ export default function About() {
       <section className="py-20 bg-card">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div className="animate-slide-up">
+            <div>
               <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-6">
                 Our Story
               </h2>
@@ -136,7 +135,7 @@ export default function About() {
                 </p>
               </div>
             </div>
-            <div className="relative animate-scale-in">
+            <div className="relative">
               <Image
                 src="https://images.unsplash.com/photo-1562322140-8baeececf3df?w=600&h=500&fit=crop"
                 alt="Salon interior"
@@ -166,8 +165,7 @@ export default function About() {
             {values.map((value, index) => (
               <div
                 key={value.title}
-                className="p-6 rounded-2xl bg-card border border-border hover:shadow-card transition-all duration-300 animate-slide-up"
-                style={{ animationDelay: `${index * 100}ms` }}
+                className="p-6 rounded-2xl bg-card border border-border hover:shadow-card transition-all duration-300"
               >
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
                   <value.icon className="w-6 h-6 text-primary" />
@@ -199,8 +197,7 @@ export default function About() {
             {team.map((member, index) => (
               <div
                 key={member.name}
-                className="text-center animate-slide-up"
-                style={{ animationDelay: `${index * 100}ms` }}
+                className="text-center"
               >
                 <div className="mb-4 relative inline-block">
                   <Image

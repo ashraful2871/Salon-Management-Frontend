@@ -3,7 +3,7 @@ import React from "react";
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <div className="text-center animate-slide-up">
+    <div className="text-center">
       <div className="text-4xl md:text-5xl font-display font-bold text-primary mb-2">
         {value}
       </div>

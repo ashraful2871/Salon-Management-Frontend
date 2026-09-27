@@ -210,7 +210,7 @@ export default function ManageSalon({
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
           <div className="absolute bottom-4 left-6 text-white">
-            <h1 className="text-3xl font-bold font-serif">{salon.name}</h1>
+            <h1 className="text-3xl font-bold font-display">{salon.name}</h1>
             <p className="opacity-90 flex items-center gap-2 text-sm mt-1">
               <MapPin className="w-4 h-4 text-gold" /> {salon.city},{" "}
               {salon.state}

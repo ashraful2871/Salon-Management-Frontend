@@ -50,15 +50,16 @@ const ForgotPasswordForm = () => {
             </p>
           </div>
 
-          <Link href="/login" className="block">
-            <Button
-              variant="outline"
-              className="w-full h-12 rounded-xl border-slate-200 font-bold cursor-pointer"
-            >
+          <Button
+            variant="outline"
+            className="w-full h-12 rounded-xl border-slate-200 font-bold cursor-pointer"
+            asChild
+          >
+            <Link href="/login">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to sign in
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       ) : (
         <>

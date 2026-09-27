@@ -214,7 +214,7 @@ export const SlotManagement = ({ salons }: { salons: any[] }) => {
         className="flex flex-col md:flex-row md:items-center justify-between gap-4"
       >
         <div>
-          <h1 className="font-serif text-3xl font-bold">Slot Management</h1>
+          <h1 className="font-display text-3xl font-bold">Slot Management</h1>
           <p className="text-muted-foreground mt-1">
             Create and manage appointment slots for your salon.
           </p>

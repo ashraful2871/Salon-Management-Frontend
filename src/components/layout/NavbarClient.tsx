@@ -36,6 +36,7 @@ import { formatBDT } from "@/lib/money";
 import type { Wallet } from "@/services/wallet/getMyWallet";
 import LogoutButton from "./LogoutButton";
 import WalletMenu from "./WalletMenu";
+import BalanceReveal from "@/components/Shared/BalanceReveal";
 import LocationChip from "@/components/Location/LocationChip";
 
 interface UserData {
@@ -92,132 +93,6 @@ const UserAvatar = ({
     </AvatarFallback>
   </Avatar>
 );
-
-const TapToRevealPill = ({
-  label,
-  amountMinor,
-}: {
-  label: string;
-  amountMinor: number;
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        if (!isOpen) {
-          setIsOpen(true);
-          setTimeout(() => setIsOpen(false), 3500);
-        }
-      }}
-      aria-label={`${label} balance`}
-      className={cn(
-        "group relative flex h-10 w-28 sm:w-36 cursor-pointer items-center overflow-hidden rounded-full border bg-white p-1 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-        isOpen
-          ? "border-primary/40 shadow-sm ring-1 ring-primary/10"
-          : "border-slate-200 hover:border-slate-300 hover:shadow-sm",
-      )}
-    >
-      <div className="z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-gold text-white shadow-gold transition-transform duration-300 group-hover:scale-105">
-        <WalletIcon className="h-4 w-4" />
-      </div>
-
-      <div className="relative flex h-full flex-1 items-center justify-center overflow-hidden">
-        <div
-          className={cn(
-            "absolute inset-0 flex flex-col items-center justify-center transition-all duration-500 ease-out",
-            isOpen
-              ? "-translate-y-full opacity-0"
-              : "translate-y-0 opacity-100",
-          )}
-        >
-          <span className="text-[10px] sm:text-[11px] font-bold tracking-wide text-slate-500 whitespace-nowrap">
-            Tap for {label}
-          </span>
-        </div>
-
-        <div
-          className={cn(
-            "absolute inset-0 flex items-center justify-center gap-1 sm:gap-1.5 transition-all duration-500 ease-out",
-            isOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0",
-          )}
-        >
-          <span className="text-xs sm:text-sm font-black tabular-nums text-slate-900">
-            {formatBDT(amountMinor)}
-          </span>
-        </div>
-      </div>
-    </button>
-  );
-};
-
-const TapToRevealCard = ({
-  label,
-  amountMinor,
-  link,
-}: {
-  label: string;
-  amountMinor: number;
-  link?: string;
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div
-        className="group relative cursor-pointer bg-gradient-gold px-4 py-4 text-white transition-all hover:brightness-110"
-        onClick={() => {
-          if (!isOpen) {
-            setIsOpen(true);
-            setTimeout(() => setIsOpen(false), 3500);
-          }
-        }}
-      >
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/85">
-            <WalletIcon className="h-3.5 w-3.5" /> {label}
-          </span>
-        </div>
-
-        <div className="relative mt-2 h-10 overflow-hidden">
-          <div
-            className={cn(
-              "absolute inset-0 flex items-center transition-all duration-500 ease-out",
-              isOpen
-                ? "-translate-y-full opacity-0"
-                : "translate-y-0 opacity-100",
-            )}
-          >
-            <span className="text-lg font-bold tracking-wide text-white/95">
-              Tap for Balance
-            </span>
-          </div>
-
-          <div
-            className={cn(
-              "absolute inset-0 flex items-center gap-2 transition-all duration-500 ease-out",
-              isOpen
-                ? "translate-y-0 opacity-100"
-                : "translate-y-full opacity-0",
-            )}
-          >
-            <p className="text-3xl font-black tabular-nums tracking-tight">
-              {formatBDT(amountMinor)}
-            </p>
-          </div>
-        </div>
-      </div>
-      {link && (
-        <div className="flex items-center gap-2 p-3">
-          <Button size="sm" variant="outline" className="h-9 w-full" asChild>
-            <Link href={link}>View Details</Link>
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-};
 
 const NavbarClient = ({
   user,
@@ -319,10 +194,12 @@ const NavbarClient = ({
     <>
       <header
         className={cn(
-          "fixed inset-x-0 top-0 z-50 border-b transition-all duration-300",
+          // Only colours and the shadow change on scroll; the blur keeps one
+          // radius and is desktop-only, so phones never re-rasterise it.
+          "fixed inset-x-0 top-0 z-50 border-b transition-[background-color,border-color,box-shadow] duration-200",
           isScrolled
-            ? "border-slate-200/80 bg-white/90 shadow-[0_4px_24px_-12px_rgba(15,23,42,0.25)] backdrop-blur-xl"
-            : "border-transparent bg-white/70 backdrop-blur-md",
+            ? "border-border bg-white/95 shadow-[0_4px_24px_-12px_rgb(0_0_0/0.18)] md:bg-white/85 md:backdrop-blur-sm"
+            : "border-transparent bg-white/90 md:bg-white/75 md:backdrop-blur-sm",
         )}
       >
         <nav
@@ -381,15 +258,21 @@ const NavbarClient = ({
                   <div className="hidden md:block">
                     {user.role === "CUSTOMER" && <WalletMenu wallet={wallet} />}
                     {user.role === "SALON_OWNER" && (
-                      <TapToRevealPill
-                        label="Revenue"
-                        amountMinor={ownerRevenueMinor ?? 0}
+                      <BalanceReveal
+                        variant="pill"
+                        label="Owner revenue"
+                        figures={[
+                          { label: "Net earnings", amountMinor: ownerRevenueMinor ?? null },
+                        ]}
                       />
                     )}
                     {user.role === "ADMIN" && (
-                      <TapToRevealPill
-                        label="Revenue"
-                        amountMinor={adminRevenueMinor ?? 0}
+                      <BalanceReveal
+                        variant="pill"
+                        label="Platform revenue"
+                        figures={[
+                          { label: "Total", amountMinor: adminRevenueMinor ?? null },
+                        ]}
                       />
                     )}
                   </div>
@@ -494,7 +377,8 @@ const NavbarClient = ({
       {/* Mobile drawer: a sheet from the right, over everything. */}
       <div
         className={cn(
-          "fixed inset-0 z-[60] lg:hidden",
+          // Visibility waits out the slide, so closing animates too.
+          "fixed inset-0 z-[60] transition-[visibility] duration-300 lg:hidden",
           isMobileMenuOpen ? "visible" : "invisible",
         )}
         aria-hidden={!isMobileMenuOpen}
@@ -505,7 +389,7 @@ const NavbarClient = ({
           aria-hidden="true"
           onClick={closeMenu}
           className={cn(
-            "absolute inset-0 cursor-default bg-slate-900/50 backdrop-blur-[2px] transition-opacity duration-300",
+            "absolute inset-0 cursor-default bg-black/40 transition-opacity duration-300",
             isMobileMenuOpen ? "opacity-100" : "opacity-0",
           )}
         />
@@ -565,23 +449,42 @@ const NavbarClient = ({
             {user?.role === "CUSTOMER" && (
               <WalletMenu wallet={wallet} variant="card" onNavigate={closeMenu} />
             )}
+            {/* Only the links inside close the drawer; revealing keeps it open. */}
             {user?.role === "SALON_OWNER" && (
-              <div onClick={closeMenu}>
-                <TapToRevealCard
-                  label="Owner Revenue"
-                  amountMinor={ownerRevenueMinor ?? 0}
-                  link="/dashboard/earnings"
-                />
-              </div>
+              <BalanceReveal
+                variant="card"
+                label="Owner revenue"
+                figures={[
+                  { label: "Net earnings", amountMinor: ownerRevenueMinor ?? null },
+                ]}
+                footer={
+                  <div className="border-t border-border p-3">
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href="/dashboard/earnings" onClick={closeMenu}>
+                        View details
+                      </Link>
+                    </Button>
+                  </div>
+                }
+              />
             )}
             {user?.role === "ADMIN" && (
-              <div onClick={closeMenu}>
-                <TapToRevealCard
-                  label="Platform Revenue"
-                  amountMinor={adminRevenueMinor ?? 0}
-                  link="/dashboard"
-                />
-              </div>
+              <BalanceReveal
+                variant="card"
+                label="Platform revenue"
+                figures={[
+                  { label: "Total", amountMinor: adminRevenueMinor ?? null },
+                ]}
+                footer={
+                  <div className="border-t border-border p-3">
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href="/dashboard" onClick={closeMenu}>
+                        View details
+                      </Link>
+                    </Button>
+                  </div>
+                }
+              />
             )}
 
             <div>

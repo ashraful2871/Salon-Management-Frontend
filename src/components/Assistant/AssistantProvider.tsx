@@ -1,14 +1,19 @@
 "use client";
 
 import { useCallback, useMemo, useState, type ReactNode } from "react";
-import { AnimatePresence } from "framer-motion";
+import dynamic from "next/dynamic";
 
 import type { AssistantAction } from "@/lib/assistant-types";
 import type { AssistantAccess } from "@/services/assistant/getAssistantAccess";
 import { AssistantContext, type AssistantContextValue } from "./AssistantContext";
 import AssistantLauncher from "./AssistantLauncher";
-import AssistantPanel from "./AssistantPanel";
 import { useAssistant } from "./useAssistant";
+
+// The panel and its animation library are downloaded only when someone opens
+// the chat; the launcher preloads them on hover/focus/touch.
+const AssistantPanelHost = dynamic(() => import("./AssistantPanelHost"), {
+  ssr: false,
+});
 
 /**
  * One chat for the whole site. `children` arrives as a prop from the server
@@ -28,6 +33,7 @@ const AssistantProvider = ({
 }) => {
   const chat = useAssistant();
   const [isOpen, setIsOpen] = useState(false);
+  const [panelLoaded, setPanelLoaded] = useState(false);
 
   const { open } = chat;
   const { enabled } = access;
@@ -35,6 +41,7 @@ const AssistantProvider = ({
   const openWith = useCallback(
     (action?: AssistantAction, label?: string) => {
       if (!enabled) return;
+      setPanelLoaded(true);
       setIsOpen(true);
       open(action, label);
     },
@@ -52,7 +59,7 @@ const AssistantProvider = ({
     <AssistantContext.Provider value={value}>
       {children}
       {enabled && <AssistantLauncher />}
-      <AnimatePresence>{enabled && isOpen && <AssistantPanel />}</AnimatePresence>
+      {enabled && panelLoaded && <AssistantPanelHost open={isOpen} />}
     </AssistantContext.Provider>
   );
 };

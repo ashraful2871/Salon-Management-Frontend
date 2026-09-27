@@ -172,7 +172,7 @@ const EarningsView = ({
         className="flex flex-col justify-between gap-4 md:flex-row md:items-center"
       >
         <div>
-          <h1 className="flex items-center gap-2 font-serif text-3xl font-bold">
+          <h1 className="flex items-center gap-2 font-display text-3xl font-bold">
             <Banknote className="h-8 w-8 text-primary" /> Earnings &amp; Payouts
           </h1>
           <p className="mt-1 text-muted-foreground">

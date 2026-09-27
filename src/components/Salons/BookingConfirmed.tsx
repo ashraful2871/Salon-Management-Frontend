@@ -121,7 +121,7 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-sage/15">
             <CheckCircle2 className="h-11 w-11 text-sage" />
           </div>
-          <h1 className="mt-6 font-serif text-3xl font-bold md:text-4xl">
+          <h1 className="mt-6 font-display text-3xl font-bold md:text-4xl">
             Your appointment is booked
           </h1>
           <p className="mt-2 text-muted-foreground">
@@ -159,7 +159,7 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
                   Show this at the counter
                 </p>
                 {hasSerial && (
-                  <p className="mt-3 font-serif text-5xl font-bold tabular-nums text-primary md:text-6xl">
+                  <p className="mt-3 font-display text-5xl font-bold tabular-nums text-primary md:text-6xl">
                     Serial #{booking.serialNumber}
                   </p>
                 )}
