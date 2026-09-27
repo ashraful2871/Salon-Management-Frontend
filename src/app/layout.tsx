@@ -6,6 +6,7 @@ import LoginSuccessToast from "@/components/Shared/LoginSuccessToast";
 import LogoutSuccessToast from "@/components/Shared/LogoutSuccessToast";
 import { NavProgress } from "@/components/Shared/NavProgress";
 import { AppToaster } from "@/components/Shared/AppToaster";
+import { SITE } from "@/lib/site";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -21,9 +22,15 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "SalonKhuji - Beauty Services Management",
-  description:
-    "Find and book the best salons in your area. Manage your salon appointments, customers, and services with ease.",
+  metadataBase: new URL(SITE.url),
+  title: {
+    default: "SalonKhuji: book trusted salons near you",
+    template: `%s · ${SITE.name}`,
+  },
+  description: SITE.description,
+  // Add images: [{ url: "/og.jpg", width: 1200, height: 630 }] once public/og.jpg exists.
+  openGraph: { siteName: SITE.name, type: "website", locale: "en_BD" },
+  twitter: { card: "summary_large_image" },
   icons: {
     icon: "/favicon.png",
   },

@@ -1,8 +1,10 @@
+import type { Metadata } from "next";
 import AiSearchInterface from "@/components/AI-Suggestions/AiSearchInterface";
 
-export const metadata = {
-  title: "AI Salon Match | SalonKhuji",
-  description: "Find your perfect salon with our AI-powered suggestions.",
+export const metadata: Metadata = {
+  title: "AI Match",
+  description:
+    "Describe what you want in your own words and get salons that match, with the reasons why.",
 };
 
 export default function AiSuggestionsPage() {

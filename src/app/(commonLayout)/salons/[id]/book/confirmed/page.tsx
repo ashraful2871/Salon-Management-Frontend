@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CheckCircle2 } from "lucide-react";
 
 import BookingConfirmed from "@/components/Salons/BookingConfirmed";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,7 @@ import { getAppointmentById } from "@/services/appoinments/getAppointmentById";
 import { getUserRoles } from "@/services/get-roles/getUserRoles";
 
 export const metadata = {
-  title: "Booking confirmed | SalonKhuji",
+  title: "Booking confirmed",
 };
 
 export const dynamic = "force-dynamic";
@@ -41,7 +40,7 @@ const BookingConfirmedPage = async ({
       <div className="min-h-[70vh] flex items-center justify-center px-4">
         <div className="max-w-md text-center">
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-sage/15">
-            <CheckCircle2 className="h-8 w-8 text-sage" />
+            <span className="text-2xl leading-none">✅</span>
           </div>
           <h1 className="mb-2 text-2xl font-bold">Your appointment is booked</h1>
           <p className="mb-8 text-muted-foreground">

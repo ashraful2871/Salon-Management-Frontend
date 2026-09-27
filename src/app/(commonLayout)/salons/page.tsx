@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Suspense } from "react";
 
@@ -5,6 +6,7 @@ import Salons, { type SalonSort } from "@/components/Salons/Salons";
 import { SalonListSkeleton } from "@/components/Shared/SkeletonCard";
 import { FilterNavigationProvider } from "@/hooks/useFilterNavigation";
 import { getAllSalon } from "@/services/salon/getAllSalon";
+import { isServiceCategory } from "@/constants/service-categories";
 import { reversePlace } from "@/services/geo/reversePlace";
 import {
   NEARBY_RADIUS_KM,
@@ -13,6 +15,12 @@ import {
   shortPlaceLabel,
 } from "@/lib/geo";
 import { LOCATION_COOKIE, parseSavedLocation } from "@/lib/location-cookie";
+
+export const metadata: Metadata = {
+  title: "Salons near you",
+  description:
+    "Browse salons near you, compare services, prices and ratings, and book an open slot.",
+};
 
 const PAGE_SIZE = 12;
 const SORTS: SalonSort[] = ["distance", "rating", "newest"];
@@ -63,6 +71,9 @@ export default async function SalonsStorePage({
     district: resolvedSearchParams?.district,
     area: resolvedSearchParams?.area,
     searchTerm: resolvedSearchParams?.searchTerm,
+    category: isServiceCategory(resolvedSearchParams.category)
+      ? resolvedSearchParams.category
+      : undefined,
     ...(point ? { lat: point.lat, lng: point.lng, radiusKm } : {}),
     sort,
     page,

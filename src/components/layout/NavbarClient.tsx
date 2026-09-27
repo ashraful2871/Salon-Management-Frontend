@@ -33,7 +33,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { formatBDT } from "@/lib/money";
 import type { Wallet } from "@/services/wallet/getMyWallet";
 import LogoutButton from "./LogoutButton";
 import WalletMenu from "./WalletMenu";
@@ -91,7 +90,7 @@ const UserAvatar = ({
   className?: string;
 }) => (
   <Avatar className={cn("h-8 w-8", className)}>
-    <AvatarFallback className="bg-gradient-gold text-xs font-bold text-white">
+    <AvatarFallback className="bg-primary text-xs font-bold text-primary-foreground">
       {getInitials(name)}
     </AvatarFallback>
   </Avatar>
@@ -166,33 +165,19 @@ const NavbarClient = ({
   const roleLabel = user ? (ROLE_LABELS[user.role] ?? user.role) : "";
 
   // The account pages each role has, shared by the dropdown and the drawer.
-  const accountLinks: { href: string; label: string; icon: LucideIcon; trailing?: string }[] =
-    user
-      ? [
-          { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-          ...(user.role === "CUSTOMER"
-            ? [
-                {
-                  href: "/dashboard/wallet",
-                  label: "My Wallet",
-                  icon: WalletIcon,
-                  trailing: wallet ? formatBDT(wallet.availableMinor) : undefined,
-                },
-              ]
-            : []),
-          ...(user.role === "SALON_OWNER"
-            ? [
-                {
-                  href: "/dashboard/earnings",
-                  label: "Earnings",
-                  icon: WalletIcon,
-                  trailing: formatBDT(ownerRevenueMinor ?? 0),
-                },
-              ]
-            : []),
-          { href: "/my-profile", label: "My Profile", icon: User },
-        ]
-      : [];
+  // No amounts here: balances only ever show through BalanceReveal.
+  const accountLinks: { href: string; label: string; icon: LucideIcon }[] = user
+    ? [
+        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        ...(user.role === "CUSTOMER"
+          ? [{ href: "/dashboard/wallet", label: "My wallet", icon: WalletIcon }]
+          : []),
+        ...(user.role === "SALON_OWNER"
+          ? [{ href: "/dashboard/earnings", label: "Earnings", icon: WalletIcon }]
+          : []),
+        { href: "/my-profile", label: "My profile", icon: User },
+      ]
+    : [];
 
   return (
     <>
@@ -202,8 +187,8 @@ const NavbarClient = ({
           // radius and is desktop-only, so phones never re-rasterise it.
           "fixed inset-x-0 top-0 z-50 border-b transition-[background-color,border-color,box-shadow] duration-200",
           isScrolled
-            ? "border-border bg-white/95 shadow-[0_4px_24px_-12px_rgb(0_0_0/0.18)] md:bg-white/85 md:backdrop-blur-sm"
-            : "border-transparent bg-white/90 md:bg-white/75 md:backdrop-blur-sm",
+            ? "border-border bg-surface/95 shadow-xs md:bg-surface/85 md:backdrop-blur-sm"
+            : "border-transparent bg-surface/90 md:bg-surface/75 md:backdrop-blur-sm",
         )}
       >
         <nav
@@ -229,17 +214,17 @@ const NavbarClient = ({
             </Link>
 
             {/* Desktop navigation */}
-            <div className="hidden items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/80 p-1 lg:flex">
+            <div className="hidden items-center gap-1 rounded-full border border-border bg-muted/70 p-1 lg:flex">
               {NAV_LINKS.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
                   aria-current={isActive(link.href) ? "page" : undefined}
                   className={cn(
-                    "rounded-full px-3 py-2 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 xl:px-4",
+                    "rounded-full px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 xl:px-4",
                     isActive(link.href)
-                      ? "bg-white text-primary shadow-sm"
-                      : "text-slate-600 hover:bg-white/70 hover:text-slate-900",
+                      ? "bg-surface text-foreground shadow-xs"
+                      : "text-muted-foreground hover:bg-surface/70 hover:text-foreground",
                   )}
                 >
                   {link.label}
@@ -297,19 +282,19 @@ const NavbarClient = ({
                       <button
                         type="button"
                         aria-label={`Account menu for ${user.name}`}
-                        className="flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-full border border-slate-200 bg-white p-1 transition-all hover:border-slate-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 data-[state=open]:border-primary/40 data-[state=open]:ring-1 data-[state=open]:ring-primary/10 lg:pr-3"
+                        className="flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-full border border-border bg-surface p-1 transition-[border-color,box-shadow] hover:border-input hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 data-[state=open]:border-primary/40 data-[state=open]:ring-1 data-[state=open]:ring-primary/10 lg:pr-3"
                       >
                         <UserAvatar name={user.name} />
                         <span className="hidden max-w-[6rem] flex-col items-start leading-none lg:flex xl:max-w-[9rem]">
-                          <span className="w-full truncate text-sm font-semibold text-slate-900">
+                          <span className="w-full truncate text-sm font-semibold text-foreground">
                             <span className="xl:hidden">{firstName(user.name)}</span>
                             <span className="hidden xl:inline">{user.name}</span>
                           </span>
-                          <span className="mt-1 hidden text-[10px] font-medium uppercase tracking-wider text-slate-500 xl:block">
+                          <span className="mt-1 hidden text-[10px] font-medium uppercase tracking-wider text-muted-foreground xl:block">
                             {roleLabel}
                           </span>
                         </span>
-                        <ChevronDown className="hidden h-4 w-4 shrink-0 text-slate-400 lg:block" />
+                        <ChevronDown className="hidden h-4 w-4 shrink-0 text-muted-foreground lg:block" />
                       </button>
                     </DropdownMenuTrigger>
 
@@ -328,7 +313,7 @@ const NavbarClient = ({
                             <p className="mt-0.5 truncate text-xs font-normal text-muted-foreground">
                               {user.email}
                             </p>
-                            <span className="mt-1.5 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                            <span className="mt-1.5 inline-block rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-hover">
                               {roleLabel}
                             </span>
                           </div>
@@ -345,11 +330,6 @@ const NavbarClient = ({
                           <Link href={item.href} className="flex items-center">
                             <item.icon className="mr-2 h-4 w-4" />
                             <span>{item.label}</span>
-                            {item.trailing && (
-                              <span className="ml-auto text-xs font-bold tabular-nums text-slate-500">
-                                {item.trailing}
-                              </span>
-                            )}
                           </Link>
                         </DropdownMenuItem>
                       ))}
@@ -362,10 +342,10 @@ const NavbarClient = ({
               ) : (
                 <div className="hidden items-center gap-2 lg:flex">
                   <Button variant="ghost" size="sm" asChild>
-                    <Link href="/login">Sign In</Link>
+                    <Link href="/login">Sign in</Link>
                   </Button>
-                  <Button variant="gold" size="sm" asChild>
-                    <Link href="/register">Register</Link>
+                  <Button size="sm" asChild>
+                    <Link href="/register">Get started</Link>
                   </Button>
                 </div>
               )}
@@ -378,7 +358,7 @@ const NavbarClient = ({
                 aria-label="Open main menu"
                 aria-expanded={isMobileMenuOpen}
                 aria-controls="mobile-menu"
-                className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full border border-slate-200 bg-white text-slate-800 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 lg:hidden"
+                className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full border border-border bg-surface text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 lg:hidden"
               >
                 <Menu className="h-5 w-5" />
               </button>
@@ -413,11 +393,11 @@ const NavbarClient = ({
           aria-modal="true"
           aria-label="Menu"
           className={cn(
-            "absolute inset-y-0 right-0 flex w-[86%] max-w-sm flex-col bg-white shadow-2xl transition-transform duration-300 ease-out",
+            "absolute inset-y-0 right-0 flex w-[86%] max-w-sm flex-col bg-surface shadow-2xl transition-transform duration-300 ease-out",
             isMobileMenuOpen ? "translate-x-0" : "translate-x-full",
           )}
         >
-          <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-4">
+          <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-4">
             <Image
               src="/salon-logo.png"
               alt="SalonKhuji"
@@ -431,7 +411,7 @@ const NavbarClient = ({
               type="button"
               onClick={closeMenu}
               aria-label="Close menu"
-              className="grid h-10 w-10 cursor-pointer place-items-center rounded-full text-slate-700 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              className="grid h-10 w-10 cursor-pointer place-items-center rounded-full text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               <X className="h-5 w-5" />
             </button>
@@ -451,27 +431,27 @@ const NavbarClient = ({
                 </div>
               </div>
             ) : user ? (
-              <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-br from-cream to-white p-3.5 ring-1 ring-gold/20">
+              <div className="flex items-center gap-3 rounded-2xl bg-primary-soft/60 p-3.5 ring-1 ring-border">
                 <UserAvatar name={user.name} className="h-12 w-12 text-base" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     Hi, {firstName(user.name)} 👋
                   </p>
-                  <p className="truncate text-base font-bold leading-tight text-slate-900">
+                  <p className="truncate text-base font-bold leading-tight text-foreground">
                     {user.name}
                   </p>
-                  <p className="truncate text-xs text-slate-500">{user.email}</p>
+                  <p className="truncate text-xs text-muted-foreground">{user.email}</p>
                 </div>
-                <span className="shrink-0 self-start rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                <span className="shrink-0 self-start rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-hover">
                   {roleLabel}
                 </span>
               </div>
             ) : (
-              <div className="rounded-2xl bg-gradient-to-br from-cream to-white p-4 ring-1 ring-gold/20">
-                <p className="font-display text-lg font-bold text-slate-900">
+              <div className="rounded-2xl bg-primary-soft/60 p-4 ring-1 ring-border">
+                <p className="font-display text-lg font-bold text-foreground">
                   Welcome to SalonKhuji
                 </p>
-                <p className="mt-1 text-sm text-slate-600">
+                <p className="mt-1 text-sm text-muted-foreground">
                   Sign in to book appointments and keep track of your visits.
                 </p>
               </div>
@@ -519,14 +499,14 @@ const NavbarClient = ({
             )}
 
             <div>
-              <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              <p className="mb-2 px-1 text-overline font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                 Your location
               </p>
               <LocationChip variant="block" onDone={closeMenu} />
             </div>
 
             <nav aria-label="Mobile navigation">
-              <p className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              <p className="mb-1 px-1 text-overline font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                 Explore
               </p>
               <ul className="space-y-0.5">
@@ -541,12 +521,24 @@ const NavbarClient = ({
                     />
                   </li>
                 ))}
+                {/* Owners, staff and admins already have a salon side. */}
+                {!accountLoading && (!user || user.role === "CUSTOMER") && (
+                  <li>
+                    <DrawerLink
+                      href="/become-salon-owner"
+                      icon={Store}
+                      label="List your salon"
+                      active={isActive("/become-salon-owner")}
+                      onClick={closeMenu}
+                    />
+                  </li>
+                )}
               </ul>
             </nav>
 
             {user && (
               <div>
-                <p className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                <p className="mb-1 px-1 text-overline font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                   Account
                 </p>
                 <ul className="space-y-0.5">
@@ -556,7 +548,6 @@ const NavbarClient = ({
                         href={item.href}
                         icon={item.icon}
                         label={item.label}
-                        trailing={item.trailing}
                         active={pathname === item.href}
                         onClick={closeMenu}
                       />
@@ -567,23 +558,23 @@ const NavbarClient = ({
             )}
           </div>
 
-          <div className="shrink-0 border-t border-slate-100 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="shrink-0 border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             {accountLoading ? (
               <div aria-hidden="true" className="h-11 animate-pulse rounded-xl bg-muted" />
             ) : user ? (
-              <div className="rounded-xl border border-red-100 bg-red-50/50">
+              <div className="rounded-xl border border-danger/20 bg-danger-soft">
                 <LogoutButton />
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" className="h-11 rounded-xl border" asChild>
+                <Button variant="outline" size="lg" asChild>
                   <Link href="/login" onClick={closeMenu}>
                     <LogIn className="h-4 w-4" /> Sign in
                   </Link>
                 </Button>
-                <Button variant="gold" className="h-11 rounded-xl" asChild>
+                <Button size="lg" asChild>
                   <Link href="/register" onClick={closeMenu}>
-                    <UserPlus className="h-4 w-4" /> Register
+                    <UserPlus className="h-4 w-4" /> Get started
                   </Link>
                 </Button>
               </div>
@@ -600,14 +591,12 @@ const DrawerLink = ({
   icon: Icon,
   label,
   active,
-  trailing,
   onClick,
 }: {
   href: string;
   icon: LucideIcon;
   label: string;
   active: boolean;
-  trailing?: string;
   onClick: () => void;
 }) => (
   <Link
@@ -615,23 +604,22 @@ const DrawerLink = ({
     onClick={onClick}
     aria-current={active ? "page" : undefined}
     className={cn(
-      "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-      active ? "bg-primary/10 text-primary" : "text-slate-700 hover:bg-slate-100",
+      "group flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+      active ? "bg-primary-soft text-primary-hover" : "text-foreground hover:bg-muted",
     )}
   >
     <span
       className={cn(
-        "grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-colors",
-        active ? "bg-primary text-white" : "bg-slate-100 text-slate-600 group-hover:bg-white",
+        "grid size-9 shrink-0 place-items-center rounded-lg transition-colors",
+        active
+          ? "bg-primary text-primary-foreground"
+          : "bg-muted text-muted-foreground group-hover:bg-surface",
       )}
     >
       <Icon className="h-4 w-4" />
     </span>
     <span className="flex-1">{label}</span>
-    {trailing && (
-      <span className="text-xs font-bold tabular-nums text-slate-500">{trailing}</span>
-    )}
-    <ChevronRight className="h-4 w-4 text-slate-300" />
+    <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
   </Link>
 );
 

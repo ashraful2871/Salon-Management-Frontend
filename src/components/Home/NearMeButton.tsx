@@ -12,15 +12,22 @@ import {
   readLocationCookie,
   type SavedLocation,
 } from "@/lib/location-cookie";
+import { NEARBY_RADIUS_KM } from "@/lib/geo";
 import { cn } from "@/lib/utils";
 
 const nearbyUrl = ({ lat, lng }: Pick<SavedLocation, "lat" | "lng">) =>
-  `/salons?lat=${lat}&lng=${lng}&r=5&sort=distance`;
+  `/salons?lat=${lat}&lng=${lng}&r=${NEARBY_RADIUS_KM}&sort=distance`;
 
 // Hero CTA. Asks for the location only when tapped, then goes straight to the
 // nearby list. If GPS is refused, fails or lands outside Bangladesh, the
 // location dialog takes over with search and areas.
-export default function NearMeButton({ className }: { className?: string }) {
+export default function NearMeButton({
+  className,
+  size = "lg",
+}: {
+  className?: string;
+  size?: "lg" | "xl";
+}) {
   const router = useRouter();
   const { locate, busy, canAsk } = useLocateAndSave();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -42,16 +49,16 @@ export default function NearMeButton({ className }: { className?: string }) {
       <Button
         type="button"
         variant="outline"
-        size="xl"
+        size={size}
         onClick={findNearMe}
         disabled={busy}
         aria-busy={busy}
         className={cn(className)}
       >
         {busy ? (
-          <Loader2 className="h-5 w-5 animate-spin" />
+          <Loader2 className="size-5 animate-spin" />
         ) : (
-          <LocateFixed className="h-5 w-5 text-gold" />
+          <LocateFixed className="size-5 text-primary" />
         )}
         Find salons near me
       </Button>

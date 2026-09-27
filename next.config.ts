@@ -12,7 +12,6 @@ const nextConfig: NextConfig = {
     ],
     formats: ["image/avif", "image/webp"],
   },
-  transpilePackages: ["lucide-react"],
 };
 
 export default nextConfig;

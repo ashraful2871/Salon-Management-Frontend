@@ -399,6 +399,7 @@ export type SalonQuery = {
   lng?: number;
   radiusKm?: number;
   sort?: "distance" | "rating" | "newest";
+  category?: string;
   page?: number;
   limit?: number;
 };

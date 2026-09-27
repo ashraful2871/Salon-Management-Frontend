@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { BANGLADESH_LOCATIONS } from "@/constants/bangladesh-locations";
+import { categoryLabel } from "@/constants/service-categories";
 import SalonCard from "../Shared/SalonCard";
 import { SalonCardSkeleton } from "../Shared/SkeletonCard";
 import Pagination from "../Shared/Pagination";
@@ -52,14 +53,6 @@ const SORT_LABELS: Record<SalonSort, string> = {
 
 const plural = (n: number, word: string) =>
   `${n.toLocaleString("en-US")} ${word}${n === 1 ? "" : "s"}`;
-
-// "HAIR COLOR" -> "Hair Color". The filter still matches on the raw value.
-const categoryLabel = (value: string) =>
-  value === "All"
-    ? "All"
-    : value
-        .toLowerCase()
-        .replace(/\b\w/g, (c) => c.toUpperCase());
 
 const cardId = (salonId: string) => `salon-card-${salonId}`;
 

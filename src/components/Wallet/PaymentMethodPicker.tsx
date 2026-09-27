@@ -107,8 +107,8 @@ export default function PaymentMethodPicker({
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
               "disabled:cursor-not-allowed disabled:opacity-60",
               selected
-                ? "border-sage ring-2 ring-sage"
-                : "hover:border-sage/50 hover:bg-muted/40"
+                ? "border-primary bg-primary-soft/40 ring-2 ring-primary/30"
+                : "hover:border-primary/50 hover:bg-muted/40"
             )}
           >
             {m.id === "BKASH" ? (
@@ -143,11 +143,11 @@ export default function PaymentMethodPicker({
             <span
               className={cn(
                 "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border",
-                selected ? "border-sage" : "border-muted-foreground/40"
+                selected ? "border-primary" : "border-muted-foreground/40"
               )}
               aria-hidden
             >
-              {selected && <span className="h-2 w-2 rounded-full bg-sage" />}
+              {selected && <span className="h-2 w-2 rounded-full bg-primary" />}
             </span>
           </button>
         );

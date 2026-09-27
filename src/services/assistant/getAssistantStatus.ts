@@ -26,6 +26,8 @@ export const getAssistantStatus = async (): Promise<AssistantStatus> => {
   try {
     const response = await fetch(`${BACKEND_API_URL}/assistant/status`, {
       next: { revalidate: 60, tags: [TAGS.assistantStatus] },
+      // A hung API must not hold every public page; the catch turns it OFF.
+      signal: AbortSignal.timeout(2500),
     });
     if (!response.ok) return OFF;
 

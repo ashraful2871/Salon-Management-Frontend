@@ -14,11 +14,19 @@ const CommonLayout = async ({ children }: { children: React.ReactNode }) => {
     // floating launcher, and lets any page open it with an action of its own.
     <AssistantProvider access={access}>
       <div className="flex flex-col min-h-screen">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-[70] focus:rounded-full focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:shadow-card"
+        >
+          Skip to content
+        </a>
         {/* Renews the token in the background so a page left open - a booking
             half filled in, say - does not expire underneath the user. */}
         <SessionKeeper />
         <Navbar />
-        <main className="flex-1 pt-16">{children}</main>
+        <main id="main" tabIndex={-1} className="flex-1 pt-16 outline-none">
+          {children}
+        </main>
         <Footer />
       </div>
     </AssistantProvider>

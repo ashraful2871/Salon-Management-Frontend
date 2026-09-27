@@ -1,7 +1,7 @@
 import ResetPasswordForm from "@/components/Auth/ResetPasswordForm";
 
 export const metadata = {
-  title: "Reset password | SalonKhuji",
+  title: "Reset password",
 };
 
 export default async function ResetPasswordPage({

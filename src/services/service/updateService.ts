@@ -13,6 +13,7 @@ export const updateService = async (
     duration?: number;
     description?: string;
     category?: string;
+    images?: string[];
   },
 ): Promise<ApiResponse<SalonService>> => {
   try {

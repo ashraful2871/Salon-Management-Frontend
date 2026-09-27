@@ -18,6 +18,8 @@ type BalanceRevealProps = {
   /** Called on each reveal, e.g. to re-read a stale balance. */
   onReveal?: () => void;
   refreshing?: boolean;
+  /** Starts shown, e.g. on the wallet page the owner opened to see it. */
+  defaultRevealed?: boolean;
   /** Card only: top-right of the card, beside the label (e.g. a refresh button). */
   action?: ReactNode;
   /** Card only: rendered as-is under the figures, so it owns its padding. */
@@ -71,11 +73,12 @@ const BalanceReveal = ({
   figures,
   onReveal,
   refreshing = false,
+  defaultRevealed = false,
   action,
   footer,
   className,
 }: BalanceRevealProps) => {
-  const [revealed, setRevealed] = useState(false);
+  const [revealed, setRevealed] = useState(defaultRevealed);
   const [headline, ...rest] = figures;
 
   const toggle = () => {

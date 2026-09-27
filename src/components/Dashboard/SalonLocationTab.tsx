@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Loader2, MapPin, Save } from "lucide-react";
+import { MapPin } from "lucide-react";
 
 import {
   Card,
@@ -10,9 +10,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import LocationPicker from "@/components/Map/LocationPicker";
 import { LocationAccuracyBadge } from "@/components/Shared/LocationAccuracyBadge";
+import { SaveBar } from "@/components/Shared/SaveBar";
 import { showResultToast } from "@/components/Shared/showResultToast";
 import type { LocationAccuracy } from "@/lib/api-types";
 import { searchPlaces } from "@/services/geo/searchPlaces";
@@ -31,12 +31,12 @@ export type SalonLocationFields = {
 
 // Saves only the pin, through PATCH /salons/:id/location. The Edit Details
 // form (updateSalon) resends every field and must not be used for this.
+// The save expires the salon's cache tag, so the saved pin comes back in
+// `salon` and `moved` drops to false.
 export default function SalonLocationTab({
   salon,
-  onSaved,
 }: {
   salon: SalonLocationFields;
-  onSaved: (lat: number, lng: number) => void;
 }) {
   const saved: Point | null =
     salon.latitude != null && salon.longitude != null
@@ -81,44 +81,27 @@ export default function SalonLocationTab({
     startSaving(async () => {
       const res = await updateSalonLocation(salon.id, pin.lat, pin.lng);
       showResultToast(res, "Location saved.", "Failed to save the location.");
-      if (res.success) onSaved(pin.lat, pin.lng);
     });
   };
 
   return (
     <Card>
-      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1.5">
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-gold" />
-            Location on map
-            <LocationAccuracyBadge
-              latitude={salon.latitude}
-              locationAccuracy={salon.locationAccuracy}
-              emptyLabel="Not set"
-            />
-          </CardTitle>
-          <CardDescription>
-            Customers searching nearby find you by this pin, and &quot;Get
-            directions&quot; leads here.
-            {salon.locationAccuracy === "APPROXIMATE" &&
-              " Right now it only points at your area, not your door."}
-          </CardDescription>
-        </div>
-
-        <Button
-          type="button"
-          onClick={save}
-          disabled={!canSave || isSaving}
-          className="shrink-0"
-        >
-          {isSaving ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="mr-2 h-4 w-4" />
-          )}
-          {isSaving ? "Saving..." : "Save location"}
-        </Button>
+      <CardHeader className="space-y-1.5">
+        <CardTitle className="flex flex-wrap items-center gap-2">
+          <MapPin className="h-5 w-5 text-primary" aria-hidden="true" />
+          Location on map
+          <LocationAccuracyBadge
+            latitude={salon.latitude}
+            locationAccuracy={salon.locationAccuracy}
+            emptyLabel="Not set"
+          />
+        </CardTitle>
+        <CardDescription>
+          Customers searching nearby find you by this pin, and &quot;Get
+          directions&quot; leads here.
+          {salon.locationAccuracy === "APPROXIMATE" &&
+            " Right now it only points at your area, not your door."}
+        </CardDescription>
       </CardHeader>
 
       <CardContent>
@@ -126,6 +109,16 @@ export default function SalonLocationTab({
           value={pin}
           fallbackCenter={areaCenter}
           onChange={(lat, lng) => setPin({ lat, lng })}
+        />
+
+        <SaveBar
+          className="mt-4"
+          show={canSave}
+          pending={isSaving}
+          onSave={save}
+          saveLabel={moved ? "Save location" : "Confirm pin"}
+          message={moved ? "Unsaved pin" : "Is the pin on your door?"}
+          onDiscard={moved ? () => setPin(saved) : undefined}
         />
       </CardContent>
     </Card>

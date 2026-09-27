@@ -6,6 +6,7 @@ import { ArrowRight, Map as MapIcon, MapPin, Navigation, Search } from "lucide-r
 
 import { Button } from "../ui/button";
 import SalonCard from "../Shared/SalonCard";
+import { SNAP_ITEM, SNAP_ROW } from "../Shared/Section";
 import { SalonCardSkeleton } from "../Shared/SkeletonCard";
 import LocationDialog from "../Location/LocationDialog";
 import NearbyLocationPrompt from "./NearbyLocationPrompt";
@@ -30,13 +31,6 @@ const placeName = (label: string) => {
     ? first
     : null;
 };
-
-// Phones and tablets swipe through one row (the next card peeks in to say
-// so); from lg up the six cards sit in a 3 x 2 grid.
-const ROW_CLASS =
-  "-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-4 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6 lg:mx-0 lg:grid lg:grid-cols-3 lg:gap-6 lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden";
-const ITEM_CLASS =
-  "w-[82%] max-w-[330px] shrink-0 snap-start sm:w-[46%] lg:w-auto lg:max-w-none";
 
 // Home "Salons near …" section, right after the hero. A client component so
 // the home page stays static: the saved location is a cookie the server page
@@ -178,9 +172,9 @@ export default function NearbySalons() {
         </div>
 
         {loading ? (
-          <div aria-busy="true" aria-label="Loading nearby salons" className={ROW_CLASS}>
+          <div aria-busy="true" aria-label="Loading nearby salons" className={SNAP_ROW}>
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className={ITEM_CLASS}>
+              <div key={i} className={SNAP_ITEM}>
                 <SalonCardSkeleton />
               </div>
             ))}
@@ -223,15 +217,15 @@ export default function NearbySalons() {
         ) : (
           <ul
             aria-label={place ? `Salons near ${place}` : "Salons near you"}
-            className={ROW_CLASS}
+            className={SNAP_ROW}
           >
             {salons.map((salon, index) => (
-              <li key={salon.id} className={ITEM_CLASS}>
+              <li key={salon.id} className={SNAP_ITEM}>
                 <SalonCard salon={salon} index={index} distance={salon.distance} />
               </li>
             ))}
             {/* The row's own way on, for thumbs that reach its end. */}
-            <li className={`${ITEM_CLASS} lg:hidden`}>
+            <li className={`${SNAP_ITEM} lg:hidden`}>
               <Link
                 href={seeAllHref}
                 className="flex h-full min-h-72 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-gold/40 bg-gold/5 p-6 text-center transition-colors hover:bg-gold/10"

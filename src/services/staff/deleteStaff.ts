@@ -19,8 +19,10 @@ export const deleteStaff = async (
     if (result.success) {
       updateTag(TAGS.mySalons);
       if (salonId) {
-        updateTag(TAGS.staff(salonId));
-        revalidateTag(TAGS.salon(salonId), "max");
+        // Manage salon lists staff from getSalonById: expire it now, so the
+        // action's response carries the list without them.
+        updateTag(TAGS.salon(salonId));
+        revalidateTag(TAGS.staff(salonId), "max");
       }
     }
 

@@ -1,87 +1,60 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState, useActionState, useEffect } from "react";
-import SafeImage from "@/components/Shared/SafeImage";
+import React, { useId, useOptimistic, useState, useTransition } from "react";
 import {
   MapPin,
-  Phone,
-  Mail,
-  Star,
-  Clock,
-  Save,
-  Building2,
-  Users,
-  Calendar,
-  CheckCircle2,
-  AlertCircle,
-  Pencil,
-  Loader2,
   MonitorSmartphone,
+  Scissors,
+  Star,
+  Trash2,
+  UserPlus,
+  Users,
 } from "lucide-react";
 
+import SafeImage from "@/components/Shared/SafeImage";
+import { StatCard } from "@/components/Shared/StatCard";
+import { ToneBadge } from "@/components/Shared/ToneBadge";
+import { DataList, type Column } from "@/components/Shared/DataList";
+import { EmptyState } from "@/components/Shared/EmptyState";
+import { ConfirmDialog } from "@/components/Shared/ConfirmDialog";
+import { SaveBar } from "@/components/Shared/SaveBar";
+import { showResultToast } from "@/components/Shared/showResultToast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { toast } from "sonner"; // Assuming you use sonner or similar for toasts
+import type { OperatingHours, Salon, StaffMember } from "@/lib/api-types";
+import { formatRating } from "@/lib/rating";
 import { updateSalon } from "@/services/salon/updateSalon";
+import { deleteStaff } from "@/services/staff/deleteStaff";
 import AddStaffModal from "./AddStaffModal";
 import AddCounterModal from "./AddCounterModal";
-import SalonLocationTab, { type SalonLocationFields } from "./SalonLocationTab";
+import SalonLocationTab from "./SalonLocationTab";
 
 /* ---------------- Types ---------------- */
 
-type DayHours = { open: string; close: string };
-type OperatingHours = Record<string, DayHours>;
-
-const TABS = ["overview", "edit", "location", "staff", "counters"];
-
-type SalonData = SalonLocationFields & {
+type SalonCounter = {
   id: string;
   name: string;
-  description: string;
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  phone: string;
-  email: string;
-  website?: string; // Added optional website
-  images: string[];
-  operatingHours: OperatingHours;
-  status: string;
-  rating: number;
-  totalReviews: number;
-  staff: Array<{
-    id: string;
-    speciality: string;
-    experience: number;
-    status: string;
-    user: { name: string; profilePhoto: string | null };
-  }>;
-  counters?: Array<{
-    id: string;
-    name: string;
-    code: string | null;
-    isActive: boolean;
-    createdAt: string;
-  }>;
+  code: string | null;
+  isActive: boolean;
+  createdAt: string;
 };
 
-/* ---------------- Helpers ---------------- */
+type ManagedSalon = Salon & { counters?: SalonCounter[] };
 
-const daysOrder = [
+type Day = keyof OperatingHours;
+
+const DAYS: Day[] = [
   "monday",
   "tuesday",
   "wednesday",
@@ -90,7 +63,8 @@ const daysOrder = [
   "saturday",
   "sunday",
 ];
-const dayLabel: Record<string, string> = {
+
+const DAY_LABEL: Record<Day, string> = {
   monday: "Monday",
   tuesday: "Tuesday",
   wednesday: "Wednesday",
@@ -100,32 +74,52 @@ const dayLabel: Record<string, string> = {
   sunday: "Sunday",
 };
 
-const formatTime = (time: string) => {
-  if (!time) return "Closed";
-  const [hh, mm] = time.split(":").map(Number);
-  const suffix = hh >= 12 ? "PM" : "AM";
-  const hour12 = ((hh + 11) % 12) + 1;
-  return `${hour12}:${String(mm).padStart(2, "0")} ${suffix}`;
+const TABS = ["details", "hours", "staff", "counters", "location"] as const;
+type Tab = (typeof TABS)[number];
+
+// `?tab=location` comes from the "needs an exact map pin" notice; `overview`
+// and `edit` are the tabs this page had before Details and Hours split.
+const toTab = (value?: string): Tab =>
+  TABS.includes(value as Tab) ? (value as Tab) : "details";
+
+/* ---------------- Form sections ---------------- */
+
+// What PATCH /salons/:id takes besides the hours. `updateSalon` resends every
+// one of them, so a section's save sends the other section's saved values.
+const DETAIL_KEYS = [
+  "name",
+  "website",
+  "description",
+  "phone",
+  "email",
+  "address",
+  "city",
+  "state",
+  "zipCode",
+] as const;
+type Details = Record<(typeof DETAIL_KEYS)[number], string>;
+
+const pickDetails = (salon: Partial<ManagedSalon>): Details =>
+  Object.fromEntries(
+    DETAIL_KEYS.map((key) => [key, String(salon[key] ?? "")]),
+  ) as Details;
+
+// Days in week order and nothing but open/close, so two copies compare equal.
+const pickHours = (hours?: OperatingHours | null): OperatingHours => {
+  const out: OperatingHours = {};
+  for (const day of DAYS) {
+    const h = hours?.[day];
+    if (h) out[day] = { open: h.open, close: h.close };
+  }
+  return out;
 };
 
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case "APPROVED":
-      return (
-        <Badge className="bg-sage text-white gap-1">
-          <CheckCircle2 className="w-3 h-3" /> Active
-        </Badge>
-      );
-    case "PENDING_APPROVAL":
-      return (
-        <Badge className="bg-gold text-white gap-1">
-          <AlertCircle className="w-3 h-3" /> Pending Review
-        </Badge>
-      );
-    default:
-      return <Badge variant="secondary">{status}</Badge>;
-  }
-};
+const sameDetails = (a: Details, b: Details) =>
+  DETAIL_KEYS.every((key) => a[key] === b[key]);
+const sameHours = (a: OperatingHours, b: OperatingHours) =>
+  JSON.stringify(pickHours(a)) === JSON.stringify(pickHours(b));
+
+const DEFAULT_DAY = { open: "09:00", close: "21:00" };
 
 /* ---------------- Main Component ---------------- */
 
@@ -133,573 +127,626 @@ export default function ManageSalon({
   initialData,
   initialTab,
 }: {
-  initialData: any;
+  initialData: ManagedSalon;
   initialTab?: string;
 }) {
-  // 1. Hook Server Action
-  const [state, formAction, isPending] = useActionState(updateSalon, null);
+  const salonId = initialData.id;
+  const fieldId = useId();
+  const field = (name: string) => `${fieldId}-${name}`;
 
-  // 2. Local State for Inputs (Immediate UI Feedback)
-  const [salon, setSalon] = useState<SalonData>(initialData);
-  // The page an add-staff, add-counter or save action sends back brings fresh
-  // lists, which only the server changes; the form fields stay as typed.
-  const [syncedData, setSyncedData] = useState(initialData);
-  if (syncedData !== initialData) {
-    setSyncedData(initialData);
-    setSalon((prev) => ({
-      ...prev,
-      staff: initialData.staff,
-      counters: initialData.counters,
-    }));
-  }
-  // `?tab=location` (from the "Set exact location" banner) opens that tab.
-  const [tab, setTab] = useState(
-    initialTab && TABS.includes(initialTab) ? initialTab : "edit",
-  );
+  const [tab, setTab] = useState<Tab>(() => toTab(initialTab));
   const [openAddStaff, setOpenAddStaff] = useState(false);
   const [openAddCounter, setOpenAddCounter] = useState(false);
 
-  // 3. Handle Success/Error Toasts
-  useEffect(() => {
-    if (state?.success) {
-      toast.success(state.message);
-    } else if (state?.success === false) {
-      toast.error(state.message);
-    }
-  }, [state]);
+  // What the server has, and what the owner has typed on top of it.
+  const [saved, setSaved] = useState(() => ({
+    details: pickDetails(initialData),
+    hours: pickHours(initialData.operatingHours),
+  }));
+  const [details, setDetails] = useState(saved.details);
+  const [hours, setHours] = useState(saved.hours);
 
-  const updateField = (field: keyof SalonData, value: any) => {
-    setSalon((prev) => ({ ...prev, [field]: value }));
+  const detailsDirty = !sameDetails(details, saved.details);
+  const hoursDirty = !sameHours(hours, saved.hours);
+
+  // A save (or an add-staff/counter) sends a fresh page back. A section with
+  // no unsaved edits takes the server's values; one being edited keeps them.
+  const [synced, setSynced] = useState(initialData);
+  if (synced !== initialData) {
+    setSynced(initialData);
+    const server = {
+      details: pickDetails(initialData),
+      hours: pickHours(initialData.operatingHours),
+    };
+    if (!detailsDirty) setDetails(server.details);
+    if (!hoursDirty) setHours(server.hours);
+    setSaved(server);
+  }
+
+  const [savingDetails, startSavingDetails] = useTransition();
+  const [savingHours, startSavingHours] = useTransition();
+
+  const save = (section: "details" | "hours") => {
+    const sentDetails = section === "details" ? details : saved.details;
+    const sentHours = section === "hours" ? hours : saved.hours;
+
+    const formData = new FormData();
+    formData.set("id", salonId);
+    for (const key of DETAIL_KEYS) formData.set(key, sentDetails[key]);
+    formData.set("operatingHours", JSON.stringify(sentHours));
+
+    const start = section === "details" ? startSavingDetails : startSavingHours;
+    start(async () => {
+      const result = await updateSalon(null, formData);
+      showResultToast(
+        result,
+        section === "details" ? "Details saved" : "Hours saved",
+        "Could not save. Please check your input and try again.",
+      );
+      if (!result.success) return;
+      // The inputs were locked while saving, so the sent values are current.
+      start(() => {
+        if (section === "details") {
+          setSaved((prev) => ({ ...prev, details: sentDetails }));
+        } else {
+          setSaved((prev) => ({ ...prev, hours: sentHours }));
+        }
+      });
+    });
   };
 
-  const updateHours = (day: string, type: "open" | "close", value: string) => {
-    setSalon((prev) => ({
+  const setDetail = (key: keyof Details, value: string) =>
+    setDetails((prev) => ({ ...prev, [key]: value }));
+
+  const setDayOpen = (day: Day, open: boolean) =>
+    setHours((prev) => {
+      const next = { ...prev };
+      if (open) next[day] = saved.hours[day] ?? DEFAULT_DAY;
+      else delete next[day];
+      return next;
+    });
+
+  const setDayTime = (day: Day, key: "open" | "close", value: string) =>
+    setHours((prev) => ({
       ...prev,
-      operatingHours: {
-        ...prev.operatingHours,
-        [day]: {
-          ...prev.operatingHours[day],
-          [type]: value,
-        },
-      },
+      [day]: { ...(prev[day] ?? DEFAULT_DAY), [key]: value },
     }));
+
+  const badHours = DAYS.filter((day) => {
+    const h = hours[day];
+    return h && (!h.open || !h.close || h.open >= h.close);
+  });
+
+  /* ---- Staff: removed rows leave at once and come back if the API says no ---- */
+
+  const [staff, removeStaffOptimistic] = useOptimistic(
+    initialData.staff ?? [],
+    (list: StaffMember[], id: string) => list.filter((m) => m.id !== id),
+  );
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  // Kept apart from `confirmOpen`, so the dialog's text stays while it fades.
+  const [toRemove, setToRemove] = useState<StaffMember | null>(null);
+  const [, startRemoving] = useTransition();
+
+  const askRemove = (member: StaffMember) => {
+    setToRemove(member);
+    setConfirmOpen(true);
   };
 
-  return (
-    <div className="space-y-6 pb-20">
-      {/* --- Header Section --- */}
-      <div className="flex flex-col gap-6">
-        <div className="relative h-48 w-full rounded-2xl overflow-hidden bg-muted">
-          {/* Cover Image Logic */}
-          <SafeImage
-            src={salon?.images?.[0]}
-            alt="Salon Cover"
-            fill
-            sizes="(min-width: 1024px) 60vw, 100vw"
-            className="object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-          <div className="absolute bottom-4 left-6 text-white">
-            <h1 className="text-3xl font-bold font-display">{salon.name}</h1>
-            <p className="opacity-90 flex items-center gap-2 text-sm mt-1">
-              <MapPin className="w-4 h-4 text-gold" /> {salon.city},{" "}
-              {salon.state}
+  const removeStaff = () => {
+    const member = toRemove;
+    if (!member) return;
+    setConfirmOpen(false);
+    startRemoving(async () => {
+      removeStaffOptimistic(member.id);
+      const result = await deleteStaff(member.id, salonId);
+      showResultToast(
+        result,
+        `${member.user?.name ?? "Staff member"} removed`,
+        "Failed to remove staff.",
+      );
+    });
+  };
+
+  const staffColumns: Column<StaffMember>[] = [
+    {
+      key: "name",
+      header: "Staff member",
+      mobile: "primary",
+      cell: (m) => (
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-primary-soft text-sm font-semibold text-primary-hover">
+            {/* No photo: initials, not the salon placeholder. */}
+            {m.user?.profilePhoto ? (
+              <SafeImage
+                src={m.user.profilePhoto}
+                alt=""
+                fill
+                sizes="40px"
+                className="object-cover"
+              />
+            ) : (
+              <span aria-hidden="true">
+                {(m.user?.name || "?").charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate font-semibold text-foreground">
+              {m.user?.name || "Unnamed staff"}
+            </p>
+            <p className="truncate text-sm font-normal text-muted-foreground">
+              {m.speciality || "No speciality set"}
             </p>
           </div>
-          <div className="absolute top-4 right-4">
-            {getStatusBadge(salon.status)}
+        </div>
+      ),
+    },
+    {
+      key: "experience",
+      header: "Experience",
+      mobile: "hidden",
+      cell: (m) =>
+        m.experience != null ? (
+          <span className="tabular-nums">
+            {m.experience} {m.experience === 1 ? "year" : "years"}
+          </span>
+        ) : null,
+    },
+    {
+      key: "status",
+      header: "Status",
+      mobile: "trailing",
+      cell: (m) => (m.status ? <ToneBadge status={m.status} /> : null),
+    },
+  ];
+
+  /* ---- Header figures ---- */
+
+  const counters = initialData.counters ?? [];
+  const place = [initialData.city, initialData.state].filter(Boolean).join(", ");
+  const openDays = DAYS.filter((day) => saved.hours[day]).length;
+
+  return (
+    <div className="space-y-6">
+      {/* --- Cover --- */}
+      <div className="relative h-40 overflow-hidden rounded-2xl bg-muted sm:h-56">
+        <SafeImage
+          src={initialData.images?.[0]}
+          alt=""
+          fill
+          sizes="(min-width: 1024px) calc(100vw - 20rem), 100vw"
+          className="object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
+        {initialData.status && (
+          <div className="absolute left-3 top-3">
+            <ToneBadge status={initialData.status} className="shadow-sm" />
           </div>
+        )}
+        <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6">
+          <h1 className="truncate font-display text-title-lg text-white">
+            {saved.details.name || initialData.name}
+          </h1>
+          {(initialData.address || place) && (
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-white/85">
+              <MapPin className="size-4 shrink-0" aria-hidden="true" />
+              <span className="truncate">{initialData.address || place}</span>
+            </p>
+          )}
         </div>
       </div>
 
-      {/* --- Tabs for Management --- */}
-      <Tabs value={tab} onValueChange={setTab} className="w-full">
-        <div className="flex items-center justify-between mb-4">
-          <TabsList className="bg-muted/50 p-1">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="edit">Edit Details</TabsTrigger>
-            <TabsTrigger value="location">Location</TabsTrigger>
-            <TabsTrigger value="staff">
-              Staff ({salon?.staff?.length || 0})
-            </TabsTrigger>
-            <TabsTrigger value="counters">
-              Counters ({salon?.counters?.length || 0})
-            </TabsTrigger>
-          </TabsList>
+      {/* --- Figures --- */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+        <StatCard
+          label="Rating"
+          value={formatRating(initialData.rating)}
+          hint={`${(initialData.totalReviews ?? 0).toLocaleString()} reviews`}
+          icon={Star}
+          tone="warning"
+        />
+        <StatCard
+          label="Services"
+          value={initialData.services?.length ?? initialData._count?.services ?? 0}
+          icon={Scissors}
+          tone="primary"
+        />
+        <StatCard label="Staff" value={staff.length} icon={Users} tone="info" />
+        <StatCard
+          label="Counters"
+          value={counters.length}
+          hint={`Open ${openDays} ${openDays === 1 ? "day" : "days"} a week`}
+          icon={MonitorSmartphone}
+        />
+      </div>
 
-          {/* ✅ SAVE BUTTON LINKED TO FORM VIA ID. The form only exists
-              while the Edit tab is open; Location has its own save. */}
-          {tab === "edit" && (
-            <Button
-              type="submit"
-              form="salon-update-form" // This links the button to the form inside the Tab
-              disabled={isPending}
-            >
-              {isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Changes
-                </>
-              )}
-            </Button>
-          )}
+      {/* --- Sections --- */}
+      <Tabs value={tab} onValueChange={(value) => setTab(toTab(value))}>
+        <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden">
+          <TabsList className="w-max rounded-full bg-muted p-1 group-data-[orientation=horizontal]/tabs:h-11">
+            <PillTab value="details" unsaved={detailsDirty}>
+              Details
+            </PillTab>
+            <PillTab value="hours" unsaved={hoursDirty}>
+              Hours
+            </PillTab>
+            <PillTab value="staff" count={staff.length}>
+              Staff
+            </PillTab>
+            <PillTab value="counters" count={counters.length}>
+              Counters
+            </PillTab>
+            <PillTab value="location">Location</PillTab>
+          </TabsList>
         </div>
 
-        {/* ================= OVERVIEW TAB ================= */}
-        <TabsContent value="overview" className="space-y-6">
-          {/* Stats Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard
-              label="Total Rating"
-              value={salon?.rating?.toFixed(1) || "0.0"}
-              icon={<Star className="w-4 h-4 text-gold fill-gold" />}
-            />
-            <StatCard
-              label="Reviews"
-              value={salon?.totalReviews || 0}
-              icon={<Users className="w-4 h-4 text-primary" />}
-            />
-            <StatCard
-              label="Staff Members"
-              value={salon?.staff?.length || 0}
-              icon={<Users className="w-4 h-4 text-sage" />}
-            />
-            <StatCard
-              label="Joined"
-              value={new Date().getFullYear()}
-              icon={<Calendar className="w-4 h-4 text-primary" />}
-            />
-          </div>
+        {/* ================= DETAILS ================= */}
+        <TabsContent value="details" className="mt-4">
+          <form
+            id={field("details")}
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (detailsDirty) save("details");
+            }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Details</CardTitle>
+                <CardDescription>
+                  What customers see on your salon page.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <fieldset disabled={savingDetails} className="space-y-6">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <FormField id={field("name")} label="Salon name">
+                      <Input
+                        id={field("name")}
+                        value={details.name}
+                        onChange={(e) => setDetail("name", e.target.value)}
+                        required
+                      />
+                    </FormField>
+                    <FormField id={field("website")} label="Website">
+                      <Input
+                        id={field("website")}
+                        type="url"
+                        inputMode="url"
+                        value={details.website}
+                        onChange={(e) => setDetail("website", e.target.value)}
+                        placeholder="https://..."
+                      />
+                    </FormField>
+                    <FormField
+                      id={field("description")}
+                      label="Description"
+                      className="md:col-span-2"
+                    >
+                      <Textarea
+                        id={field("description")}
+                        value={details.description}
+                        onChange={(e) => setDetail("description", e.target.value)}
+                        className="min-h-28"
+                      />
+                    </FormField>
+                  </div>
 
-          <div className="grid lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Card className="shadow-card border-none">
-                <CardHeader>
-                  <CardTitle className="text-lg">About the Salon</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <p className="text-muted-foreground leading-relaxed">
-                    {salon.description || "No description provided."}
-                  </p>
-                  <Separator />
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <MiniInfo
-                      icon={<Phone className="w-4 h-4" />}
-                      title="Phone"
-                      value={salon.phone}
-                    />
-                    <MiniInfo
-                      icon={<Mail className="w-4 h-4" />}
-                      title="Email"
-                      value={salon.email}
-                    />
-                    <MiniInfo
-                      icon={<Building2 className="w-4 h-4" />}
-                      title="Address"
-                      value={salon.address}
-                    />
-                    <MiniInfo
-                      icon={<MapPin className="w-4 h-4" />}
-                      title="Zip Code"
-                      value={salon.zipCode}
-                    />
+                  <div className="grid gap-4 border-t border-border pt-6 md:grid-cols-2">
+                    <FormField id={field("phone")} label="Phone">
+                      <Input
+                        id={field("phone")}
+                        type="tel"
+                        inputMode="tel"
+                        value={details.phone}
+                        onChange={(e) => setDetail("phone", e.target.value)}
+                      />
+                    </FormField>
+                    <FormField id={field("email")} label="Email">
+                      <Input
+                        id={field("email")}
+                        type="email"
+                        inputMode="email"
+                        value={details.email}
+                        onChange={(e) => setDetail("email", e.target.value)}
+                      />
+                    </FormField>
+                    <FormField
+                      id={field("address")}
+                      label="Address"
+                      className="md:col-span-2"
+                    >
+                      <Input
+                        id={field("address")}
+                        value={details.address}
+                        onChange={(e) => setDetail("address", e.target.value)}
+                      />
+                    </FormField>
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:col-span-2">
+                      <FormField id={field("city")} label="City">
+                        <Input
+                          id={field("city")}
+                          value={details.city}
+                          onChange={(e) => setDetail("city", e.target.value)}
+                        />
+                      </FormField>
+                      <FormField id={field("state")} label="State">
+                        <Input
+                          id={field("state")}
+                          value={details.state}
+                          onChange={(e) => setDetail("state", e.target.value)}
+                        />
+                      </FormField>
+                      <FormField id={field("zipCode")} label="Zip code">
+                        <Input
+                          id={field("zipCode")}
+                          inputMode="numeric"
+                          value={details.zipCode}
+                          onChange={(e) => setDetail("zipCode", e.target.value)}
+                        />
+                      </FormField>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-            {/* Hours View */}
-            <div className="space-y-6">
-              <Card className="shadow-card border-none">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-primary" /> Operating Hours
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="divide-y">
-                    {daysOrder.map((day) => {
-                      const hours = salon?.operatingHours?.[day];
-                      return (
-                        <div
-                          key={day}
-                          className="flex justify-between items-center p-4 text-sm hover:bg-muted/30"
-                        >
-                          <span className="font-medium text-muted-foreground">
-                            {dayLabel[day]}
-                          </span>
-                          <span
-                            className={
-                              hours
-                                ? "font-semibold"
-                                : "text-muted-foreground/50"
-                            }
-                          >
-                            {hours
-                              ? `${formatTime(hours.open)} - ${formatTime(hours.close)}`
-                              : "Closed"}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                </fieldset>
+
+                <SaveBar
+                  className="mt-6"
+                  show={detailsDirty}
+                  pending={savingDetails}
+                  form={field("details")}
+                  saveLabel="Save details"
+                  onDiscard={() => setDetails(saved.details)}
+                />
+              </CardContent>
+            </Card>
+          </form>
         </TabsContent>
 
-        {/* ================= EDIT TAB (FORM START) ================= */}
-        <TabsContent value="edit">
-          <div>
-            {/* ✅ FORM WRAPPER */}
-            <form id="salon-update-form" action={formAction}>
-              {/* ✅ HIDDEN INPUTS TO PASS COMPLEX STATE */}
-              <input type="hidden" name="id" value={salon.id} />
-              <input
-                type="hidden"
-                name="operatingHours"
-                value={JSON.stringify(salon.operatingHours)}
-              />
-
-              <div className="grid lg:grid-cols-3 gap-8">
-                {/* Main Inputs */}
-                <div className="lg:col-span-2 space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>General Information</CardTitle>
-                      <CardDescription>
-                        Update your salon is public profile
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">
-                            Salon Name
-                          </label>
-                          <Input
-                            name="name"
-                            value={salon.name}
-                            onChange={(e) =>
-                              updateField("name", e.target.value)
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Website</label>
-                          <Input
-                            name="website"
-                            value={salon.website || ""}
-                            onChange={(e) =>
-                              updateField("website", e.target.value)
-                            }
-                            placeholder="https://..."
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">
-                          Description
-                        </label>
-                        <Textarea
-                          name="description"
-                          value={salon.description}
-                          onChange={(e) =>
-                            updateField("description", e.target.value)
-                          }
-                          className="min-h-[120px]"
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Contact & Location</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Phone</label>
-                          <Input
-                            name="phone"
-                            value={salon.phone}
-                            onChange={(e) =>
-                              updateField("phone", e.target.value)
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Email</label>
-                          <Input
-                            name="email"
-                            value={salon.email}
-                            onChange={(e) =>
-                              updateField("email", e.target.value)
-                            }
-                          />
-                        </div>
-                      </div>
-                      <Separator />
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Address</label>
-                        <Input
-                          name="address"
-                          value={salon.address}
-                          onChange={(e) =>
-                            updateField("address", e.target.value)
-                          }
-                        />
-                      </div>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">City</label>
-                          <Input
-                            name="city"
-                            value={salon.city}
-                            onChange={(e) =>
-                              updateField("city", e.target.value)
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">State</label>
-                          <Input
-                            name="state"
-                            value={salon.state}
-                            onChange={(e) =>
-                              updateField("state", e.target.value)
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Zip</label>
-                          <Input
-                            name="zipCode"
-                            value={salon.zipCode}
-                            onChange={(e) =>
-                              updateField("zipCode", e.target.value)
-                            }
-                          />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Edit Sidebar (Hours) */}
-                <div className="space-y-6">
-                  <Card className="h-fit">
-                    <CardHeader>
-                      <CardTitle>Operating Hours</CardTitle>
-                      <CardDescription>
-                        Set your weekly availability
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {daysOrder.map((day) => {
-                        const hours = salon?.operatingHours?.[day];
-                        return (
-                          <div
-                            key={day}
-                            className="flex flex-col gap-1 p-3 border rounded-lg bg-muted/10"
-                          >
-                            <div className="flex justify-between items-center mb-2">
-                              <span className="font-medium capitalize text-sm">
-                                {day}
+        {/* ================= HOURS ================= */}
+        <TabsContent value="hours" className="mt-4">
+          <form
+            id={field("hours")}
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (hoursDirty && badHours.length === 0) save("hours");
+            }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Opening hours</CardTitle>
+                <CardDescription>
+                  Your weekly hours, shown on your salon page.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <fieldset disabled={savingHours}>
+                  <ul className="divide-y divide-border">
+                    {DAYS.map((day) => {
+                      const h = hours[day];
+                      const bad = badHours.includes(day);
+                      return (
+                        <li
+                          key={day}
+                          className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:gap-6"
+                        >
+                          <div className="flex items-center justify-between gap-3 sm:w-52 sm:shrink-0">
+                            <span className="font-medium">{DAY_LABEL[day]}</span>
+                            <label className="flex cursor-pointer items-center gap-2 py-1 text-sm text-muted-foreground">
+                              <span className="w-12 text-right">
+                                {h ? "Open" : "Closed"}
                               </span>
-                              <Badge
-                                variant={hours ? "outline" : "secondary"}
-                                className="text-[10px]"
-                              >
-                                {hours ? "Open" : "Closed"}
-                              </Badge>
-                            </div>
-                            {/* Note: We don't put 'name' on these inputs because they are complex.
-                                  We update the state locally, and the state is JSON.stringified 
-                                  into the hidden 'operatingHours' input at the top of the form.
-                               */}
-                            {hours && (
-                              <div className="flex items-center gap-2">
+                              <Switch
+                                checked={Boolean(h)}
+                                onCheckedChange={(open) => setDayOpen(day, open)}
+                                aria-label={`Open on ${DAY_LABEL[day]}`}
+                              />
+                            </label>
+                          </div>
+
+                          {h ? (
+                            <div className="min-w-0 space-y-1">
+                              <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:flex">
                                 <Input
                                   type="time"
-                                  className="h-8 text-xs"
-                                  value={hours.open}
+                                  aria-label={`${DAY_LABEL[day]} opens`}
+                                  aria-invalid={bad || undefined}
+                                  value={h.open}
                                   onChange={(e) =>
-                                    updateHours(day, "open", e.target.value)
+                                    setDayTime(day, "open", e.target.value)
                                   }
+                                  className="sm:w-36"
                                 />
-                                <span className="text-muted-foreground">-</span>
+                                <span className="text-muted-foreground" aria-hidden="true">
+                                  –
+                                </span>
                                 <Input
                                   type="time"
-                                  className="h-8 text-xs"
-                                  value={hours.close}
+                                  aria-label={`${DAY_LABEL[day]} closes`}
+                                  aria-invalid={bad || undefined}
+                                  value={h.close}
                                   onChange={(e) =>
-                                    updateHours(day, "close", e.target.value)
+                                    setDayTime(day, "close", e.target.value)
                                   }
+                                  className="sm:w-36"
                                 />
                               </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </form>
-          </div>
+                              {bad && (
+                                <p className="text-xs text-danger">
+                                  Closing time must be after opening time.
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">
+                              Closed all day
+                            </p>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </fieldset>
+
+                <SaveBar
+                  className="mt-6"
+                  show={hoursDirty}
+                  pending={savingHours}
+                  form={field("hours")}
+                  saveLabel="Save hours"
+                  disabled={badHours.length > 0}
+                  message={
+                    badHours.length > 0 ? "Fix the times to save" : undefined
+                  }
+                  onDiscard={() => setHours(saved.hours)}
+                />
+              </CardContent>
+            </Card>
+          </form>
         </TabsContent>
 
-        {/* ================= STAFF TAB ================= */}
-        <TabsContent value="staff">
+        {/* ================= STAFF ================= */}
+        <TabsContent value="staff" className="mt-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Staff Management</CardTitle>
+            <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1.5">
+                <CardTitle>Staff</CardTitle>
                 <CardDescription>
-                  Manage your stylists and their permissions.
+                  The stylists customers can be assigned to.
                 </CardDescription>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setOpenAddStaff(true)}
-              >
-                <Users className="w-4 h-4 mr-2" /> Add Staff
+              <Button size="sm" variant="outline" onClick={() => setOpenAddStaff(true)}>
+                <UserPlus />
+                Add staff
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {(salon?.staff || []).map((member) => (
-                  <div
-                    key={member.id}
-                    className="flex items-center justify-between p-4 border rounded-xl hover:bg-muted/20 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={member?.user?.profilePhoto || ""} />
-                        <AvatarFallback>
-                          {member?.user?.name?.charAt(0) || "U"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold">{member?.user?.name || "Unknown Staff"}</p>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span>{member.speciality}</span>
-                          <span>•</span>
-                          <span>{member.experience} Years Exp.</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge
-                        variant={
-                          member.status === "AVAILABLE"
-                            ? "default"
-                            : "secondary"
-                        }
-                      >
-                        {member.status}
-                      </Badge>
-                      <Button size="icon" variant="ghost">
-                        <Pencil className="w-4 h-4 text-muted-foreground" />
-                      </Button>
-                    </div>
+              <DataList
+                items={staff}
+                rowKey={(m) => m.id}
+                columns={staffColumns}
+                caption="Staff"
+                rowActions={(m, layout) =>
+                  layout === "table" ? (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="text-muted-foreground hover:text-danger"
+                      aria-label={`Remove ${m.user?.name ?? "staff member"}`}
+                      title="Remove"
+                      onClick={() => askRemove(m)}
+                    >
+                      <Trash2 />
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" onClick={() => askRemove(m)}>
+                      <Trash2 />
+                      Remove
+                    </Button>
+                  )
+                }
+                empty={
+                  <div className="rounded-2xl border border-dashed border-border">
+                    <EmptyState
+                      icon={Users}
+                      title="No staff yet"
+                      description="Add the people who work here so bookings can be assigned to them."
+                      action={
+                        <Button onClick={() => setOpenAddStaff(true)}>
+                          <UserPlus />
+                          Add staff
+                        </Button>
+                      }
+                    />
                   </div>
-                ))}
-              </div>
+                }
+              />
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* ================= LOCATION TAB ================= */}
-        <TabsContent value="location">
-          <SalonLocationTab
-            salon={salon}
-            onSaved={(latitude, longitude) => {
-              setSalon((prev) => ({
-                ...prev,
-                latitude,
-                longitude,
-                locationAccuracy: "EXACT",
-              }));
-            }}
-          />
-        </TabsContent>
-
-        {/* ================= COUNTERS TAB ================= */}
-        <TabsContent value="counters">
+        {/* ================= COUNTERS ================= */}
+        <TabsContent value="counters" className="mt-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
+            <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1.5">
                 <CardTitle>Counters</CardTitle>
                 <CardDescription>
-                  Manage the physical counters or workstations in your salon.
+                  The chairs or stations bookings are made against.
                 </CardDescription>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setOpenAddCounter(true)}
-              >
-                <MonitorSmartphone className="w-4 h-4 mr-2" /> Add Counter
+              <Button size="sm" variant="outline" onClick={() => setOpenAddCounter(true)}>
+                <MonitorSmartphone />
+                Add counter
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {salon.counters?.map((counter) => (
-                  <div
-                    key={counter.id}
-                    className="flex items-center justify-between p-4 border rounded-xl hover:bg-muted/20 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                        <MonitorSmartphone className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <p className="font-semibold">{counter.name}</p>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                          {counter.code && <span>Code: {counter.code}</span>}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge
-                        variant={counter.isActive ? "default" : "secondary"}
-                      >
-                        {counter.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                      <Button size="icon" variant="ghost">
-                        <Pencil className="w-4 h-4 text-muted-foreground" />
+              {counters.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border">
+                  <EmptyState
+                    icon={MonitorSmartphone}
+                    title="No counters yet"
+                    description="Add at least one so customers can book slots."
+                    action={
+                      <Button onClick={() => setOpenAddCounter(true)}>
+                        <MonitorSmartphone />
+                        Add counter
                       </Button>
-                    </div>
-                  </div>
-                ))}
-                {!salon.counters?.length && (
-                  <p className="text-sm text-muted-foreground text-center py-6">
-                    No counters added yet.
-                  </p>
-                )}
-              </div>
+                    }
+                  />
+                </div>
+              ) : (
+                <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {counters.map((counter) => (
+                    <li
+                      key={counter.id}
+                      className="flex items-center gap-3 rounded-xl border border-border p-3"
+                    >
+                      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-soft text-primary-hover">
+                        <MonitorSmartphone className="size-5" aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold">{counter.name}</p>
+                        {counter.code && (
+                          <p className="truncate text-sm text-muted-foreground">
+                            Code {counter.code}
+                          </p>
+                        )}
+                      </div>
+                      <ToneBadge
+                        status={counter.isActive ? "ACTIVE" : "INACTIVE"}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* ================= LOCATION ================= */}
+        <TabsContent value="location" className="mt-4">
+          <SalonLocationTab salon={initialData} />
+        </TabsContent>
       </Tabs>
+
       <AddStaffModal
         open={openAddStaff}
         setOpen={setOpenAddStaff}
-        salonId={salon.id}
+        salonId={salonId}
       />
       <AddCounterModal
         open={openAddCounter}
         setOpen={setOpenAddCounter}
-        salonId={salon.id}
+        salonId={salonId}
+      />
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={`Remove ${toRemove?.user?.name ?? "this staff member"}?`}
+        description="They leave this salon's staff list and can no longer be assigned bookings. Past bookings keep their name."
+        confirmLabel="Remove"
+        tone="danger"
+        onConfirm={removeStaff}
       />
     </div>
   );
@@ -707,50 +754,49 @@ export default function ManageSalon({
 
 /* ---------------- Sub-Components ---------------- */
 
-function StatCard({
-  label,
+function PillTab({
   value,
-  icon,
+  count,
+  unsaved,
+  children,
 }: {
-  label: string;
-  value: string | number;
-  icon: any;
+  value: Tab;
+  count?: number;
+  unsaved?: boolean;
+  children: React.ReactNode;
 }) {
   return (
-    <Card className="shadow-sm border-none bg-card">
-      <CardContent className="p-4 flex items-center justify-between">
-        <div>
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-            {label}
-          </p>
-          <p className="text-2xl font-bold mt-1 text-primary">{value}</p>
-        </div>
-        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-          {icon}
-        </div>
-      </CardContent>
-    </Card>
+    <TabsTrigger
+      value={value}
+      className="h-9 flex-none rounded-full px-4 data-[state=active]:bg-surface"
+    >
+      {children}
+      {count !== undefined && (
+        <span className="tabular-nums text-muted-foreground">{count}</span>
+      )}
+      {unsaved && (
+        <span className="size-1.5 rounded-full bg-warning" aria-hidden="true" />
+      )}
+      {unsaved && <span className="sr-only">(unsaved changes)</span>}
+    </TabsTrigger>
   );
 }
 
-function MiniInfo({
-  icon,
-  title,
-  value,
+function FormField({
+  id,
+  label,
+  className,
+  children,
 }: {
-  icon: any;
-  title: string;
-  value: string;
+  id: string;
+  label: string;
+  className?: string;
+  children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-3 p-3 rounded-lg border bg-muted/10">
-      <div className="mt-0.5 text-sage">{icon}</div>
-      <div>
-        <p className="text-xs font-semibold uppercase text-muted-foreground mb-0.5">
-          {title}
-        </p>
-        <p className="font-medium text-sm text-foreground break-all">{value}</p>
-      </div>
+    <div className={className ? `space-y-2 ${className}` : "space-y-2"}>
+      <Label htmlFor={id}>{label}</Label>
+      {children}
     </div>
   );
 }

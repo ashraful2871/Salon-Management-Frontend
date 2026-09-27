@@ -1,7 +1,14 @@
+import type { Metadata } from "next";
 import PageHero from "@/components/BecomeASalonWoner/PageHero";
 import PageStats from "@/components/BecomeASalonWoner/PageStats";
 import PageFeatures from "@/components/BecomeASalonWoner/PageFeatures";
 import ApplyForm from "@/components/BecomeASalonWoner/ApplyForm";
+
+export const metadata: Metadata = {
+  title: "List your salon",
+  description:
+    "Put your salon on SalonKhuji: take bookings online and manage your slots, services and staff in one place.",
+};
 
 export default function BecomeSalonOwnerPage() {
   return (
