@@ -73,7 +73,6 @@ const config = {
         card: "0 8px 30px -8px oklch(44.51% 0.062 87.24 / 0.12)",
         gold: "0 8px 25px -8px oklch(64.66% 0.153 81.54 / 0.35)",
         elevated: "0 20px 60px -12px oklch(0% 0 0 / 0.15)",
-        "inner-glow": "inset 0 2px 4px 0 oklch(100% 0 0 / 0.06)",
         glow: "0 0 25px -5px oklch(64.66% 0.153 81.54 / 0.4)",
         premium:
           "0 20px 40px -10px oklch(0% 0 0 / 0.2), inset 0 1px 0 0 oklch(100% 0 0 / 0.1)",
@@ -82,15 +81,6 @@ const config = {
         "2xl": "1rem",
         "3xl": "1.5rem",
         "4xl": "2rem",
-      },
-      keyframes: {
-        marquee: {
-          "0%": { transform: "translateX(0%)" },
-          "100%": { transform: "translateX(-50%)" },
-        },
-      },
-      animation: {
-        marquee: "marquee 50s linear infinite",
       },
       backdropBlur: {
         xs: "2px",

@@ -32,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { Wallet } from "@/services/wallet/getMyWallet";
 import LogoutButton from "./LogoutButton";
@@ -247,8 +248,8 @@ const NavbarClient = ({
               {accountLoading ? (
                 // Fixed sizes, so nothing shifts when the account streams in.
                 <div aria-hidden="true" className="flex items-center gap-1.5 sm:gap-2.5">
-                  <div className="hidden h-10 w-36 animate-pulse rounded-full bg-muted md:block" />
-                  <div className="size-10 animate-pulse rounded-full bg-muted" />
+                  <Skeleton className="hidden h-10 w-36 rounded-full md:block" />
+                  <Skeleton className="size-10 rounded-full" />
                 </div>
               ) : user ? (
                 <>
@@ -370,9 +371,12 @@ const NavbarClient = ({
       {/* Mobile drawer: a sheet from the right, over everything. */}
       <div
         className={cn(
-          // Visibility waits out the slide, so closing animates too.
-          "fixed inset-0 z-[60] transition-[visibility] duration-300 lg:hidden",
-          isMobileMenuOpen ? "visible" : "invisible",
+          // Visible at once on open (so the close button can take focus);
+          // on close, visibility waits out the slide so it animates too.
+          "fixed inset-0 z-[60] lg:hidden",
+          isMobileMenuOpen
+            ? "visible"
+            : "invisible transition-[visibility] duration-300",
         )}
         aria-hidden={!isMobileMenuOpen}
       >
@@ -423,11 +427,11 @@ const NavbarClient = ({
                 aria-hidden="true"
                 className="flex items-center gap-3 rounded-2xl p-3.5 ring-1 ring-border"
               >
-                <div className="size-12 shrink-0 animate-pulse rounded-full bg-muted" />
+                <Skeleton className="size-12 shrink-0 rounded-full" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-3 w-20 animate-pulse rounded bg-muted" />
-                  <div className="h-4 w-32 animate-pulse rounded bg-muted" />
-                  <div className="h-3 w-40 animate-pulse rounded bg-muted" />
+                  <Skeleton className="h-3 w-20 rounded" />
+                  <Skeleton className="h-4 w-32 rounded" />
+                  <Skeleton className="h-3 w-40 rounded" />
                 </div>
               </div>
             ) : user ? (
@@ -560,7 +564,7 @@ const NavbarClient = ({
 
           <div className="shrink-0 border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             {accountLoading ? (
-              <div aria-hidden="true" className="h-11 animate-pulse rounded-xl bg-muted" />
+              <Skeleton aria-hidden="true" className="h-11 rounded-xl" />
             ) : user ? (
               <div className="rounded-xl border border-danger/20 bg-danger-soft">
                 <LogoutButton />

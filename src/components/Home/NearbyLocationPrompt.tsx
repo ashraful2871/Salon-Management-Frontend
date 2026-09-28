@@ -137,7 +137,7 @@ const Pin = ({ size, active = false }: { size: number; active?: boolean }) => (
     width={size}
     height={Math.round(size * 1.3)}
     viewBox="-2 -2 28 36"
-    className="drop-shadow-[0_1px_2px_rgb(0_0_0/0.25)]"
+    className="drop-shadow-sm"
   >
     <path
       d="M12 0C5.373 0 0 5.373 0 12c0 9 12 20 12 20s12-11 12-20C24 5.373 18.627 0 12 0z"
