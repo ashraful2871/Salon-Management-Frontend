@@ -122,6 +122,8 @@
 :root {
   color-scheme: light;
   --radius: 0.75rem;
+  /* Extra lift for the assistant launcher above a fixed bottom bar (LP5). */
+  --launcher-offset: 0px;
 
   /* Neutrals: warm off-white page, white surfaces. */
   --background: oklch(0.992 0.004 95);

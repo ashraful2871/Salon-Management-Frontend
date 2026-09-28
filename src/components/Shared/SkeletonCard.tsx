@@ -2,6 +2,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { salonGridClass } from "@/components/Salons/types";
 
 export function StatsCardSkeleton() {
   return (
@@ -140,42 +142,74 @@ export function ServicesSkeleton() {
   );
 }
 
-// Mirrors the /salons layout (Salons.tsx) so the page does not jump when the
-// list arrives.
+// The /salons results while they stream: the toolbar line and the grid, with
+// the same grid classes as SalonsResults. The intro and filter bar above are
+// already on screen.
+export function SalonGridSkeleton({
+  count = 6,
+  nearby = false,
+}: {
+  count?: number;
+  nearby?: boolean;
+}) {
+  return (
+    <div aria-busy="true" aria-label="Loading salons">
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <Skeleton className="h-7 w-44 max-w-[50%]" />
+        <Skeleton className="h-10 w-36 rounded-xl" />
+      </div>
+      <div
+        className={cn(
+          nearby &&
+            "lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8",
+        )}
+      >
+        <div className={salonGridClass(nearby)}>
+          {Array.from({ length: count }).map((_, i) => (
+            <SalonCardSkeleton key={i} />
+          ))}
+        </div>
+        {nearby && (
+          <Skeleton className="hidden h-[calc(100vh-6rem-var(--salons-bar-h,0px))] rounded-2xl lg:block" />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// First entry to /salons (loading.tsx): the intro (PublicPageHero compact,
+// left), the sticky filter bar, then the grid.
 export function SalonListSkeleton() {
   return (
     <div>
-      <section className="border-b border-border/60 bg-gradient-to-b from-cream/70 to-background">
-        <div className="container mx-auto px-4 py-8 sm:px-6 md:py-12">
-          <div className="max-w-3xl space-y-3">
-            <Skeleton className="h-6 w-28 rounded-full" />
-            <Skeleton className="h-10 w-72 max-w-full" />
-            <Skeleton className="h-5 w-96 max-w-full" />
-          </div>
-          <Skeleton className="mt-6 h-[4.25rem] w-full rounded-2xl" />
-          <div className="mt-3 hidden gap-3 md:grid md:grid-cols-3">
-            <Skeleton className="h-11 rounded-xl" />
-            <Skeleton className="h-11 rounded-xl" />
-            <Skeleton className="h-11 rounded-xl" />
-          </div>
-          <div className="mt-4 flex gap-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-9 w-24 shrink-0 rounded-full" />
-            ))}
+      <section className="border-b border-border/60 bg-surface-subtle">
+        <div className="container mx-auto px-4 py-8 sm:px-6 md:py-10 lg:px-8">
+          <div className="flex flex-col items-center lg:items-start">
+            <Skeleton className="h-7 w-28 rounded-full" />
+            <Skeleton className="mt-4 h-9 w-64 max-w-full md:h-10" />
+            <Skeleton className="mt-4 h-5 w-full max-w-xl" />
+            <Skeleton className="mt-2 h-5 w-3/5 max-w-sm sm:hidden" />
           </div>
         </div>
       </section>
-      <section className="py-6 md:py-10">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="mb-6 flex items-center justify-between gap-4">
-            <Skeleton className="h-7 w-44" />
-            <Skeleton className="h-10 w-40 rounded-xl" />
+      <div className="border-b border-border/60">
+        <div className="container mx-auto space-y-3 px-4 py-3 sm:px-6 lg:px-8">
+          <div className="md:grid md:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))] md:gap-3">
+            <Skeleton className="h-13 rounded-full" />
+            <Skeleton className="hidden h-13 rounded-full md:block" />
+            <Skeleton className="hidden h-13 rounded-full md:block" />
+            <Skeleton className="hidden h-13 rounded-full md:block" />
           </div>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <SalonCardSkeleton key={i} />
+          <div className="flex gap-2 overflow-hidden">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-9 w-20 shrink-0 rounded-full" />
             ))}
           </div>
+        </div>
+      </div>
+      <section className="py-6 md:py-10">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <SalonGridSkeleton />
         </div>
       </section>
     </div>

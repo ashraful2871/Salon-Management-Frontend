@@ -52,7 +52,7 @@ const AssistantLauncher = () => {
   };
 
   return (
-    <div className="fixed bottom-20 right-5 z-40 md:bottom-5">
+    <div className="fixed bottom-[calc(5rem+var(--launcher-offset))] right-5 z-40 md:bottom-[calc(1.25rem+var(--launcher-offset))]">
       {pulse && (
         <span
           className="absolute inset-0 animate-ping rounded-full bg-gold/40"

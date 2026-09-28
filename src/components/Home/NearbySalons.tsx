@@ -2,11 +2,13 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ArrowRight, Map as MapIcon, MapPin, Navigation, Search } from "lucide-react";
+import { ArrowRight, Map as MapIcon, MapPin, Search } from "lucide-react";
 
 import { Button } from "../ui/button";
 import SalonCard from "../Shared/SalonCard";
-import { SNAP_ITEM, SNAP_ROW } from "../Shared/Section";
+import { EmptyState } from "../Shared/EmptyState";
+import { IconTile } from "../Shared/FeatureCard";
+import { SNAP_ITEM, SNAP_ROW, Section, SectionHeader } from "../Shared/Section";
 import { SalonCardSkeleton } from "../Shared/SkeletonCard";
 import LocationDialog from "../Location/LocationDialog";
 import NearbyLocationPrompt from "./NearbyLocationPrompt";
@@ -86,7 +88,13 @@ export default function NearbySalons() {
 
   if (mounted && !saved) {
     return (
-      <>
+      <Section labelledBy="nearby-salons-heading">
+        <SectionHeader
+          overline="Near you"
+          title="Salons near you"
+          titleId="nearby-salons-heading"
+          description={`Share your location to see salons within ${NEARBY_RADIUS_KM} km.`}
+        />
         <NearbyLocationPrompt
           onLocate={locateMe}
           locating={busy}
@@ -102,7 +110,7 @@ export default function NearbySalons() {
           }
         />
         {locationDialog}
-      </>
+      </Section>
     );
   }
 
@@ -113,39 +121,35 @@ export default function NearbySalons() {
     ? `/salons?lat=${saved.lat}&lng=${saved.lng}&r=${NEARBY_RADIUS_KM}&sort=distance`
     : "/salons";
 
-  return (
-    <section
-      className="relative py-14 md:py-20"
-      aria-labelledby="nearby-salons-heading"
-    >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-2/3 bg-gradient-to-b from-cream/60 to-transparent"
-      />
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-          <div className="min-w-0">
-            <p className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-background px-3 py-1 text-xs font-semibold uppercase tracking-wider text-gold-dark">
-              <Navigation className="h-3.5 w-3.5" aria-hidden="true" />
-              Near you
-            </p>
-            <h2
-              id="nearby-salons-heading"
-              className="mt-3 font-display text-3xl font-bold tracking-tight text-foreground md:text-4xl"
-            >
-              {place ? (
-                <>
-                  Salons near <span className="text-gold-dark">{place}</span>
-                </>
-              ) : (
-                "Salons near you"
-              )}
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground md:text-base">
-              Within {NEARBY_RADIUS_KM} km, closest first. Book in a few taps.
-            </p>
-          </div>
+  // Shared by the failed and the empty state.
+  const fallbackActions = (
+    <div className="flex flex-wrap justify-center gap-2">
+      <Button variant="outline" onClick={() => setDialog("map")}>
+        <MapIcon />
+        Pick another spot
+      </Button>
+      <Button asChild>
+        <Link href="/salons">Browse all salons</Link>
+      </Button>
+    </div>
+  );
 
+  return (
+    <Section labelledBy="nearby-salons-heading">
+      <SectionHeader
+        overline="Near you"
+        titleId="nearby-salons-heading"
+        title={
+          place ? (
+            <>
+              Salons near <span className="text-primary">{place}</span>
+            </>
+          ) : (
+            "Salons near you"
+          )
+        }
+        description={`Within ${NEARBY_RADIUS_KM} km, closest first.`}
+        action={
           <div className="flex flex-wrap items-center gap-2">
             {saved && (
               <button
@@ -153,98 +157,79 @@ export default function NearbySalons() {
                 onClick={() => setDialog("options")}
                 aria-haspopup="dialog"
                 aria-label={`Location: ${saved.label}. Change location`}
-                className="inline-flex h-10 min-w-0 max-w-full cursor-pointer items-center gap-2 rounded-full border border-border bg-background pl-3 pr-1.5 text-sm font-medium text-foreground shadow-sm transition-colors hover:border-gold/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                className="inline-flex h-10 min-w-0 max-w-full cursor-pointer items-center gap-2 rounded-full border border-border bg-surface pl-3 pr-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
-                <MapPin className="h-4 w-4 shrink-0 text-gold" aria-hidden="true" />
+                <MapPin className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
                 <span className="max-w-[12rem] truncate">{saved.label}</span>
                 <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-foreground">
                   Change
                 </span>
               </button>
             )}
-            <Button variant="outline" asChild className="h-10 rounded-full border px-4">
+            <Button variant="outline" asChild>
               <Link href={seeAllHref}>
                 <MapIcon />
-                View on map
+                See all
               </Link>
             </Button>
           </div>
-        </div>
+        }
+      />
 
-        {loading ? (
-          <div aria-busy="true" aria-label="Loading nearby salons" className={SNAP_ROW}>
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className={SNAP_ITEM}>
-                <SalonCardSkeleton />
-              </div>
-            ))}
-          </div>
-        ) : result?.failed ? (
-          <div className="rounded-3xl border border-dashed bg-muted/30 px-6 py-12 text-center">
-            <p className="font-semibold text-foreground">
-              We couldn&apos;t load nearby salons right now.
-            </p>
-            <Button variant="outline" asChild className="mt-4 rounded-full">
-              <Link href="/salons">Browse all salons</Link>
-            </Button>
-          </div>
-        ) : salons.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-gold/40 bg-gold/5 px-6 py-12 text-center">
-            <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-gold/15">
-              <Search className="h-6 w-6 text-gold-dark" />
-            </span>
-            <p className="font-display text-lg font-semibold text-foreground">
-              No salons within {NEARBY_RADIUS_KM} km
-              {place ? ` of ${place}` : ""} yet
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Try another spot, or browse every salon in the city.
-            </p>
-            <div className="mt-6 flex flex-wrap justify-center gap-2">
-              <Button
-                variant="outline"
-                className="rounded-full"
-                onClick={() => setDialog("map")}
-              >
-                <MapIcon />
-                Pick another spot
-              </Button>
-              <Button variant="gold" asChild className="rounded-full">
-                <Link href="/salons">Browse all salons</Link>
-              </Button>
+      {loading ? (
+        <div aria-busy="true" aria-label="Loading nearby salons" className={SNAP_ROW}>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className={SNAP_ITEM}>
+              <SalonCardSkeleton />
             </div>
-          </div>
-        ) : (
-          <ul
-            aria-label={place ? `Salons near ${place}` : "Salons near you"}
-            className={SNAP_ROW}
-          >
-            {salons.map((salon, index) => (
-              <li key={salon.id} className={SNAP_ITEM}>
-                <SalonCard salon={salon} index={index} distance={salon.distance} />
-              </li>
-            ))}
-            {/* The row's own way on, for thumbs that reach its end. */}
-            <li className={`${SNAP_ITEM} lg:hidden`}>
-              <Link
-                href={seeAllHref}
-                className="flex h-full min-h-72 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-gold/40 bg-gold/5 p-6 text-center transition-colors hover:bg-gold/10"
-              >
-                <span className="grid h-12 w-12 place-items-center rounded-full bg-gold/15">
-                  <ArrowRight className="h-5 w-5 text-gold-dark" />
-                </span>
-                <span className="font-semibold text-foreground">
-                  See all nearby salons
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  On the list and the map
-                </span>
-              </Link>
+          ))}
+        </div>
+      ) : result?.failed ? (
+        <div className="rounded-2xl border border-dashed border-border px-4">
+          <EmptyState
+            icon={MapPin}
+            title="We couldn't load nearby salons right now."
+            description="Try another spot, or browse every salon in the city."
+            action={fallbackActions}
+          />
+        </div>
+      ) : salons.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border px-4">
+          <EmptyState
+            icon={Search}
+            title={`No salons within ${NEARBY_RADIUS_KM} km${place ? ` of ${place}` : ""} yet`}
+            description="Try another spot, or browse every salon in the city."
+            action={fallbackActions}
+          />
+        </div>
+      ) : (
+        <ul
+          aria-label={place ? `Salons near ${place}` : "Salons near you"}
+          className={SNAP_ROW}
+        >
+          {salons.map((salon, index) => (
+            <li key={salon.id} className={SNAP_ITEM}>
+              <SalonCard salon={salon} index={index} distance={salon.distance} />
             </li>
-          </ul>
-        )}
-      </div>
+          ))}
+          {/* The row's own way on, for thumbs that reach its end. */}
+          <li className={`${SNAP_ITEM} lg:hidden`}>
+            <Link
+              href={seeAllHref}
+              className="flex h-full min-h-72 flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-surface-subtle p-6 text-center transition-colors hover:bg-primary-soft"
+            >
+              <IconTile icon={ArrowRight} />
+              <span className="font-semibold text-foreground">
+                See all nearby salons
+              </span>
+              <span className="text-xs text-muted-foreground">
+                On the list and the map
+              </span>
+            </Link>
+          </li>
+        </ul>
+      )}
       {locationDialog}
-    </section>
+    </Section>
   );
 }

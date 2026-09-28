@@ -1,249 +1,214 @@
-import { Button } from "@/components/ui/button";
-
-import { Heart, Users, Award, Target, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { BadgeCheck, CalendarClock, Check, MapPin, Tag } from "lucide-react";
 
-const stats = [
-  { value: "500+", label: "Partner Salons" },
-  { value: "50K+", label: "Happy Clients" },
-  { value: "4.9", label: "Average Rating" },
-  { value: "10+", label: "Cities" },
-];
+import heroImg from "@/assets/hero-salon.jpg";
+import { Button } from "@/components/ui/button";
+import { FeatureCard } from "@/components/Shared/FeatureCard";
+import { PublicPageHero } from "@/components/Shared/PublicPageHero";
+import { Section, SectionHeader } from "@/components/Shared/Section";
 
-const values = [
+const HOW_IT_WORKS = [
   {
-    icon: Heart,
-    title: "Passion for Beauty",
-    description:
-      "We believe everyone deserves to feel beautiful. Our platform connects you with passionate professionals who share this vision.",
+    title: "For customers",
+    steps: [
+      "Search or share your location",
+      "Pick a service and an open slot",
+      "Pay from your wallet and show your token",
+    ],
   },
   {
-    icon: Users,
-    title: "Community First",
-    description:
-      "We've built a thriving community of salon owners, stylists, and beauty enthusiasts who support each other.",
-  },
-  {
-    icon: Award,
-    title: "Excellence Always",
-    description:
-      "Every salon on our platform is carefully vetted to ensure they meet our high standards of quality and service.",
-  },
-  {
-    icon: Target,
-    title: "Innovation Driven",
-    description:
-      "We continuously improve our technology to make booking and managing appointments seamless for everyone.",
+    title: "For salons",
+    steps: [
+      "Apply and get approved",
+      "Add services, staff and hours",
+      "Take bookings and track earnings",
+    ],
   },
 ];
 
-const team = [
+const VALUES = [
   {
-    name: "Sarah Chen",
-    role: "CEO & Founder",
-    image:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&h=300&fit=crop",
+    icon: BadgeCheck,
+    title: "Checked salons",
+    description: "Every salon is reviewed before it goes live.",
   },
   {
-    name: "Michael Rodriguez",
-    role: "CTO",
-    image:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop",
+    icon: Tag,
+    title: "Clear prices",
+    description: "You see the price in taka before you book.",
   },
   {
-    name: "Emily Johnson",
-    role: "Head of Operations",
-    image:
-      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300&h=300&fit=crop",
+    icon: CalendarClock,
+    title: "Real availability",
+    description: "Slots come from the salon's own schedule.",
   },
   {
-    name: "David Kim",
-    role: "Head of Partnerships",
-    image:
-      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop",
+    icon: MapPin,
+    title: "Built for Bangladesh",
+    description: "The areas you know, and prices in taka.",
   },
 ];
+
+// PLACEHOLDER names and roles, kept on the owner's request (2026-09-28):
+// replace them with the real team, or delete this array and the team
+// section, before launch.
+const TEAM = [
+  { name: "Sarah Chen", role: "CEO & Founder" },
+  { name: "Michael Rodriguez", role: "CTO" },
+  { name: "Emily Johnson", role: "Head of Operations" },
+  { name: "David Kim", role: "Head of Partnerships" },
+];
+
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 
 export default function About() {
   return (
     <>
-      {/* Hero */}
-      <section className="py-20 bg-muted/50">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <span className="inline-block px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium mb-6">
-              About Us
-            </span>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-foreground mb-6">
-              Redefining the
-              <br />
-              <span className="text-primary">Beauty Experience</span>
-            </h1>
-            <p className="text-lg text-muted-foreground">
-              We started SalonKhuji with a simple mission: make it easy for
-              everyone to discover and book amazing salon services. Today, we
-              are proud to connect thousands of clients with top-rated salons
-              every day.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats */}
-      <section className="py-16 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <div
-                key={stat.label}
-                className="text-center"
-              >
-                <div className="text-4xl md:text-5xl font-display font-bold text-primary mb-2">
-                  {stat.value}
-                </div>
-                <div className="text-muted-foreground">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Story */}
-      <section className="py-20 bg-card">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-6">
-                Our Story
-              </h2>
-              <div className="space-y-4 text-muted-foreground">
-                <p>
-                  SalonKhuji was born from a frustrating experience. Our founder,
-                  Sarah, spent hours trying to find a reliable salon in a new
-                  city. She realized there had to be a better way.
-                </p>
-                <p>
-                  In 2020, we launched SalonKhuji with just 10 partner salons.
-                  Today, we work with over 500 salons across 10+ cities, helping
-                  thousands of clients look and feel their best every day.
-                </p>
-                <p>
-                  Our platform does not just help clients book appointments—it
-                  empowers salon owners with powerful management tools,
-                  analytics, and a steady stream of new customers.
-                </p>
-              </div>
-            </div>
-            <div className="relative">
-              <Image
-                src="https://images.unsplash.com/photo-1562322140-8baeececf3df?w=600&h=500&fit=crop"
-                alt="Salon interior"
-                className="rounded-2xl shadow-card"
-                width={600}
-                height={500}
-              />
-              <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-primary/10 rounded-2xl -z-10" />
-              <div className="absolute -top-6 -right-6 w-24 h-24 bg-gold/20 rounded-full -z-10" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Values */}
-      <section className="py-20 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
-              Our Values
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              These principles guide everything we do at SalonKhuji
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {values.map((value, index) => (
-              <div
-                key={value.title}
-                className="p-6 rounded-2xl bg-card border border-border hover:shadow-card transition-all duration-300"
-              >
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                  <value.icon className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="font-semibold text-lg text-foreground mb-2">
-                  {value.title}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {value.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Team */}
-      <section className="py-20 bg-muted/50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
-              Meet Our Team
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              The passionate people behind SalonKhuji
-            </p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
-            {team.map((member, index) => (
-              <div
-                key={member.name}
-                className="text-center"
-              >
-                <div className="mb-4 relative inline-block">
-                  <Image
-                    src={member.image}
-                    alt={member.name}
-                    width={400}
-                    height={300}
-                    className="w-32 h-32 rounded-full object-cover mx-auto border-4 border-background shadow-card"
-                  />
-                </div>
-                <h3 className="font-semibold text-foreground">{member.name}</h3>
-                <p className="text-sm text-muted-foreground">{member.role}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-20 bg-[#26211C]">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-display font-bold text-primary-foreground mb-6">
-            Join Our Growing Community
-          </h2>
-          <p className="text-primary-foreground/80 max-w-2xl mx-auto mb-8">
-            Whether your a client looking for your next favorite salon or a
-            salon owner ready to grow your business, we would love to have you.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="gold" size="xl" asChild>
-              <Link href="/salons">
-                Find a Salon
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Link>
+      <PublicPageHero
+        overline="About SalonKhuji"
+        title="Making salon booking simple in Bangladesh"
+        description="Find a salon near you, see real prices and open slots, and book without a phone call. For salons, one place to take bookings and run the day."
+        actions={
+          <>
+            <Button size="lg" asChild className="w-full sm:w-auto">
+              <Link href="/salons">Find a salon</Link>
             </Button>
             <Button
               variant="outline"
-              size="xl"
-              className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
+              size="lg"
               asChild
+              className="w-full sm:w-auto"
             >
-              <Link href="/contact">Partner With Us</Link>
+              <Link href="/become-salon-owner">List your salon</Link>
             </Button>
+          </>
+        }
+      />
+
+      <Section
+        labelledBy="why-heading"
+        containerClassName="lg:grid lg:grid-cols-2 lg:items-center lg:gap-14"
+      >
+        <div>
+          <SectionHeader title="Why we built it" titleId="why-heading" />
+          <div className="max-w-2xl space-y-4 text-base leading-relaxed text-muted-foreground">
+            <p>
+              Booking a salon usually means calling around and hoping
+              there&apos;s a free chair when you arrive. SalonKhuji shows
+              what&apos;s open, what it costs and how far it is, before you
+              leave home.
+            </p>
+            <p>
+              Salons get one place to list their services, set their hours
+              and staff, and take bookings without the phone ringing all day.
+            </p>
           </div>
         </div>
-      </section>
+        <Image
+          src={heroImg}
+          alt="Inside a salon"
+          placeholder="blur"
+          sizes="(min-width:1024px) 50vw, 100vw"
+          className="mt-8 aspect-[4/3] w-full rounded-3xl object-cover lg:mt-0"
+        />
+      </Section>
+
+      <Section tone="subtle" labelledBy="about-how-heading">
+        <SectionHeader
+          overline="How it works"
+          title="Simple on both sides"
+          titleId="about-how-heading"
+        />
+        <div className="grid gap-4 md:grid-cols-2 md:gap-6">
+          {HOW_IT_WORKS.map((group) => (
+            <div
+              key={group.title}
+              className="rounded-2xl border border-border bg-surface p-5 sm:p-6"
+            >
+              <h3 className="font-display text-lg font-semibold text-foreground">
+                {group.title}
+              </h3>
+              <ol className="mt-4 space-y-3">
+                {group.steps.map((step) => (
+                  <li
+                    key={step}
+                    className="flex items-start gap-3 text-base text-muted-foreground"
+                  >
+                    <Check
+                      aria-hidden
+                      className="mt-0.5 size-5 shrink-0 text-success"
+                    />
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section labelledBy="values-heading">
+        <SectionHeader
+          overline="Our principles"
+          title="What we care about"
+          titleId="values-heading"
+        />
+        <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+          {VALUES.map((value) => (
+            <FeatureCard key={value.title} {...value} />
+          ))}
+        </div>
+      </Section>
+
+      <Section tone="subtle" labelledBy="team-heading">
+        <SectionHeader
+          align="center"
+          overline="Our team"
+          title="The people behind SalonKhuji"
+          titleId="team-heading"
+        />
+        <ul className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
+          {TEAM.map((member) => (
+            <li
+              key={member.name}
+              className="flex flex-col items-center rounded-2xl border border-border bg-surface p-5 text-center sm:p-6"
+            >
+              <span
+                aria-hidden
+                className="grid size-16 place-items-center rounded-full bg-primary-soft font-display text-xl font-semibold text-primary-hover"
+              >
+                {initials(member.name)}
+              </span>
+              <h3 className="mt-4 font-display text-lg font-semibold text-foreground">
+                {member.name}
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {member.role}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </Section>
+
+      <Section tone="dark" labelledBy="about-owners-heading">
+        <SectionHeader
+          tone="dark"
+          overline="For salon owners"
+          title="Own a salon?"
+          titleId="about-owners-heading"
+          description="Bring your salon online and take bookings from customers nearby."
+        />
+        <Button size="lg" asChild className="w-full sm:w-auto">
+          <Link href="/become-salon-owner">List your salon</Link>
+        </Button>
+      </Section>
     </>
   );
 }

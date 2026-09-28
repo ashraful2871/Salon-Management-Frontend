@@ -7,23 +7,17 @@ export const metadata: Metadata = {
     "Describe what you want in your own words and get salons that match, with the reasons why.",
 };
 
-export default function AiSuggestionsPage() {
-  return (
-    <div className="min-h-screen bg-muted/30 pt-24 pb-16">
-      {/* Page Header */}
-      <section className="container mx-auto px-4 mb-12 text-center">
-        <h1 className="text-4xl md:text-5xl font-display font-bold text-foreground mb-4">
-          Meet Your AI Stylist
-        </h1>
-        <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-          Describe what you&apos;re looking for, and our smart AI will find the perfect salons and services for you instantly.
-        </p>
-      </section>
+// Must match the API's limit (ai.validation.ts).
+const MAX_PROMPT_LENGTH = 300;
 
-      {/* Main Interface */}
-      <section className="container mx-auto px-4">
-        <AiSearchInterface />
-      </section>
-    </div>
-  );
+export default async function AiSuggestionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string | string[] }>;
+}) {
+  const { q } = await searchParams;
+  const initialQuery =
+    typeof q === "string" ? q.trim().slice(0, MAX_PROMPT_LENGTH) : undefined;
+
+  return <AiSearchInterface initialQuery={initialQuery || undefined} />;
 }

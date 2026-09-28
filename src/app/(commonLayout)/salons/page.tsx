@@ -2,8 +2,12 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Suspense } from "react";
 
-import Salons, { type SalonSort } from "@/components/Salons/Salons";
-import { SalonListSkeleton } from "@/components/Shared/SkeletonCard";
+import SalonsFilterBar from "@/components/Salons/SalonsFilterBar";
+import SalonsIntro from "@/components/Salons/SalonsIntro";
+import SalonsResults from "@/components/Salons/SalonsResults";
+import type { SalonSort } from "@/components/Salons/types";
+import { PendingRegion } from "@/components/Shared/PendingRegion";
+import { SalonGridSkeleton } from "@/components/Shared/SkeletonCard";
 import { FilterNavigationProvider } from "@/hooks/useFilterNavigation";
 import { getAllSalon } from "@/services/salon/getAllSalon";
 import { isServiceCategory } from "@/constants/service-categories";
@@ -25,6 +29,8 @@ export const metadata: Metadata = {
 const PAGE_SIZE = 12;
 const SORTS: SalonSort[] = ["distance", "rating", "newest"];
 
+type Point = { lat: number; lng: number; label?: string };
+
 const toNumber = (value?: string) =>
   value == null || value.trim() === "" ? NaN : Number(value);
 
@@ -42,7 +48,7 @@ export default async function SalonsStorePage({
   // unless the customer asked for all salons with ?near=off.
   const urlLat = toNumber(resolvedSearchParams.lat);
   const urlLng = toNumber(resolvedSearchParams.lng);
-  let point: { lat: number; lng: number; label?: string } | null = null;
+  let point: Point | null = null;
   if (isInBangladesh(urlLat, urlLng)) {
     const lat = roundCoord(urlLat);
     const lng = roundCoord(urlLng);
@@ -80,6 +86,48 @@ export default async function SalonsStorePage({
     limit: PAGE_SIZE,
   };
 
+  // The intro and filter bar need only the URL and the cookie, so they paint
+  // at once; only the list waits. No `key` on the Suspense: inside a filter
+  // navigation the old grid stays on screen (dimmed by PendingRegion) until
+  // the new one is ready, instead of flashing the skeleton.
+  return (
+    <FilterNavigationProvider>
+      <div>
+        <SalonsIntro point={point} />
+        <SalonsFilterBar />
+        <section aria-label="Salons" className="py-6 md:py-10">
+          <div
+            id="salon-results-top"
+            className="container mx-auto scroll-mt-[calc(5rem+var(--salons-bar-h,0px))] px-4 sm:px-6 lg:px-8"
+          >
+            <PendingRegion>
+              <Suspense fallback={<SalonGridSkeleton nearby={point !== null} />}>
+                <SalonsResultsLoader
+                  query={query}
+                  point={point}
+                  radiusKm={radiusKm}
+                  sort={sort ?? (point ? "distance" : "newest")}
+                />
+              </Suspense>
+            </PendingRegion>
+          </div>
+        </section>
+      </div>
+    </FilterNavigationProvider>
+  );
+}
+
+async function SalonsResultsLoader({
+  query,
+  point,
+  radiusKm,
+  sort,
+}: {
+  query: Parameters<typeof getAllSalon>[0];
+  point: Point | null;
+  radiusKm: number;
+  sort: SalonSort;
+}) {
   // A shared link carries coordinates but no label: look one up alongside
   // the list (the backend caches reverse lookups).
   const [res, place] = await Promise.all([
@@ -101,16 +149,12 @@ export default async function SalonsStorePage({
     : null;
 
   return (
-    <FilterNavigationProvider>
-      <Suspense fallback={<SalonListSkeleton />}>
-        <Salons
-          allSalons={res?.data ?? []}
-          meta={res?.meta}
-          nearby={nearby}
-          sort={sort ?? (point ? "distance" : "newest")}
-          error={res?.success === false ? res.message : undefined}
-        />
-      </Suspense>
-    </FilterNavigationProvider>
+    <SalonsResults
+      allSalons={res?.data ?? []}
+      meta={res?.meta}
+      nearby={nearby}
+      sort={sort}
+      error={res?.success === false ? res.message : undefined}
+    />
   );
 }

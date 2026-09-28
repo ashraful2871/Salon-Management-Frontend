@@ -1,47 +1,31 @@
 import Link from "next/link";
+
 import { Button } from "../ui/button";
-import { Sparkles } from "lucide-react";
+import { Section } from "../Shared/Section";
 
 const CtaSection = () => {
   return (
-    <section className="relative py-24 md:py-32 bg-white border-t border-slate-100 overflow-hidden">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-50 text-primary-700 rounded-full text-xs font-bold uppercase tracking-wider mb-8 border border-slate-200 shadow-sm">
-            <Sparkles className="w-4 h-4 text-primary" />
-            Join the Revolution
-          </div>
-
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-black font-display text-slate-900 leading-[1.1] tracking-tight mb-8">
-            Ready to elevate your <br className="hidden md:block" />
-            <span className="text-primary-600">beauty routine?</span>
-          </h2>
-
-          <p className="text-lg md:text-xl text-slate-600 mb-12 max-w-2xl mx-auto leading-relaxed font-medium">
-            Join thousands of satisfied clients who have already discovered
-            their perfect salon experience through our platform.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
-            <Button
-              size="xl"
-              className="w-full sm:w-auto bg-primary hover:bg-primary-600 text-white shadow-premium hover:shadow-glow transition-all duration-300 rounded-2xl h-14 px-10 font-bold text-lg"
-              asChild
-            >
-              <Link href="/salons">Find a Salon Now</Link>
-            </Button>
-            <Button
-              variant="outline"
-              size="xl"
-              className="w-full sm:w-auto border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/20 hover:shadow-sm rounded-2xl h-14 px-10 font-bold text-lg transition-all duration-300"
-              asChild
-            >
-              <Link href="/register">Create Account</Link>
-            </Button>
-          </div>
+    <Section size="compact" labelledBy="final-cta-heading">
+      <div className="rounded-3xl border border-border bg-primary-soft px-6 py-10 text-center sm:px-10 sm:py-14">
+        <h2
+          id="final-cta-heading"
+          className="font-display text-2xl font-bold tracking-tight text-balance text-foreground sm:text-3xl"
+        >
+          Your next appointment is a few taps away
+        </h2>
+        <p className="mx-auto mt-3 max-w-2xl text-base text-muted-foreground">
+          Find a salon near you, or let AI Match suggest one.
+        </p>
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <Button size="lg" asChild>
+            <Link href="/salons">Find a salon</Link>
+          </Button>
+          <Button variant="outline" size="lg" asChild>
+            <Link href="/ai-suggestions">Try AI Match</Link>
+          </Button>
         </div>
       </div>
-    </section>
+    </Section>
   );
 };
 

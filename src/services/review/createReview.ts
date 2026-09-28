@@ -27,6 +27,7 @@ export const createReview = async (
       if (salonId) updateTag(TAGS.salon(salonId));
       updateTag(TAGS.myAppointments);
       revalidateTag(TAGS.salons, "max");
+      revalidateTag(TAGS.reviews, "max");
     }
 
     return result;
