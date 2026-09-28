@@ -8,8 +8,9 @@ import { useSavedLocation } from "@/hooks/useSavedLocation";
 import LocationDialog from "./LocationDialog";
 
 type LocationChipProps = {
-  // default: navbar pill · compact: mobile top bar · block: mobile drawer row
-  variant?: "default" | "compact" | "block";
+  // default: navbar pill · compact: tablet top bar · icon: phone top bar ·
+  // block: mobile drawer row
+  variant?: "default" | "compact" | "icon" | "block";
   // Called after a location is saved or cleared (e.g. to close the drawer).
   onDone?: () => void;
   className?: string;
@@ -26,6 +27,35 @@ const LocationChip = ({
   const label = saved?.label ?? "Set location";
   // "Dhanmondi, Dhaka" -> "Dhanmondi" where space is tight.
   const shortLabel = saved ? saved.label.split(",")[0].trim() : "Set location";
+
+  if (variant === "icon") {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-haspopup="dialog"
+          aria-label={
+            saved ? `Location: ${saved.label}. Change location` : "Set location"
+          }
+          title={saved?.label}
+          className={cn(
+            "relative grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full border border-slate-200 bg-white text-slate-700 transition-colors hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+            className,
+          )}
+        >
+          <MapPin
+            className={cn("h-[18px] w-[18px]", saved ? "text-primary" : "text-slate-500")}
+          />
+          {!saved && (
+            // Nothing set yet: a small dot nudges toward setting one.
+            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-rose ring-2 ring-white" />
+          )}
+        </button>
+        <LocationDialog open={open} onOpenChange={setOpen} onDone={onDone} />
+      </>
+    );
+  }
 
   return (
     <>

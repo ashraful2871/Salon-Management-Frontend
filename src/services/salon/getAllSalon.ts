@@ -1,5 +1,6 @@
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse, Salon, SalonQuery } from "@/lib/api-types";
+import { TAGS } from "@/lib/cache-tags";
 
 export const getAllSalon = async (
   query?: SalonQuery,
@@ -10,6 +11,7 @@ export const getAllSalon = async (
   if (query?.area) params.set("area", query.area);
   if (query?.searchTerm) params.set("searchTerm", query.searchTerm);
   if (query?.city) params.set("city", query.city);
+  if (query?.category) params.set("category", query.category);
 
   const nearby = query?.lat != null && query?.lng != null;
   if (nearby) {
@@ -32,7 +34,7 @@ export const getAllSalon = async (
         : {
             next: {
               revalidate: 60,
-              tags: ["salons"],
+              tags: [TAGS.salons],
             },
           },
     );

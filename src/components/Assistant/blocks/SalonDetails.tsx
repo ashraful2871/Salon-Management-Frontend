@@ -1,12 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Clock, ExternalLink, MapPin, Navigation, Phone, Star } from "lucide-react";
 
+import SafeImage from "@/components/Shared/SafeImage";
 import { formatDistance } from "@/lib/geo";
 import { formatBDT } from "@/lib/money";
-import { usableImage } from "@/lib/salon-card";
 import type { Block } from "@/lib/assistant-types";
 import Chip from "../Chip";
 import type { BlockProps } from "../block-props";
@@ -35,8 +34,8 @@ const SalonDetails = ({
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-background">
       <div className="relative h-28 w-full overflow-hidden bg-muted">
-        <Image
-          src={usableImage(salon.image)}
+        <SafeImage
+          src={salon.image}
           alt=""
           width={800}
           height={280}

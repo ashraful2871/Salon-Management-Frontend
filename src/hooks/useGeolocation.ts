@@ -11,7 +11,8 @@ export type GeolocationStatus =
   | "timeout"
   | "unsupported";
 
-export type Coords = { lat: number; lng: number };
+// accuracy: metres, as the browser reports it (the pin screen draws it).
+export type Coords = { lat: number; lng: number; accuracy?: number };
 
 export const GEOLOCATION_MESSAGES: Partial<Record<GeolocationStatus, string>> = {
   denied:
@@ -80,6 +81,7 @@ export function useGeolocation() {
           resolve({
             lat: position.coords.latitude,
             lng: position.coords.longitude,
+            accuracy: position.coords.accuracy,
           });
         },
         (error) => {

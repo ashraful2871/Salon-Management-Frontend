@@ -3,6 +3,7 @@
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse } from "@/lib/api-types";
 import type { MyEarnings } from "./settlement-types";
+import { TAGS } from "@/lib/cache-tags";
 
 /**
  * The salon owner's Earnings screen. One call, because the cards, the payout
@@ -18,7 +19,7 @@ export const getMyEarnings = async (
     const response = await serverFetch.get(
       `/settlements/my-earnings?limit=${limit}`,
       {
-        next: { revalidate: 30, tags: ["earnings", "dashboard-stats"] },
+        next: { revalidate: 30, tags: [TAGS.earnings, TAGS.dashboardStats] },
       },
     );
 

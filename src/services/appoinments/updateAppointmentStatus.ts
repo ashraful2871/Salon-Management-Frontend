@@ -2,7 +2,8 @@
 
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse } from "@/lib/api-types";
-import { revalidateTag } from "next/cache";
+import { revalidateTag, updateTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 
 export const updateAppointmentStatus = async (
   id: string,
@@ -18,12 +19,13 @@ export const updateAppointmentStatus = async (
     const result: ApiResponse<null> = await response.json();
 
     if (result.success) {
-      revalidateTag("appointments", "seconds");
-      revalidateTag("my-appointments", "seconds");
-      revalidateTag("dashboard-stats", "seconds");
+      updateTag(TAGS.appointments);
+      updateTag(TAGS.myAppointments);
+      updateTag(TAGS.dashboardStats);
       // Completing or cancelling a booking settles its ledger entries, which
       // is what the earnings and payout figures are derived from.
-      revalidateTag("earnings", "seconds");
+      revalidateTag(TAGS.earnings, "max");
+      revalidateTag(TAGS.slots, "max");
     }
 
     return result;

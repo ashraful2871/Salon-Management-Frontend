@@ -11,6 +11,8 @@ export type SignInMethod = "PASSWORD" | "GOOGLE";
  */
 export type AuthMe = {
   email: string;
+  name?: string;
+  profilePhoto?: string | null;
   hasPassword: boolean;
   signInMethods: SignInMethod[];
 };

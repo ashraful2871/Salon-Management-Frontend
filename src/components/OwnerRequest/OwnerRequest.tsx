@@ -1,8 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useMemo, useState, useOptimistic, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { showResultToast } from "@/components/Shared/showResultToast";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +39,8 @@ import {
   Eye,
 } from "lucide-react";
 import { approveApplication } from "@/services/become-a-salone-woner/approveApplication";
+import { PageHeader } from "@/components/Shared/PageHeader";
+import { StatCard } from "@/components/Shared/StatCard";
 
 /* ---------------- Types ---------------- */
 
@@ -83,15 +83,16 @@ export default function OwnerRequest({
 }: {
   applicationsResponse: ApplicationsResponse;
 }) {
-  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "ALL" | "PENDING" | "APPROVED" | "REJECTED"
   >("ALL");
 
-  const [selected, setSelected] = useState<SalonOwnerApplication | null>(null);
+  const [picked, setSelected] = useState<SalonOwnerApplication | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
+  // The application whose decision is in flight; only its buttons wait.
+  const [pendingId, setPendingId] = useState<string | null>(null);
 
   const applications = applicationsResponse?.data ?? [];
 
@@ -100,6 +101,11 @@ export default function OwnerRequest({
     (state, { id, status }: { id: string; status: ApplicationStatus }) =>
       state.map((a) => (a.id === id ? { ...a, applicationStatus: status } : a)),
   );
+  // The dialog reads its application from the list, so it follows the
+  // optimistic status and the fresh data the action sends back.
+  const selected = picked
+    ? (optimisticApps.find((a) => a.id === picked.id) ?? picked)
+    : null;
 
   /* ---------------- Stats ---------------- */
   const total = optimisticApps.length;
@@ -164,88 +170,61 @@ export default function OwnerRequest({
 
   /* ---------------- Actions (UI only - connect API later) ---------------- */
 
-  const handleApprove = async (id: string) => {
-    updateOptimisticApps({ id, status: "APPROVED" });
-    if (selected?.id === id) {
-      setSelected({ ...selected, applicationStatus: "APPROVED" });
-    }
-
+  const handleApprove = (id: string) => {
+    setPendingId(id);
     startTransition(async () => {
+      updateOptimisticApps({ id, status: "APPROVED" });
       const res = await approveApplication(id);
       showResultToast(res, "Application approved successfully!", "Failed to approve application.");
-      router.refresh();
+      setPendingId((current) => (current === id ? null : current));
     });
   };
 
-  const handleReject = async (id: string) => {
-    updateOptimisticApps({ id, status: "REJECTED" });
-    if (selected?.id === id) {
-      setSelected({ ...selected, applicationStatus: "REJECTED" });
-    }
-
+  // FIXME: this still calls the approve endpoint. The API's reject route
+  // (PATCH /applications/:id/reject) needs a `rejectionReason` of 5+
+  // characters, which this dialog doesn't collect yet.
+  const handleReject = (id: string) => {
+    setPendingId(id);
     startTransition(async () => {
+      updateOptimisticApps({ id, status: "REJECTED" });
       const res = await approveApplication(id);
       showResultToast(res, "Application rejected successfully!", "Failed to reject application.");
-      router.refresh();
+      setPendingId((current) => (current === id ? null : current));
     });
   };
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-4"
-      >
-        <div>
-          <h1 className="font-serif text-3xl font-bold">Owner Requests</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage salon owner applications and verification requests
-          </p>
-        </div>
-
-        <Badge className="bg-primary/10 text-primary border border-border px-4 py-2 rounded-full">
-          Total: {applicationsResponse?.meta?.total ?? 0}
-        </Badge>
-      </motion.div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Owner requests"
+        description="Manage salon owner applications and verification requests"
+        actions={
+          <Badge className="bg-primary/10 text-primary border border-border px-4 py-2 rounded-full">
+            Total: {applicationsResponse?.meta?.total ?? 0}
+          </Badge>
+        }
+      />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         {[
-          { label: "Total", value: total, icon: User },
-          { label: "Pending", value: pending, icon: Calendar },
-          { label: "Approved", value: approved, icon: CheckCircle2 },
-          { label: "Rejected", value: rejected, icon: XCircle },
-        ].map((stat, index) => (
-          <motion.div
+          { label: "Total", value: total, icon: User, tone: "neutral" as const },
+          { label: "Pending", value: pending, icon: Calendar, tone: "warning" as const },
+          { label: "Approved", value: approved, icon: CheckCircle2, tone: "success" as const },
+          { label: "Rejected", value: rejected, icon: XCircle, tone: "danger" as const },
+        ].map((stat) => (
+          <StatCard
             key={stat.label}
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.08 }}
-          >
-            <Card className="shadow-soft">
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                  <stat.icon className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+            label={stat.label}
+            value={stat.value}
+            icon={stat.icon}
+            tone={stat.tone}
+          />
         ))}
       </div>
 
       {/* Search + Filters */}
-      <motion.div
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
-        className="flex flex-col lg:flex-row gap-4"
-      >
+      <div className="flex flex-col lg:flex-row gap-4">
         {/* Search */}
         <div className="relative flex-1 max-w-xl">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -274,14 +253,10 @@ export default function OwnerRequest({
             </Button>
           ))}
         </div>
-      </motion.div>
+      </div>
 
       {/* Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35 }}
-      >
+      <div>
         <Card className="shadow-card">
           <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <CardTitle>Applications</CardTitle>
@@ -394,7 +369,7 @@ export default function OwnerRequest({
                           <Button
                             size="sm"
                             className="bg-sage text-white hover:opacity-90 font-semibold"
-                            disabled={app.applicationStatus !== "PENDING" || isPending}
+                            disabled={app.applicationStatus !== "PENDING" || pendingId === app.id}
                             onClick={() => handleApprove(app.id)}
                           >
                             Approve
@@ -408,7 +383,7 @@ export default function OwnerRequest({
             </Table>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
 
       {/* Details Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -503,14 +478,14 @@ export default function OwnerRequest({
                 <div className="flex gap-2 justify-end">
                   <Button
                     className="bg-sage text-white hover:opacity-90 font-semibold"
-                    disabled={selected.applicationStatus !== "PENDING" || isPending}
+                    disabled={selected.applicationStatus !== "PENDING" || pendingId === selected.id}
                     onClick={() => handleApprove(selected.id)}
                   >
                     Approve
                   </Button>
                   <Button
                     variant="destructive"
-                    disabled={selected.applicationStatus !== "PENDING" || isPending}
+                    disabled={selected.applicationStatus !== "PENDING" || pendingId === selected.id}
                     onClick={() => handleReject(selected.id)}
                     className="text-white font-semibold"
                   >

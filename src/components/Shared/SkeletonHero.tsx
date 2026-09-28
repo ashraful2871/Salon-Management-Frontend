@@ -1,31 +1,27 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
+// The home page's fallback: light, and the shape of the hero that replaces it.
 export function HeroSkeleton() {
   return (
-    <section className="relative min-h-screen -mt-16 pt-16 flex items-center overflow-hidden">
-      <div className="absolute inset-0 bg-charcoal" />
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div className="max-w-2xl space-y-6">
-            <Skeleton className="h-8 w-48 rounded-full" />
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-3/4" />
-            <Skeleton className="h-6 w-96" />
-            <div className="flex gap-4">
-              <Skeleton className="h-14 w-44 rounded-xl" />
-              <Skeleton className="h-14 w-36 rounded-xl" />
+    <section
+      aria-busy="true"
+      aria-label="Loading"
+      className="-mt-16 bg-background pt-24 pb-12 sm:pt-28 sm:pb-16 lg:flex lg:min-h-[calc(100svh-4rem)] lg:items-center"
+    >
+      <div className="container mx-auto w-full px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 items-center lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16">
+          <div className="flex flex-col items-center gap-5 lg:items-start">
+            <Skeleton className="h-6 w-52 rounded-full" />
+            <div className="flex w-full flex-col items-center gap-3 lg:items-start">
+              <Skeleton className="h-9 w-full max-w-md lg:h-14" />
+              <Skeleton className="h-9 w-2/3 max-w-xs lg:h-14" />
             </div>
-            <div className="flex gap-8 pt-8 border-t border-white/10">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="space-y-2">
-                  <Skeleton className="h-8 w-16" />
-                  <Skeleton className="h-4 w-20" />
-                </div>
-              ))}
-            </div>
+            <Skeleton className="h-5 w-full max-w-lg" />
+            <Skeleton className="mt-3 h-14 w-full max-w-xl rounded-full" />
+            <Skeleton className="h-11 w-full rounded-full sm:w-52" />
           </div>
-          <div className="hidden lg:flex items-center justify-center">
-            <Skeleton className="w-full max-w-md h-[400px] rounded-3xl" />
+          <div className="hidden justify-end lg:flex">
+            <Skeleton className="aspect-[4/5] w-full max-w-[520px] rounded-3xl" />
           </div>
         </div>
       </div>
@@ -33,14 +29,19 @@ export function HeroSkeleton() {
   );
 }
 
+// The same band as PublicPageHero, for the static pages and AI Match.
 export function PageHeroSkeleton() {
   return (
-    <section className="py-16 bg-muted/50">
-      <div className="container mx-auto px-4">
-        <div className="text-center space-y-4">
-          <Skeleton className="h-6 w-32 mx-auto rounded-full" />
-          <Skeleton className="h-10 w-64 mx-auto" />
-          <Skeleton className="h-5 w-96 mx-auto" />
+    <section
+      aria-busy="true"
+      aria-label="Loading"
+      className="border-b border-border/60 bg-surface-subtle bg-glow-soft"
+    >
+      <div className="container mx-auto px-4 py-12 sm:px-6 md:py-16 lg:px-8 lg:py-20">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <Skeleton className="h-7 w-32 rounded-full" />
+          <Skeleton className="h-10 w-full max-w-md" />
+          <Skeleton className="h-5 w-full max-w-lg" />
         </div>
       </div>
     </section>

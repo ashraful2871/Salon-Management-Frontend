@@ -1,7 +1,8 @@
 "use server";
 
 import { serverFetch } from "@/lib/server-fetch";
-import { revalidateTag } from "next/cache";
+import { updateTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 import type { ApiResponse } from "@/lib/api-types";
 
 export type AddCounterPayload = {
@@ -32,7 +33,10 @@ export const createCounter = async (
     const result: ApiResponse<null> = await response.json();
 
     if (result.success) {
-      revalidateTag("my-salons", "seconds");
+      updateTag(TAGS.mySalons);
+      updateTag(TAGS.staff(payload.salonId));
+      // The manage-salon page lists counters from the salon record itself.
+      updateTag(TAGS.salon(payload.salonId));
     }
 
     return result;

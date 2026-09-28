@@ -2,7 +2,8 @@
 
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse, SalonApplication } from "@/lib/api-types";
-import { revalidateTag } from "next/cache";
+import { revalidateTag, updateTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 
 export const ownerApplyForm = async (
   _currentState: ApiResponse<SalonApplication> | null,
@@ -32,8 +33,9 @@ export const ownerApplyForm = async (
     }
 
     if (result.success) {
-      revalidateTag("salon-applications", "seconds");
-      revalidateTag("applications-status", "seconds");
+      updateTag(TAGS.salonApplications);
+      updateTag(TAGS.applicationsStatus);
+      revalidateTag(TAGS.users, "max");
     }
 
     return {

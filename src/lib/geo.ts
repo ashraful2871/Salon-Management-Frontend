@@ -10,6 +10,10 @@ export const BD_BOUNDS: [LatLng, LatLng] = [
 
 export const DHAKA_CENTER: LatLng = [23.8103, 90.4125];
 
+// How far "near me" reaches, in the list, on the map and on the home page.
+// Must match NEARBY_MAX_RADIUS_KM on the backend, which clamps to it anyway.
+export const NEARBY_RADIUS_KM = 1;
+
 export function roundCoord(n: number, d = 3): number {
   const f = 10 ** d;
   return Math.round(n * f) / f;

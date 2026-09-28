@@ -19,9 +19,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { ToneBadge } from "@/components/Shared/ToneBadge";
 import CopyButton from "./CopyButton";
 import {
   checkTopupStatus,
@@ -34,6 +32,7 @@ import {
   providerLabel,
   type ProviderId,
 } from "@/lib/payment-providers";
+import { TONE_CLASSES, type Tone } from "@/lib/status-tone";
 import { cn } from "@/lib/utils";
 
 /** What the gateway sent the customer back to. */
@@ -63,56 +62,45 @@ const viewForStatus = (status: TopupIntentStatus): View | null => {
   }
 };
 
-const HEADINGS: Record<
+const VIEWS: Record<
   View,
-  { title: string; body: string; badge: string; badgeClass: string }
+  { title: string; body: string; badge: string; tone: Tone; icon: React.ReactNode }
 > = {
   verifying: {
     title: "Confirming your payment",
     body: "We are checking with the payment gateway. This usually takes a few seconds, so please do not close this page.",
     badge: "Processing",
-    badgeClass: "bg-blue-100 text-blue-700 border-blue-200",
+    tone: "info",
+    icon: <Loader2 className="size-9 animate-spin" />,
   },
   success: {
     title: "Payment successful",
     body: "Your money has been added to your wallet and a receipt is on its way to your email.",
     badge: "Paid",
-    badgeClass: "bg-green-100 text-green-700 border-green-200",
+    tone: "success",
+    icon: <CheckCircle2 className="size-9" />,
   },
   failed: {
     title: "Payment failed",
     body: "The payment did not go through, so nothing has been added to your wallet. If your card or mobile account was charged, it is returned automatically.",
     badge: "Failed",
-    badgeClass: "bg-red-100 text-red-700 border-red-200",
+    tone: "danger",
+    icon: <XCircle className="size-9" />,
   },
   cancelled: {
     title: "Payment cancelled",
     body: "You cancelled this payment before it completed. Nothing was charged and your wallet is unchanged.",
     badge: "Cancelled",
-    badgeClass: "bg-amber-100 text-amber-800 border-amber-200",
+    tone: "warning",
+    icon: <Ban className="size-9" />,
   },
   unresolved: {
     title: "Still confirming your payment",
     body: "The gateway has not confirmed this one yet. Your money is safe: if it was taken, the payment is checked again automatically and your wallet is credited. You can also check again below.",
     badge: "Pending",
-    badgeClass: "bg-slate-100 text-slate-700 border-slate-200",
+    tone: "warning",
+    icon: <Clock className="size-9" />,
   },
-};
-
-const ICONS: Record<View, React.ReactNode> = {
-  verifying: <Loader2 className="h-9 w-9 animate-spin text-blue-600" />,
-  success: <CheckCircle2 className="h-9 w-9 text-green-600" />,
-  failed: <XCircle className="h-9 w-9 text-red-600" />,
-  cancelled: <Ban className="h-9 w-9 text-amber-600" />,
-  unresolved: <Clock className="h-9 w-9 text-slate-500" />,
-};
-
-const ICON_BG: Record<View, string> = {
-  verifying: "bg-blue-50",
-  success: "bg-green-50",
-  failed: "bg-red-50",
-  cancelled: "bg-amber-50",
-  unresolved: "bg-slate-100",
 };
 
 const Row = ({
@@ -122,8 +110,8 @@ const Row = ({
   label: string;
   children: React.ReactNode;
 }) => (
-  <div className="flex items-start justify-between gap-4 py-3">
-    <span className="text-sm text-muted-foreground">{label}</span>
+  <div className="flex items-start justify-between gap-4 px-4 py-3">
+    <span className="shrink-0 text-sm text-muted-foreground">{label}</span>
     <div className="flex min-w-0 items-center justify-end gap-1 text-right text-sm font-medium text-foreground">
       {children}
     </div>
@@ -226,164 +214,140 @@ export default function PaymentResult({
     setAttempt((n) => n + 1);
   }, []);
 
-  const heading = HEADINGS[view];
+  const shown = VIEWS[view];
   const paidAt = intent?.completedAt ?? intent?.createdAt;
+  const retry = view === "failed" || view === "cancelled";
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 animate-fade-in">
-      <Card className="overflow-hidden shadow-soft print:border-0 print:shadow-none">
-        <CardContent className="p-0">
-          <div className="flex flex-col items-center gap-4 px-6 pt-10 pb-8 text-center">
-            <div
-              className={cn(
-                "flex h-16 w-16 items-center justify-center rounded-full",
-                ICON_BG[view]
-              )}
-            >
-              {ICONS[view]}
-            </div>
+    <div className="mx-auto w-full max-w-lg space-y-6 py-2 sm:py-6">
+      <div className="flex flex-col items-center gap-4 text-center">
+        <div
+          aria-hidden="true"
+          className={cn(
+            "grid size-20 place-items-center rounded-full",
+            TONE_CLASSES[shown.tone].soft,
+            TONE_CLASSES[shown.tone].text,
+          )}
+        >
+          {shown.icon}
+        </div>
 
-            <div className="space-y-2">
-              <h1 className="font-serif text-2xl font-bold text-foreground sm:text-3xl">
-                {heading.title}
-              </h1>
-              <p className="mx-auto max-w-md text-sm text-muted-foreground">
-                {heading.body}
-              </p>
-            </div>
+        <div className="space-y-2" aria-live="polite">
+          <h1 className="font-display text-title-lg text-foreground">
+            {shown.title}
+          </h1>
+          <p className="mx-auto max-w-md text-sm text-muted-foreground">
+            {shown.body}
+          </p>
+        </div>
 
-            {intent && (
-              <p
-                className={cn(
-                  "mt-2 text-4xl font-bold tracking-tight",
-                  view === "success" ? "text-green-600" : "text-foreground"
-                )}
-              >
-                {view === "success" ? "+" : ""}
-                {formatBDT(intent.amountMinor)}
-              </p>
+        {intent && (
+          <p
+            className={cn(
+              "text-3xl font-bold tracking-tight tabular-nums",
+              view === "success" ? "text-success" : "text-foreground",
             )}
+          >
+            {view === "success" ? "+" : ""}
+            {formatBDT(intent.amountMinor)}
+          </p>
+        )}
 
-            <Badge
-              variant="outline"
-              className={cn(
-                "text-xs uppercase tracking-wide",
-                heading.badgeClass
-              )}
-            >
-              {heading.badge}
-            </Badge>
-          </div>
+        <ToneBadge status={view} tone={shown.tone} dot>
+          {shown.badge}
+        </ToneBadge>
+      </div>
 
-          {(intent || transactionId) && (
-            <>
-              <Separator />
-              <div className="px-6 py-2">
-                <p className="pt-4 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Payment details
-                </p>
-
-                <div className="divide-y">
-                  {transactionId && (
-                    <Row label="Transaction ID">
-                      <MonoValue value={transactionId} label="Transaction ID" />
-                    </Row>
-                  )}
-
-                  {intent?.gatewayRef && (
-                    <Row label={gatewayRefLabel(intent.provider)}>
-                      <MonoValue
-                        value={intent.gatewayRef}
-                        label={gatewayRefLabel(intent.provider)}
-                      />
-                    </Row>
-                  )}
-
-                  {intent && (
-                    <Row label="Amount">{formatBDT(intent.amountMinor)}</Row>
-                  )}
-
-                  <Row label="Payment method">{intent?.method || "N/A"}</Row>
-
-                  <Row label="Paid via">{providerLabel(intent?.provider)}</Row>
-
-                  {paidAt && (
-                    <Row label="Date">
-                      {format(new Date(paidAt), "MMM d, yyyy h:mm a")}
-                    </Row>
-                  )}
-
-                  {intent?.failureReason && view !== "success" && (
-                    <Row label="Reason">
-                      <span className="text-right font-normal">
-                        {intent.failureReason}
-                      </span>
-                    </Row>
-                  )}
-
-                  {view === "success" && intent && (
-                    <Row label="Available balance">
-                      {formatBDT(intent.walletAvailableMinor)}
-                    </Row>
-                  )}
-                </div>
-              </div>
-            </>
+      {(intent || transactionId) && (
+        <div className="divide-y divide-border rounded-2xl border border-border bg-surface print:border-0">
+          {transactionId && (
+            <Row label="Transaction ID">
+              <MonoValue value={transactionId} label="Transaction ID" />
+            </Row>
           )}
 
-          <div className="flex flex-col gap-3 border-t bg-muted/30 px-6 py-5 sm:flex-row sm:flex-wrap sm:justify-end print:hidden">
-            {view === "unresolved" && (
-              <Button variant="outline" onClick={checkAgain}>
-                <RefreshCcw className="mr-2 h-4 w-4" /> Check again
-              </Button>
-            )}
+          {intent?.gatewayRef && (
+            <Row label={gatewayRefLabel(intent.provider)}>
+              <MonoValue
+                value={intent.gatewayRef}
+                label={gatewayRefLabel(intent.provider)}
+              />
+            </Row>
+          )}
 
-            {(view === "failed" || view === "cancelled") && (
-              <Button variant="outline" asChild>
-                <Link href="/dashboard/wallet?add=1">
-                  <RotateCcw className="mr-2 h-4 w-4" /> Try again
-                </Link>
-              </Button>
-            )}
+          <Row label="Method">
+            {[providerLabel(intent?.provider), intent?.method]
+              .filter(Boolean)
+              .join(" · ") || "N/A"}
+          </Row>
 
-            {(view === "failed" || view === "cancelled") && otherProvider && (
-              <Button variant="outline" asChild>
-                <Link href={`/dashboard/wallet?add=1&method=${otherProvider}`}>
-                  <ArrowLeftRight className="mr-2 h-4 w-4" /> Try another method
-                </Link>
-              </Button>
-            )}
+          {paidAt && (
+            <Row label="Time">{format(new Date(paidAt), "d MMM yyyy, h:mm a")}</Row>
+          )}
 
-            {view === "success" && (
-              <Button variant="outline" onClick={() => window.print()}>
-                <Printer className="mr-2 h-4 w-4" /> Print receipt
-              </Button>
-            )}
+          {intent?.failureReason && view !== "success" && (
+            <Row label="Reason">
+              <span className="text-right font-normal">{intent.failureReason}</span>
+            </Row>
+          )}
 
-            {resumeChat ? (
-              <>
-                <Button variant="outline" asChild>
-                  <Link href="/dashboard/wallet">
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Back to wallet
-                  </Link>
-                </Button>
-                <Button asChild className="bg-sage hover:bg-sage/90">
-                  <Link href="/assistant?resume=1">
-                    <CalendarCheck className="mr-2 h-4 w-4" /> Back to your
-                    booking
-                  </Link>
-                </Button>
-              </>
-            ) : (
-              <Button asChild className="bg-sage hover:bg-sage/90">
-                <Link href="/dashboard/wallet">
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Back to wallet
-                </Link>
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          {view === "success" && intent && (
+            <Row label="Available balance">
+              <span className="tabular-nums">
+                {formatBDT(intent.walletAvailableMinor)}
+              </span>
+            </Row>
+          )}
+        </div>
+      )}
+
+      <div className="flex flex-col gap-3 print:hidden">
+        {/* One primary action: the next step */}
+        {view === "unresolved" ? (
+          <Button onClick={checkAgain} className="w-full">
+            <RefreshCcw /> Check again
+          </Button>
+        ) : retry ? (
+          <Button asChild className="w-full">
+            <Link href="/dashboard/wallet?add=1">
+              <RotateCcw /> Try again
+            </Link>
+          </Button>
+        ) : resumeChat ? (
+          <Button asChild className="w-full">
+            <Link href="/assistant?resume=1">
+              <CalendarCheck /> Back to your booking
+            </Link>
+          </Button>
+        ) : (
+          <Button asChild className="w-full">
+            <Link href="/dashboard/wallet">
+              <ArrowLeft /> Back to wallet
+            </Link>
+          </Button>
+        )}
+
+        {retry && otherProvider && (
+          <Button asChild variant="outline" className="w-full">
+            <Link href={`/dashboard/wallet?add=1&method=${otherProvider}`}>
+              <ArrowLeftRight /> Pay with {providerLabel(otherProvider)} instead
+            </Link>
+          </Button>
+        )}
+
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+          {(view === "unresolved" || retry || resumeChat) && (
+            <Button asChild variant="link">
+              <Link href="/dashboard/wallet">Back to wallet</Link>
+            </Button>
+          )}
+          {view === "success" && (
+            <Button variant="link" onClick={() => window.print()}>
+              <Printer /> Print receipt
+            </Button>
+          )}
+        </div>
+      </div>
 
       {view !== "success" && view !== "verifying" && (
         <p className="text-center text-xs text-muted-foreground print:hidden">

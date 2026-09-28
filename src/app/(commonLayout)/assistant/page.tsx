@@ -6,7 +6,7 @@ import { getAssistantAccess } from "@/services/assistant/getAssistantAccess";
 import { getCookie } from "@/services/auth/cookiesHandler";
 
 export const metadata = {
-  title: "Book with AI | SalonKhuji",
+  title: "Book with AI",
   description:
     "Find a salon near you and book a time without typing a word - tap your way from location to confirmed appointment.",
 };

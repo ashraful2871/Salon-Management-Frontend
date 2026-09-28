@@ -1,10 +1,14 @@
-import BentoBox from "@/components/Home/BentoBox";
+import { Suspense } from "react";
+
 import Hero from "@/components/Home/Hero";
+import HowItWorks from "@/components/Home/HowItWorks";
 import NearbySalons from "@/components/Home/NearbySalons";
-import Testimonials from "@/components/Home/Testimonials";
+import ServiceCategories from "@/components/Home/ServiceCategories";
+import TopRatedSalons, { TopRatedSkeleton } from "@/components/Home/TopRatedSalons";
+import WhySalonKhuji from "@/components/Home/WhySalonKhuji";
+import RecentReviews from "@/components/Home/RecentReviews";
 import PartnerCtaSection from "@/components/Home/PartnerCtaSection";
 import CtaSection from "@/components/Home/CtaSection";
-import Marquee from "@/components/Home/Marquee";
 
 export default function Home() {
   return (
@@ -12,9 +16,16 @@ export default function Home() {
       <Hero />
       {/* Client-side: reads the location cookie itself so this page stays static. */}
       <NearbySalons />
-      <Marquee />
-      <BentoBox />
-      <Testimonials />
+      <ServiceCategories />
+      <Suspense fallback={<TopRatedSkeleton />}>
+        <TopRatedSalons />
+      </Suspense>
+      <HowItWorks />
+      <WhySalonKhuji />
+      {/* Renders nothing below three good reviews, so no skeleton to collapse. */}
+      <Suspense fallback={null}>
+        <RecentReviews />
+      </Suspense>
       <PartnerCtaSection />
       <CtaSection />
     </>

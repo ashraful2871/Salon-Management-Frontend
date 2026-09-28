@@ -1,7 +1,8 @@
 "use server";
 
 import { serverFetch } from "@/lib/server-fetch";
-import { revalidateTag } from "next/cache";
+import { revalidateTag, updateTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 import type { ApiResponse } from "@/lib/api-types";
 
 export const updateSalonStatus = async (
@@ -17,8 +18,10 @@ export const updateSalonStatus = async (
     const result: ApiResponse<null> = await res.json();
 
     if (result.success) {
-      revalidateTag("salons", "seconds");
-      revalidateTag(`salon-${id}`, "seconds");
+      updateTag(TAGS.salons);
+      revalidateTag(TAGS.salon(id), "max");
+      updateTag(TAGS.salonApplications);
+      revalidateTag(TAGS.mySalons, "max");
     }
 
     return result;

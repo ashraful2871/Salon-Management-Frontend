@@ -1,4 +1,5 @@
 import type { ApiResponse } from "@/lib/api-types";
+import { TAGS } from "@/lib/cache-tags";
 
 const BACKEND_API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
@@ -19,7 +20,7 @@ const NONE: AuthProviders = { google: false };
 export const getAuthProviders = async (): Promise<AuthProviders> => {
   try {
     const response = await fetch(`${BACKEND_API_URL}/auth/providers`, {
-      next: { revalidate: 300, tags: ["auth-providers"] },
+      next: { revalidate: 300, tags: [TAGS.authProviders] },
     });
     if (!response.ok) return NONE;
 

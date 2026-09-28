@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { motion } from "framer-motion";
 import { useEffect, useState, useTransition } from "react";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import {
@@ -22,7 +21,6 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Store, Bell, Shield, Wallet, Loader2, Mail, KeyRound } from "lucide-react";
 import { changePassword } from "@/services/auth/changePassword";
 import { confirmEmailChange, requestEmailChange } from "@/services/auth/changeEmail";
@@ -31,6 +29,7 @@ import { GoogleLogo } from "@/components/Auth/GoogleButton";
 import { toast } from "sonner";
 import { updateSalon } from "@/services/salon/updateSalon";
 import { toTaka } from "@/lib/money";
+import { PageHeader } from "@/components/Shared/PageHeader";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -50,7 +49,6 @@ const Settings = ({
   // A Google-only account has no current password to type, so it gets a link
   // to set one by email instead of the change-password form.
   const hasPassword = signIn?.hasPassword ?? true;
-  const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -146,9 +144,8 @@ const Settings = ({
         setNewEmail("");
         setEmailPassword("");
         cancelEmailChange();
-        // The session cookie now carries the new address; re-render the
-        // server components (navbar, sidebar) that read it.
-        router.refresh();
+        // The action sends back the re-rendered page, so the navbar and
+        // sidebar already read the new address from the session cookie.
       } else {
         setCode("");
         setCodeError(res?.message || "That code didn't work");
@@ -188,24 +185,16 @@ const Settings = ({
   };
 
   return (
-    <div className="space-y-8 max-w-4xl">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <h1 className="font-serif text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground mt-1">
-          Manage your salon preferences and account settings
-        </p>
-      </motion.div>
+    <div>
+      <PageHeader
+        title="Settings"
+        description="Manage your salon preferences and account settings"
+      />
 
+      {/* Two columns on wide screens; each card keeps its own height. */}
+      <div className="grid items-start gap-6 xl:grid-cols-2">
       {/* Notifications */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
+      <div>
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -255,14 +244,10 @@ const Settings = ({
             ))}
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
 
       {/* Email Address */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-      >
+      <div>
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -400,14 +385,10 @@ const Settings = ({
             )}
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
 
       {/* Security / Change Password */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
+      <div>
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -512,7 +493,7 @@ const Settings = ({
               </>
             )}
             <Separator className="my-4" />
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <div className="space-y-0.5">
                 <Label>Two-factor authentication</Label>
                 <p className="text-sm text-muted-foreground">
@@ -523,14 +504,10 @@ const Settings = ({
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
 
       {salon && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-        >
+        <div>
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
@@ -600,15 +577,11 @@ const Settings = ({
               </Button>
             </CardContent>
           </Card>
-        </motion.div>
+        </div>
       )}
 
       {/* Danger Zone */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-      >
+      <div className="xl:col-span-2">
         <Card className="border-destructive/50">
           <CardHeader>
             <CardTitle className="text-destructive">Danger Zone</CardTitle>
@@ -617,7 +590,7 @@ const Settings = ({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-0.5">
                 <Label>Delete Account</Label>
                 <p className="text-sm text-muted-foreground">
@@ -630,7 +603,8 @@ const Settings = ({
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
+      </div>
     </div>
   );
 };

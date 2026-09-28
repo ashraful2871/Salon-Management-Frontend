@@ -1,16 +1,25 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   ChevronDown,
+  ChevronRight,
+  Home,
+  Info,
   LayoutDashboard,
+  LogIn,
+  Mail,
   Menu,
-  Scissors,
+  Sparkles,
+  Store,
   User,
+  UserPlus,
   Wallet as WalletIcon,
   X,
+  type LucideIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -22,15 +31,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { formatBDT } from "@/lib/money";
 import type { Wallet } from "@/services/wallet/getMyWallet";
 import LogoutButton from "./LogoutButton";
 import WalletMenu from "./WalletMenu";
+import BalanceReveal from "@/components/Shared/BalanceReveal";
 import LocationChip from "@/components/Location/LocationChip";
 
-// Define the User Interface based on your token
 interface UserData {
   role: string;
   email: string;
@@ -43,14 +52,16 @@ interface NavbarClientProps {
   wallet: Wallet | null;
   ownerRevenueMinor?: number | null;
   adminRevenueMinor?: number | null;
+  /** The Suspense fallback: who is signed in isn't known yet. */
+  accountLoading?: boolean;
 }
 
-const NAV_LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/salons", label: "Salons" },
-  { href: "/ai-suggestions", label: "AI Match" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
+const NAV_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
+  { href: "/", label: "Home", icon: Home },
+  { href: "/salons", label: "Salons", icon: Store },
+  { href: "/ai-suggestions", label: "AI Match", icon: Sparkles },
+  { href: "/about", label: "About", icon: Info },
+  { href: "/contact", label: "Contact", icon: Mail },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -61,150 +72,43 @@ const ROLE_LABELS: Record<string, string> = {
   AGENT: "Agent",
 };
 
-const TapToRevealPill = ({
-  label,
-  amountMinor,
+const getInitials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase() || "U";
+
+const firstName = (name: string) => name.trim().split(/\s+/)[0] || name;
+
+const UserAvatar = ({
+  name,
+  className,
 }: {
-  label: string;
-  amountMinor: number;
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        if (!isOpen) {
-          setIsOpen(true);
-          setTimeout(() => setIsOpen(false), 3500);
-        }
-      }}
-      aria-label={`${label} balance`}
-      className={cn(
-        "group relative flex h-10 w-28 sm:w-36 cursor-pointer items-center overflow-hidden rounded-full border bg-white p-1 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-        isOpen
-          ? "border-primary/40 shadow-sm ring-1 ring-primary/10"
-          : "border-slate-200 hover:border-slate-300 hover:shadow-sm",
-      )}
-    >
-      <div className="z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-gold text-white shadow-gold transition-transform duration-300 group-hover:scale-105">
-        <WalletIcon className="h-4 w-4" />
-      </div>
-
-      <div className="relative flex h-full flex-1 items-center justify-center overflow-hidden">
-        <div
-          className={cn(
-            "absolute inset-0 flex flex-col items-center justify-center transition-all duration-500 ease-out",
-            isOpen
-              ? "-translate-y-full opacity-0"
-              : "translate-y-0 opacity-100",
-          )}
-        >
-          <span className="text-[10px] sm:text-[11px] font-bold tracking-wide text-slate-500 whitespace-nowrap">
-            Tap for {label}
-          </span>
-        </div>
-
-        <div
-          className={cn(
-            "absolute inset-0 flex items-center justify-center gap-1 sm:gap-1.5 transition-all duration-500 ease-out",
-            isOpen ? "translate-y-0 opacity-100" : "translate-y-full opacity-0",
-          )}
-        >
-          <span className="text-xs sm:text-sm font-black tabular-nums text-slate-900">
-            {formatBDT(amountMinor)}
-          </span>
-        </div>
-      </div>
-    </button>
-  );
-};
-
-const TapToRevealCard = ({
-  label,
-  amountMinor,
-  link,
-}: {
-  label: string;
-  amountMinor: number;
-  link?: string;
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div
-        className="group relative cursor-pointer bg-gradient-gold px-4 py-4 text-white transition-all hover:brightness-110"
-        onClick={() => {
-          if (!isOpen) {
-            setIsOpen(true);
-            setTimeout(() => setIsOpen(false), 3500);
-          }
-        }}
-      >
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/85">
-            <WalletIcon className="h-3.5 w-3.5" /> {label}
-          </span>
-        </div>
-
-        <div className="relative mt-2 h-10 overflow-hidden">
-          <div
-            className={cn(
-              "absolute inset-0 flex items-center transition-all duration-500 ease-out",
-              isOpen
-                ? "-translate-y-full opacity-0"
-                : "translate-y-0 opacity-100",
-            )}
-          >
-            <span className="text-lg font-bold tracking-wide text-white/95">
-              Tap for Balance
-            </span>
-          </div>
-
-          <div
-            className={cn(
-              "absolute inset-0 flex items-center gap-2 transition-all duration-500 ease-out",
-              isOpen
-                ? "translate-y-0 opacity-100"
-                : "translate-y-full opacity-0",
-            )}
-          >
-            <p className="text-3xl font-black tabular-nums tracking-tight">
-              {formatBDT(amountMinor)}
-            </p>
-          </div>
-        </div>
-      </div>
-      {link && (
-        <div className="flex items-center gap-2 p-3">
-          <Button size="sm" variant="outline" className="h-9 w-full" asChild>
-            <Link href={link}>View Details</Link>
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-};
+  name: string;
+  className?: string;
+}) => (
+  <Avatar className={cn("h-8 w-8", className)}>
+    <AvatarFallback className="bg-primary text-xs font-bold text-primary-foreground">
+      {getInitials(name)}
+    </AvatarFallback>
+  </Avatar>
+);
 
 const NavbarClient = ({
   user,
   wallet,
   ownerRevenueMinor,
   adminRevenueMinor,
+  accountLoading = false,
 }: NavbarClientProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
-
-  // Helper to get initials
-  const getInitials = (name: string) =>
-    name
-      .split(" ")
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   // A flat header over the hero, a lifted one once the page moves under it.
   useEffect(() => {
@@ -223,13 +127,16 @@ const NavbarClient = ({
     setIsMobileMenuOpen(false);
   }
 
-  // While the drawer is open it owns the viewport: lock the page behind it and
-  // let Escape close it.
+  // While the drawer is open it owns the viewport: lock the page behind it,
+  // move focus into it, and let Escape close it. Focus goes back to the menu
+  // button when it closes.
   useEffect(() => {
     if (!isMobileMenuOpen) return;
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const menuButton = menuButtonRef.current;
+    closeButtonRef.current?.focus();
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setIsMobileMenuOpen(false);
@@ -239,57 +146,86 @@ const NavbarClient = ({
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
+      menuButton?.focus({ preventScroll: true });
     };
   }, [isMobileMenuOpen]);
+
+  // The drawer is only for phones and tablets: widening the window past lg
+  // with it open would otherwise leave the page scroll-locked.
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => query.matches && setIsMobileMenuOpen(false);
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
+  const closeMenu = () => setIsMobileMenuOpen(false);
   const roleLabel = user ? (ROLE_LABELS[user.role] ?? user.role) : "";
+
+  // The account pages each role has, shared by the dropdown and the drawer.
+  // No amounts here: balances only ever show through BalanceReveal.
+  const accountLinks: { href: string; label: string; icon: LucideIcon }[] = user
+    ? [
+        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        ...(user.role === "CUSTOMER"
+          ? [{ href: "/dashboard/wallet", label: "My wallet", icon: WalletIcon }]
+          : []),
+        ...(user.role === "SALON_OWNER"
+          ? [{ href: "/dashboard/earnings", label: "Earnings", icon: WalletIcon }]
+          : []),
+        { href: "/my-profile", label: "My profile", icon: User },
+      ]
+    : [];
 
   return (
     <>
       <header
         className={cn(
-          "fixed inset-x-0 top-0 z-50 border-b transition-all duration-300",
+          // Only colours and the shadow change on scroll; the blur keeps one
+          // radius and is desktop-only, so phones never re-rasterise it.
+          "fixed inset-x-0 top-0 z-50 border-b transition-[background-color,border-color,box-shadow] duration-200",
           isScrolled
-            ? "border-slate-200/80 bg-white/90 shadow-[0_4px_24px_-12px_rgba(15,23,42,0.25)] backdrop-blur-xl"
-            : "border-transparent bg-white/70 backdrop-blur-md",
+            ? "border-border bg-surface/95 shadow-xs md:bg-surface/85 md:backdrop-blur-sm"
+            : "border-transparent bg-surface/90 md:bg-surface/75 md:backdrop-blur-sm",
         )}
       >
         <nav
           aria-label="Main navigation"
           className="container mx-auto px-4 sm:px-6"
         >
-          <div className="flex h-16 items-center justify-between gap-3">
+          <div className="flex h-16 items-center justify-between gap-2 sm:gap-3">
             {/* Logo */}
             <Link
               href="/"
-              className="group flex shrink-0 items-center gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              className="group flex min-w-0 shrink items-center gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               aria-label="SalonKhuji home"
             >
-              <img
+              <Image
                 src="/salon-logo.png"
                 alt="SalonKhuji Logo"
-                className="h-9 w-auto object-contain transition-transform group-hover:scale-105 sm:h-10"
+                width={1534}
+                height={326}
+                sizes="(min-width: 1280px) 188px, (min-width: 640px) 170px, 151px"
+                preload
+                className="h-7 w-auto max-w-[140px] object-contain transition-transform group-hover:scale-105 min-[400px]:h-8 min-[400px]:max-w-none sm:h-9 xl:h-10"
               />
-              {/* <span className="font-display text-lg font-black tracking-tight text-slate-900 sm:text-xl">
-                Salon<span className="text-primary">Khuji</span>
-              </span> */}
             </Link>
 
             {/* Desktop navigation */}
-            <div className="hidden items-center gap-1 rounded-full border border-slate-200/70 bg-slate-50/80 p-1 lg:flex">
+            <div className="hidden items-center gap-1 rounded-full border border-border bg-muted/70 p-1 lg:flex">
               {NAV_LINKS.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
                   aria-current={isActive(link.href) ? "page" : undefined}
                   className={cn(
-                    "rounded-full px-4 py-2 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                    "rounded-full px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 xl:px-4",
                     isActive(link.href)
-                      ? "bg-white text-primary shadow-sm"
-                      : "text-slate-600 hover:bg-white/70 hover:text-slate-900",
+                      ? "bg-surface text-foreground shadow-xs"
+                      : "text-muted-foreground hover:bg-surface/70 hover:text-foreground",
                   )}
                 >
                   {link.label}
@@ -298,126 +234,108 @@ const NavbarClient = ({
             </div>
 
             {/* Right cluster */}
-            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-              <LocationChip className="hidden lg:inline-flex" />
-              <LocationChip variant="compact" className="lg:hidden" />
-              {user ? (
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
+              {/* Widest to narrowest: full label, short label, icon. Between
+                  lg and xl the desktop links need the room, so it shrinks
+                  back to the icon there. */}
+              <LocationChip className="hidden 2xl:inline-flex" />
+              <LocationChip
+                variant="compact"
+                className="hidden sm:inline-flex lg:hidden xl:inline-flex 2xl:hidden"
+              />
+              <LocationChip variant="icon" className="sm:hidden lg:grid xl:hidden" />
+
+              {accountLoading ? (
+                // Fixed sizes, so nothing shifts when the account streams in.
+                <div aria-hidden="true" className="flex items-center gap-1.5 sm:gap-2.5">
+                  <Skeleton className="hidden h-10 w-36 rounded-full md:block" />
+                  <Skeleton className="size-10 rounded-full" />
+                </div>
+              ) : user ? (
                 <>
-                  {/* Balance: Tap-to-reveal for both mobile and desktop */}
-                  <div className="block">
+                  {/* Balance: from md up; smaller screens have it in the drawer. */}
+                  <div className="hidden md:block">
                     {user.role === "CUSTOMER" && <WalletMenu wallet={wallet} />}
                     {user.role === "SALON_OWNER" && (
-                      <TapToRevealPill
-                        label="Revenue"
-                        amountMinor={ownerRevenueMinor ?? 0}
+                      <BalanceReveal
+                        variant="pill"
+                        label="Owner revenue"
+                        figures={[
+                          { label: "Net earnings", amountMinor: ownerRevenueMinor ?? null },
+                        ]}
                       />
                     )}
                     {user.role === "ADMIN" && (
-                      <TapToRevealPill
-                        label="Revenue"
-                        amountMinor={adminRevenueMinor ?? 0}
+                      <BalanceReveal
+                        variant="pill"
+                        label="Platform revenue"
+                        figures={[
+                          { label: "Total", amountMinor: adminRevenueMinor ?? null },
+                        ]}
                       />
                     )}
                   </div>
 
-                  {/* Account menu */}
-                  <DropdownMenu>
+                  {/* Account menu: avatar + name (+ role from xl) on desktop,
+                      the avatar alone on smaller screens. */}
+                  <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
-                        aria-label="Account menu"
-                        className="hidden h-10 cursor-pointer items-center gap-2 rounded-full border border-slate-200 bg-white pl-1.5 pr-2.5 transition-all hover:border-slate-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 lg:flex"
+                        aria-label={`Account menu for ${user.name}`}
+                        className="flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-full border border-border bg-surface p-1 transition-[border-color,box-shadow] hover:border-input hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 data-[state=open]:border-primary/40 data-[state=open]:ring-1 data-[state=open]:ring-primary/10 lg:pr-3"
                       >
-                        <Avatar className="h-7 w-7">
-                          <AvatarImage src="" alt={user.name} />
-                          <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
-                            {getInitials(user.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="flex max-w-[9rem] flex-col items-start leading-none">
-                          <span className="w-full truncate text-sm font-semibold text-slate-900">
-                            {user.name}
+                        <UserAvatar name={user.name} />
+                        <span className="hidden max-w-[6rem] flex-col items-start leading-none lg:flex xl:max-w-[9rem]">
+                          <span className="w-full truncate text-sm font-semibold text-foreground">
+                            <span className="xl:hidden">{firstName(user.name)}</span>
+                            <span className="hidden xl:inline">{user.name}</span>
                           </span>
-                          <span className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-500">
+                          <span className="mt-1 hidden text-[10px] font-medium uppercase tracking-wider text-muted-foreground xl:block">
                             {roleLabel}
                           </span>
                         </span>
-                        <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
+                        <ChevronDown className="hidden h-4 w-4 shrink-0 text-muted-foreground lg:block" />
                       </button>
                     </DropdownMenuTrigger>
 
                     <DropdownMenuContent
                       align="end"
                       sideOffset={10}
-                      className="w-60"
+                      className="w-64 rounded-xl p-1.5"
                     >
-                      <DropdownMenuLabel className="py-2.5">
+                      <DropdownMenuLabel className="p-2.5">
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-9 w-9">
-                            <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
-                              {getInitials(user.name)}
-                            </AvatarFallback>
-                          </Avatar>
+                          <UserAvatar name={user.name} className="h-10 w-10" />
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold leading-none">
+                            <p className="truncate text-sm font-semibold leading-tight">
                               {user.name}
                             </p>
-                            <p className="mt-1 truncate text-xs font-normal leading-none text-muted-foreground">
+                            <p className="mt-0.5 truncate text-xs font-normal text-muted-foreground">
                               {user.email}
                             </p>
+                            <span className="mt-1.5 inline-block rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-hover">
+                              {roleLabel}
+                            </span>
                           </div>
                         </div>
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
 
-                      <DropdownMenuItem asChild className="cursor-pointer">
-                        <Link href="/dashboard" className="flex items-center">
-                          <LayoutDashboard className="mr-2 h-4 w-4" />
-                          <span>Dashboard</span>
-                        </Link>
-                      </DropdownMenuItem>
-
-                      {user.role === "CUSTOMER" && (
-                        <DropdownMenuItem asChild className="cursor-pointer">
-                          <Link
-                            href="/dashboard/wallet"
-                            className="flex items-center"
-                          >
-                            <WalletIcon className="mr-2 h-4 w-4" />
-                            <span>My Wallet</span>
-                            {wallet && (
-                              <span className="ml-auto text-xs font-bold tabular-nums text-slate-500">
-                                {formatBDT(wallet.availableMinor)}
-                              </span>
-                            )}
+                      {accountLinks.map((item) => (
+                        <DropdownMenuItem
+                          key={item.href}
+                          asChild
+                          className="cursor-pointer rounded-lg py-2"
+                        >
+                          <Link href={item.href} className="flex items-center">
+                            <item.icon className="mr-2 h-4 w-4" />
+                            <span>{item.label}</span>
                           </Link>
                         </DropdownMenuItem>
-                      )}
-
-                      {user.role === "SALON_OWNER" && (
-                        <DropdownMenuItem asChild className="cursor-pointer">
-                          <Link
-                            href="/dashboard/earnings"
-                            className="flex items-center"
-                          >
-                            <WalletIcon className="mr-2 h-4 w-4" />
-                            <span>Earnings</span>
-                            <span className="ml-auto text-xs font-bold tabular-nums text-slate-500">
-                              {formatBDT(ownerRevenueMinor ?? 0)}
-                            </span>
-                          </Link>
-                        </DropdownMenuItem>
-                      )}
-
-                      <DropdownMenuItem asChild className="cursor-pointer">
-                        <Link href="/my-profile" className="flex items-center">
-                          <User className="mr-2 h-4 w-4" />
-                          <span>My Profile</span>
-                        </Link>
-                      </DropdownMenuItem>
+                      ))}
 
                       <DropdownMenuSeparator />
-
                       <LogoutButton />
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -425,41 +343,40 @@ const NavbarClient = ({
               ) : (
                 <div className="hidden items-center gap-2 lg:flex">
                   <Button variant="ghost" size="sm" asChild>
-                    <Link href="/login">Sign In</Link>
+                    <Link href="/login">Sign in</Link>
                   </Button>
-                  <Button variant="gold" size="sm" asChild>
-                    <Link href="/register">Register</Link>
+                  <Button size="sm" asChild>
+                    <Link href="/register">Get started</Link>
                   </Button>
                 </div>
               )}
 
               {/* Mobile menu button */}
               <button
+                ref={menuButtonRef}
                 type="button"
-                onClick={() => setIsMobileMenuOpen((open) => !open)}
-                aria-label={
-                  isMobileMenuOpen ? "Close main menu" : "Open main menu"
-                }
+                onClick={() => setIsMobileMenuOpen(true)}
+                aria-label="Open main menu"
                 aria-expanded={isMobileMenuOpen}
                 aria-controls="mobile-menu"
-                className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-800 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 lg:hidden"
+                className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full border border-border bg-surface text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 lg:hidden"
               >
-                {isMobileMenuOpen ? (
-                  <X className="h-5 w-5" />
-                ) : (
-                  <Menu className="h-5 w-5" />
-                )}
+                <Menu className="h-5 w-5" />
               </button>
             </div>
           </div>
         </nav>
       </header>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer: a sheet from the right, over everything. */}
       <div
         className={cn(
-          "fixed inset-0 top-16 z-40 lg:hidden",
-          isMobileMenuOpen ? "visible" : "invisible",
+          // Visible at once on open (so the close button can take focus);
+          // on close, visibility waits out the slide so it animates too.
+          "fixed inset-0 z-[60] lg:hidden",
+          isMobileMenuOpen
+            ? "visible"
+            : "invisible transition-[visibility] duration-300",
         )}
         aria-hidden={!isMobileMenuOpen}
       >
@@ -467,147 +384,247 @@ const NavbarClient = ({
           type="button"
           tabIndex={-1}
           aria-hidden="true"
-          onClick={() => setIsMobileMenuOpen(false)}
+          onClick={closeMenu}
           className={cn(
-            "absolute inset-0 bg-slate-900/40 transition-opacity duration-300",
+            "absolute inset-0 cursor-default bg-black/40 transition-opacity duration-300",
             isMobileMenuOpen ? "opacity-100" : "opacity-0",
           )}
         />
 
-        <div
+        <aside
           id="mobile-menu"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu"
           className={cn(
-            "absolute inset-x-0 top-0 max-h-[calc(100vh-4rem)] overflow-y-auto border-b border-slate-200 bg-white shadow-xl transition-all duration-300 ease-out",
-            isMobileMenuOpen
-              ? "translate-y-0 opacity-100"
-              : "-translate-y-4 opacity-0",
+            "absolute inset-y-0 right-0 flex w-[86%] max-w-sm flex-col bg-surface shadow-2xl transition-transform duration-300 ease-out",
+            isMobileMenuOpen ? "translate-x-0" : "translate-x-full",
           )}
         >
-          <div className="container mx-auto space-y-5 px-4 py-5 sm:px-6">
-            <LocationChip
-              variant="block"
-              onDone={() => setIsMobileMenuOpen(false)}
+          <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-4">
+            <Image
+              src="/salon-logo.png"
+              alt="SalonKhuji"
+              width={1534}
+              height={326}
+              sizes="132px"
+              className="h-7 w-auto"
             />
+            <button
+              ref={closeButtonRef}
+              type="button"
+              onClick={closeMenu}
+              aria-label="Close menu"
+              className="grid h-10 w-10 cursor-pointer place-items-center rounded-full text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
 
-            {user && (
-              <>
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-11 w-11">
-                    <AvatarFallback className="bg-primary/10 font-bold text-primary">
-                      {getInitials(user.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-slate-900">
-                      {user.name}
-                    </p>
-                    <p className="truncate text-xs text-slate-500">
-                      {user.email}
-                    </p>
-                    <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
-                      {roleLabel}
-                    </span>
-                  </div>
+          <div className="flex-1 space-y-6 overflow-y-auto overscroll-contain px-4 py-5">
+            {accountLoading ? (
+              <div
+                aria-hidden="true"
+                className="flex items-center gap-3 rounded-2xl p-3.5 ring-1 ring-border"
+              >
+                <Skeleton className="size-12 shrink-0 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-3 w-20 rounded" />
+                  <Skeleton className="h-4 w-32 rounded" />
+                  <Skeleton className="h-3 w-40 rounded" />
                 </div>
-
-                {user.role === "CUSTOMER" && (
-                  <WalletMenu
-                    wallet={wallet}
-                    variant="card"
-                    onNavigate={() => setIsMobileMenuOpen(false)}
-                  />
-                )}
-                {user.role === "SALON_OWNER" && (
-                  <div onClick={() => setIsMobileMenuOpen(false)}>
-                    <TapToRevealCard
-                      label="Owner Revenue"
-                      amountMinor={ownerRevenueMinor ?? 0}
-                      link="/dashboard/earnings"
-                    />
-                  </div>
-                )}
-                {user.role === "ADMIN" && (
-                  <div onClick={() => setIsMobileMenuOpen(false)}>
-                    <TapToRevealCard
-                      label="Platform Revenue"
-                      amountMinor={adminRevenueMinor ?? 0}
-                      link="/dashboard"
-                    />
-                  </div>
-                )}
-              </>
+              </div>
+            ) : user ? (
+              <div className="flex items-center gap-3 rounded-2xl bg-primary-soft/60 p-3.5 ring-1 ring-border">
+                <UserAvatar name={user.name} className="h-12 w-12 text-base" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground">
+                    Hi, {firstName(user.name)} 👋
+                  </p>
+                  <p className="truncate text-base font-bold leading-tight text-foreground">
+                    {user.name}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                </div>
+                <span className="shrink-0 self-start rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-hover">
+                  {roleLabel}
+                </span>
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-primary-soft/60 p-4 ring-1 ring-border">
+                <p className="font-display text-lg font-bold text-foreground">
+                  Welcome to SalonKhuji
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Sign in to book appointments and keep track of your visits.
+                </p>
+              </div>
             )}
 
-            <div className="space-y-1">
-              {NAV_LINKS.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  aria-current={isActive(link.href) ? "page" : undefined}
-                  className={cn(
-                    "block rounded-xl px-4 py-3 text-sm font-semibold transition-colors",
-                    isActive(link.href)
-                      ? "bg-primary/10 text-primary"
-                      : "text-slate-700 hover:bg-slate-100",
-                  )}
-                >
-                  {link.label}
-                </Link>
-              ))}
+            {user?.role === "CUSTOMER" && (
+              <WalletMenu wallet={wallet} variant="card" onNavigate={closeMenu} />
+            )}
+            {/* Only the links inside close the drawer; revealing keeps it open. */}
+            {user?.role === "SALON_OWNER" && (
+              <BalanceReveal
+                variant="card"
+                label="Owner revenue"
+                figures={[
+                  { label: "Net earnings", amountMinor: ownerRevenueMinor ?? null },
+                ]}
+                footer={
+                  <div className="border-t border-border p-3">
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href="/dashboard/earnings" onClick={closeMenu}>
+                        View details
+                      </Link>
+                    </Button>
+                  </div>
+                }
+              />
+            )}
+            {user?.role === "ADMIN" && (
+              <BalanceReveal
+                variant="card"
+                label="Platform revenue"
+                figures={[
+                  { label: "Total", amountMinor: adminRevenueMinor ?? null },
+                ]}
+                footer={
+                  <div className="border-t border-border p-3">
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href="/dashboard" onClick={closeMenu}>
+                        View details
+                      </Link>
+                    </Button>
+                  </div>
+                }
+              />
+            )}
+
+            <div>
+              <p className="mb-2 px-1 text-overline font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                Your location
+              </p>
+              <LocationChip variant="block" onDone={closeMenu} />
             </div>
 
-            <div className="flex flex-col gap-2 border-t border-slate-200 pt-4">
-              {user ? (
-                <>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    asChild
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <Link href="/dashboard">
-                      <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
-                    </Link>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start"
-                    asChild
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <Link href="/my-profile">
-                      <User className="mr-2 h-4 w-4" /> My Profile
-                    </Link>
-                  </Button>
-                  <LogoutButton />
-                </>
-              ) : (
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    asChild
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <Link href="/login">Sign In</Link>
-                  </Button>
-                  <Button
-                    variant="gold"
-                    className="flex-1"
-                    asChild
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <Link href="/register">Register</Link>
-                  </Button>
-                </div>
-              )}
-            </div>
+            <nav aria-label="Mobile navigation">
+              <p className="mb-1 px-1 text-overline font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                Explore
+              </p>
+              <ul className="space-y-0.5">
+                {NAV_LINKS.map((link) => (
+                  <li key={link.href}>
+                    <DrawerLink
+                      href={link.href}
+                      icon={link.icon}
+                      label={link.label}
+                      active={isActive(link.href)}
+                      onClick={closeMenu}
+                    />
+                  </li>
+                ))}
+                {/* Owners, staff and admins already have a salon side. */}
+                {!accountLoading && (!user || user.role === "CUSTOMER") && (
+                  <li>
+                    <DrawerLink
+                      href="/become-salon-owner"
+                      icon={Store}
+                      label="List your salon"
+                      active={isActive("/become-salon-owner")}
+                      onClick={closeMenu}
+                    />
+                  </li>
+                )}
+              </ul>
+            </nav>
+
+            {user && (
+              <div>
+                <p className="mb-1 px-1 text-overline font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                  Account
+                </p>
+                <ul className="space-y-0.5">
+                  {accountLinks.map((item) => (
+                    <li key={item.href}>
+                      <DrawerLink
+                        href={item.href}
+                        icon={item.icon}
+                        label={item.label}
+                        active={pathname === item.href}
+                        onClick={closeMenu}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
-        </div>
+
+          <div className="shrink-0 border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            {accountLoading ? (
+              <Skeleton aria-hidden="true" className="h-11 rounded-xl" />
+            ) : user ? (
+              <div className="rounded-xl border border-danger/20 bg-danger-soft">
+                <LogoutButton />
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" size="lg" asChild>
+                  <Link href="/login" onClick={closeMenu}>
+                    <LogIn className="h-4 w-4" /> Sign in
+                  </Link>
+                </Button>
+                <Button size="lg" asChild>
+                  <Link href="/register" onClick={closeMenu}>
+                    <UserPlus className="h-4 w-4" /> Get started
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </div>
+        </aside>
       </div>
     </>
   );
 };
+
+const DrawerLink = ({
+  href,
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) => (
+  <Link
+    href={href}
+    onClick={onClick}
+    aria-current={active ? "page" : undefined}
+    className={cn(
+      "group flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+      active ? "bg-primary-soft text-primary-hover" : "text-foreground hover:bg-muted",
+    )}
+  >
+    <span
+      className={cn(
+        "grid size-9 shrink-0 place-items-center rounded-lg transition-colors",
+        active
+          ? "bg-primary text-primary-foreground"
+          : "bg-muted text-muted-foreground group-hover:bg-surface",
+      )}
+    >
+      <Icon className="h-4 w-4" />
+    </span>
+    <span className="flex-1">{label}</span>
+    <ChevronRight className="h-4 w-4 text-muted-foreground/60" />
+  </Link>
+);
 
 export default NavbarClient;

@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
+import { revalidateTag, updateTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse } from "@/lib/api-types";
 
@@ -43,6 +44,7 @@ export const refundTopup = async (
   } finally {
     // A refused refund still writes a reversal and its undo, and a failed
     // request may have reached the API, so the list is stale either way.
-    revalidateTag("admin-topups", "seconds");
+    updateTag(TAGS.adminTopups);
+    revalidateTag(TAGS.earnings, "max");
   }
 };

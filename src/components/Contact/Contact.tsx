@@ -1,271 +1,186 @@
-"use client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Mail, Phone, MapPin, Clock, Send, Navigation } from "lucide-react";
-import { useState } from "react";
-import { LeafletMap, PinMarker } from "@/components/Map/MapClient";
-import { directionsUrl, type LatLng } from "@/lib/geo";
+import Link from "next/link";
+import {
+  CalendarCheck,
+  ChevronRight,
+  Clock,
+  Mail,
+  MapPin,
+  Navigation,
+  Phone,
+  Sparkles,
+  Store,
+  type LucideIcon,
+} from "lucide-react";
+import type { ReactNode } from "react";
 
-// The "Visit Us" card and the map both read this; keep the pin on the address.
-const BUSINESS_ADDRESS = {
-  line1: "123 Beauty Lane, Suite 100",
-  line2: "Los Angeles, CA 90210",
-  position: [34.0736, -118.4004] as LatLng,
+import { LeafletMap, PinMarker } from "@/components/Map/MapClient";
+import { PublicPageHero } from "@/components/Shared/PublicPageHero";
+import { Section } from "@/components/Shared/Section";
+import { IconTile } from "@/components/Shared/FeatureCard";
+import { directionsUrl } from "@/lib/geo";
+import { SITE } from "@/lib/site";
+import ContactForm from "./ContactForm";
+
+const CARD = "rounded-2xl border border-border bg-surface p-5 sm:p-6";
+const CARD_LINK =
+  "transition-[box-shadow,border-color] duration-200 hover:border-primary/30 hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
+
+type Detail = {
+  icon: LucideIcon;
+  label: string;
+  value: ReactNode;
+  href?: string;
 };
 
-const contactInfo = [
+const QUICK_HELP = [
   {
-    icon: Mail,
-    title: "Email Us",
-    value: "hello@salonkhuji.com",
-    description: "We respond within 24 hours",
+    icon: CalendarCheck,
+    label: "Manage a booking",
+    href: "/dashboard/appointments",
   },
-  {
-    icon: Phone,
-    title: "Call Us",
-    value: "+1 (555) 123-4567",
-    description: "Mon-Fri, 9am-6pm PST",
-  },
-  {
-    icon: MapPin,
-    title: "Visit Us",
-    value: BUSINESS_ADDRESS.line1,
-    description: BUSINESS_ADDRESS.line2,
-  },
-  {
-    icon: Clock,
-    title: "Business Hours",
-    value: "Monday - Friday",
-    description: "9:00 AM - 6:00 PM PST",
-  },
+  { icon: Store, label: "List your salon", href: "/become-salon-owner" },
+  { icon: Sparkles, label: "Try AI Match", href: "/ai-suggestions" },
 ];
 
-export default function Contact() {
-  // const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    subject: "",
-    message: "",
-  });
+// Only what SITE actually has: an empty value leaves its card out.
+const details = (): Detail[] => {
+  const list: Detail[] = [];
+  if (SITE.email) {
+    list.push({
+      icon: Mail,
+      label: "Email",
+      value: SITE.email,
+      href: `mailto:${SITE.email}`,
+    });
+  }
+  if (SITE.phone) {
+    list.push({
+      icon: Phone,
+      label: "Phone",
+      value: SITE.phone,
+      href: `tel:${SITE.phone}`,
+    });
+  }
+  if (SITE.address) {
+    list.push({
+      icon: MapPin,
+      label: "Address",
+      value: (
+        <>
+          {SITE.address.line1}
+          <br />
+          {SITE.address.line2}
+        </>
+      ),
+    });
+  }
+  if (SITE.hours) {
+    list.push({ icon: Clock, label: "Hours", value: SITE.hours });
+  }
+  return list;
+};
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // toast({
-    //   title: "Message Sent!",
-    //   description: "We will get back to you within 24 hours.",
-    // });
-    setFormData({ name: "", email: "", subject: "", message: "" });
-  };
+function DetailCard({ icon, label, value, href }: Detail) {
+  const body = (
+    <>
+      <IconTile icon={icon} />
+      <div className="min-w-0">
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="font-medium text-foreground break-words">{value}</p>
+      </div>
+    </>
+  );
+
+  return (
+    <li>
+      {href ? (
+        <a href={href} className={`${CARD} ${CARD_LINK} flex items-center gap-4`}>
+          {body}
+        </a>
+      ) : (
+        <div className={`${CARD} flex items-center gap-4`}>{body}</div>
+      )}
+    </li>
+  );
+}
+
+export default function Contact() {
+  const position = SITE.address?.position;
 
   return (
     <>
-      {/* Hero */}
-      <section className="py-20 bg-muted/50">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center animate-fade-in">
-            <span className="inline-block px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium mb-6">
-              Get In Touch
-            </span>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-foreground mb-6">
-              We would Love to
-              <br />
-              <span className="text-primary">Hear From You</span>
-            </h1>
-            <p className="text-lg text-muted-foreground">
-              Have a question, feedback, or want to partner with us? Reach out
-              and we will get back to you as soon as possible.
-            </p>
-          </div>
-        </div>
-      </section>
+      <PublicPageHero
+        overline="Contact"
+        title="We're here to help"
+        description="Questions about a booking, your wallet or listing your salon? Send us a message and we'll reply by email."
+      />
 
-      {/* Contact Info Cards */}
-      <section className="py-16 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {contactInfo.map((info, index) => (
-              <div
-                key={info.title}
-                className="p-6 rounded-2xl bg-card border border-border shadow-soft hover:shadow-card transition-all duration-300 text-center animate-slide-up"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <info.icon className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="font-semibold text-foreground mb-1">
-                  {info.title}
-                </h3>
-                <p className="text-primary font-medium mb-1">{info.value}</p>
-                <p className="text-sm text-muted-foreground">
-                  {info.description}
-                </p>
-              </div>
+      <Section
+        labelledBy="contact-title"
+        containerClassName="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] lg:gap-10"
+      >
+        <h2 id="contact-title" className="sr-only">
+          Get in touch
+        </h2>
+
+        <div className="space-y-4">
+          <ul className="space-y-4">
+            {details().map((detail) => (
+              <DetailCard key={detail.label} {...detail} />
             ))}
+          </ul>
+
+          <div className={CARD}>
+            <h3 className="font-display text-lg font-semibold text-foreground">
+              Quick help
+            </h3>
+            <ul className="mt-3 -mx-2">
+              {QUICK_HELP.map(({ icon: Icon, label, href }) => (
+                <li key={href}>
+                  <Link
+                    href={href}
+                    className="flex min-h-11 items-center gap-3 rounded-xl px-2 py-2 text-base font-medium text-foreground transition-colors hover:bg-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  >
+                    <Icon aria-hidden="true" className="size-5 text-primary" />
+                    <span className="flex-1">{label}</span>
+                    <ChevronRight
+                      aria-hidden="true"
+                      className="size-4 text-muted-foreground"
+                    />
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
-      </section>
 
-      {/* Contact Form */}
-      <section className="py-20 bg-card">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto">
-            <div className="animate-slide-up">
-              <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-6">
-                Send Us a Message
-              </h2>
-              <p className="text-muted-foreground mb-8">
-                Fill out the form and our team will get back to you within 24
-                hours. We are here to help with any questions about our
-                platform, partnerships, or support.
-              </p>
-              <div className="space-y-4">
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
-                    <span className="text-primary font-semibold text-sm">
-                      1
-                    </span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-foreground">
-                      Quick Response
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      We typically respond within 24 hours on business days.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
-                    <span className="text-primary font-semibold text-sm">
-                      2
-                    </span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-foreground">
-                      Dedicated Support
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      Our team is here to ensure you get the help you need.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
-                    <span className="text-primary font-semibold text-sm">
-                      3
-                    </span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-foreground">
-                      Partnership Ready
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      Interested in listing your salon? We would love to talk.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-6 animate-scale-in"
-            >
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Your Name
-                  </label>
-                  <Input
-                    placeholder="John Doe"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    required
-                    className="h-12"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Email Address
-                  </label>
-                  <Input
-                    type="email"
-                    placeholder="john@example.com"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    required
-                    className="h-12"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Subject
-                </label>
-                <Input
-                  placeholder="How can we help?"
-                  value={formData.subject}
-                  onChange={(e) =>
-                    setFormData({ ...formData, subject: e.target.value })
-                  }
-                  required
-                  className="h-12"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Message
-                </label>
-                <Textarea
-                  placeholder="Tell us more about your inquiry..."
-                  value={formData.message}
-                  onChange={(e) =>
-                    setFormData({ ...formData, message: e.target.value })
-                  }
-                  required
-                  rows={5}
-                  className="resize-none"
-                />
-              </div>
-              <Button type="submit" variant="gold" size="lg" className="w-full">
-                <Send className="w-5 h-5 mr-2" />
-                Send Message
-              </Button>
-            </form>
-          </div>
+        <div className={`${CARD} mt-8 sm:p-8 lg:mt-0`}>
+          <ContactForm />
         </div>
-      </section>
+      </Section>
 
-      {/* Map: not draggable, so it never traps page scrolling on phones. */}
-      <section className="relative h-80 bg-muted">
-        <LeafletMap
-          center={BUSINESS_ADDRESS.position}
-          zoom={15}
-          interactive={false}
-          className="h-full rounded-none"
-        >
-          <PinMarker
-            position={BUSINESS_ADDRESS.position}
-            active
-            title={BUSINESS_ADDRESS.line1}
-          />
-        </LeafletMap>
-        <a
-          href={directionsUrl(...BUSINESS_ADDRESS.position)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="absolute bottom-4 left-4 z-10 inline-flex items-center gap-2 rounded-full bg-background px-4 py-2 text-sm font-semibold text-foreground shadow-md transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-        >
-          <Navigation className="h-4 w-4 text-gold" />
-          Get directions
-        </a>
-      </section>
+      {/* Only on a real pin. Not draggable, so it never traps page scrolling on phones. */}
+      {position && SITE.address && (
+        <section aria-label="Map" className="relative h-80 bg-muted">
+          <LeafletMap
+            center={position}
+            zoom={15}
+            interactive={false}
+            className="h-full rounded-none"
+          >
+            <PinMarker position={position} active title={SITE.address.line1} />
+          </LeafletMap>
+          <a
+            href={directionsUrl(...position)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="absolute bottom-4 left-4 z-10 inline-flex items-center gap-2 rounded-full bg-background px-4 py-2 text-sm font-semibold text-foreground shadow-md transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            <Navigation className="h-4 w-4 text-gold" />
+            Get directions
+          </a>
+        </section>
+      )}
     </>
   );
 }

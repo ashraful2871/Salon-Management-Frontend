@@ -1,27 +1,21 @@
-/* eslint-disable react-hooks/set-state-in-effect */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useActionState, useEffect } from "react";
-import { motion } from "framer-motion";
+import React, { useActionState, useId } from "react";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-
+import { ResponsiveDialog } from "@/components/Shared/ResponsiveDialog";
+import { showResultToast } from "@/components/Shared/showResultToast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 
-import { MonitorSmartphone, Type, Hash } from "lucide-react";
+import { Type, Hash } from "lucide-react";
 import { createCounter, AddCounterPayload } from "@/services/counter/createCounter";
-import { toast } from "sonner";
+import type { ApiResponse } from "@/lib/api-types";
+
+const emptyForm = (salonId: string): AddCounterPayload => ({
+  salonId,
+  name: "",
+  code: "",
+});
 
 export default function AddCounterModal({
   open,
@@ -32,133 +26,93 @@ export default function AddCounterModal({
   open: boolean;
   setOpen: (v: boolean) => void;
   salonId: string;
-  onCreate: () => void;
+  /** The list refreshes itself: the create action sends the updated page back. */
+  onCreate?: () => void;
 }) {
-  const [state, formAction, isPending] = useActionState(createCounter, null);
-  const [form, setForm] = React.useState<AddCounterPayload>({
-    salonId,
-    name: "",
-    code: "",
-  });
+  const formId = useId();
+  const [form, setForm] = React.useState<AddCounterPayload>(() =>
+    emptyForm(salonId),
+  );
 
-  const lastProcessedState = React.useRef(state);
+  // Closes only once the API has answered; a failure keeps the form as typed.
+  const [, formAction, isPending] = useActionState(
+    async (
+      previous: ApiResponse<null> | null,
+      formData: FormData,
+    ): Promise<ApiResponse<null>> => {
+      const result = await createCounter(previous, formData);
+      showResultToast(result, "Counter added", "Failed to add counter.");
+      if (result.success) {
+        onCreate?.();
+        setOpen(false);
+        setForm(emptyForm(salonId));
+      }
+      return result;
+    },
+    null,
+  );
 
-  useEffect(() => {
-    setForm((prev) => ({ ...prev, salonId }));
-  }, [salonId]);
-
-  useEffect(() => {
-    if (!state || lastProcessedState.current === state) return;
-    lastProcessedState.current = state;
-
-    if (state?.success) {
-      toast.success(state?.message || "Counter Added Successfully");
-      onCreate();
-      setOpen(false);
-
-      setTimeout(() => {
-        setForm({
-          salonId,
-          name: "",
-          code: "",
-        });
-      }, 0);
-    } else if (state?.success === false) {
-      toast.error(state?.message || "Failed to add counter.");
-    }
-  }, [state, setOpen, onCreate, salonId]);
-
-  const update = (key: keyof AddCounterPayload, value: any) => {
+  const update = (key: keyof AddCounterPayload, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const isValid = form.salonId && form.name.trim();
+  const isValid = salonId && form.name.trim();
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="w-[100vw] sm:w-[95vw] md:w-[600px] max-w-full p-0 overflow-hidden rounded-none sm:rounded-2xl flex flex-col">
-        <form
-          action={formAction}
-          className="flex flex-col h-full overflow-hidden"
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={(next) => !isPending && setOpen(next)}
+      title="Add counter"
+      description="A chair or station that bookings are made against."
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={isPending}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form={formId}
+            disabled={!isValid}
+            loading={isPending}
+          >
+            Add counter
+          </Button>
+        </>
+      }
+    >
+      <form id={formId} action={formAction} className="space-y-4">
+        <input type="hidden" name="salonId" value={salonId} />
+
+        <Field
+          icon={<Type className="h-4 w-4 text-primary" />}
+          label="Counter name *"
         >
-          <input type="hidden" name="salonId" value={form.salonId} />
+          <Input
+            name="name"
+            value={form.name}
+            onChange={(e) => update("name", e.target.value)}
+            placeholder="e.g. Counter 1, Chair A, VIP Room"
+          />
+        </Field>
 
-          {/* Header */}
-          <div className="p-6 pb-4 border-b bg-gradient-card shrink-0">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-xl">
-                <MonitorSmartphone className="h-5 w-5 text-primary" />
-                Add New Counter
-                <Badge className="ml-2 bg-sage text-white">New</Badge>
-              </DialogTitle>
-              <DialogDescription className="text-muted-foreground">
-                Create a counter or workstation for this salon.
-              </DialogDescription>
-            </DialogHeader>
-          </div>
-
-          {/* Body */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-4"
-            >
-              <Field
-                icon={<Type className="h-4 w-4 text-primary" />}
-                label="Counter Name *"
-              >
-                <Input
-                  name="name"
-                  value={form.name}
-                  onChange={(e) => update("name", e.target.value)}
-                  placeholder="e.g. Counter 1, Chair A, VIP Room"
-                />
-              </Field>
-
-              <Field
-                icon={<Hash className="h-4 w-4 text-primary" />}
-                label="Counter Code (Optional)"
-              >
-                <Input
-                  name="code"
-                  value={form.code}
-                  onChange={(e) => update("code", e.target.value)}
-                  placeholder="e.g. C-01"
-                />
-              </Field>
-            </motion.div>
-          </div>
-
-          {/* Footer */}
-          <div className="p-6 border-t bg-background shrink-0">
-            <DialogFooter className="flex flex-col md:flex-row gap-3 md:justify-between">
-              <p className="text-xs text-muted-foreground">
-                Fields marked with <b>*</b> are required.
-              </p>
-
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setOpen(false)}
-                >
-                  Cancel
-                </Button>
-
-                <Button
-                  type="submit"
-                  disabled={!isValid || isPending}
-                  className="bg-sage hover:opacity-90 text-white"
-                >
-                  {isPending ? "Adding..." : "Add Counter"}
-                </Button>
-              </div>
-            </DialogFooter>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+        <Field
+          icon={<Hash className="h-4 w-4 text-primary" />}
+          label="Counter code (optional)"
+        >
+          <Input
+            name="code"
+            value={form.code}
+            onChange={(e) => update("code", e.target.value)}
+            placeholder="e.g. C-01"
+          />
+        </Field>
+      </form>
+    </ResponsiveDialog>
   );
 }
 
@@ -172,12 +126,12 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-2">
-      <p className="text-sm font-medium flex items-center gap-2">
+    <label className="block space-y-2">
+      <span className="flex items-center gap-2 text-sm font-medium">
         {icon}
         {label}
-      </p>
+      </span>
       {children}
-    </div>
+    </label>
   );
 }

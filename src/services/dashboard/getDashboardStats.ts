@@ -1,5 +1,6 @@
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse, DashboardStats } from "@/lib/api-types";
+import { TAGS } from "@/lib/cache-tags";
 
 export const getAdminDashboardStats =
   async (): Promise<ApiResponse<DashboardStats>> => {
@@ -7,7 +8,7 @@ export const getAdminDashboardStats =
       const response = await serverFetch.get("/dashboard-stats/admin", {
         next: {
           revalidate: 30,
-          tags: ["dashboard-stats"],
+          tags: [TAGS.dashboardStats],
         },
       });
 
@@ -28,7 +29,7 @@ export const getSalonOwnerDashboardStats =
       const response = await serverFetch.get("/dashboard-stats/salon-owner", {
         next: {
           revalidate: 30,
-          tags: ["dashboard-stats"],
+          tags: [TAGS.dashboardStats],
         },
       });
 
@@ -49,7 +50,7 @@ export const getCustomerDashboardStats =
       const response = await serverFetch.get("/dashboard-stats/customer", {
         next: {
           revalidate: 30,
-          tags: ["dashboard-stats"],
+          tags: [TAGS.dashboardStats],
         },
       });
 

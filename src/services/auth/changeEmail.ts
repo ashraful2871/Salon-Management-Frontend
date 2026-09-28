@@ -9,7 +9,8 @@
  * replaced on confirm: the navbar and every server component read the address
  * out of the access token, and the API has just signed out every other session.
  */
-import { revalidateTag } from "next/cache";
+import { revalidateTag, updateTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse } from "@/lib/api-types";
 import { applySession, extractTokens } from "@/lib/auth-session";
@@ -69,11 +70,15 @@ export const confirmEmailChange = async (
     if (tokens) await applySession(tokens);
 
     // Lists that show a user's email next to their name.
-    revalidateTag("users", "seconds");
-    revalidateTag("my-customers", "seconds");
-    revalidateTag("appointments", "seconds");
-    revalidateTag("salons", "seconds");
-    revalidateTag("salon-applications", "seconds");
+    revalidateTag(TAGS.users, "max");
+    revalidateTag(TAGS.myCustomers, "max");
+    revalidateTag(TAGS.appointments, "max");
+    revalidateTag(TAGS.salons, "max");
+    revalidateTag(TAGS.salonApplications, "max");
+
+    // Nothing caches under `me`; expiring it is what makes this action send
+    // back the re-rendered page, so the navbar and sidebar show the new address.
+    updateTag(TAGS.me);
 
     // Tokens stay on the server; the client only needs the address it now has.
     return {

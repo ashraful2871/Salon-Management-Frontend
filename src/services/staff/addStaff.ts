@@ -2,7 +2,8 @@
 
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse } from "@/lib/api-types";
-import { revalidateTag } from "next/cache";
+import { updateTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 
 export const addStaff = async (
   _currentState: ApiResponse<null> | null,
@@ -26,8 +27,12 @@ export const addStaff = async (
     const result: ApiResponse<null> = await res.json();
 
     if (result.success) {
-      revalidateTag("my-salons", "seconds");
-      revalidateTag(`staff-${staffData.salonId}`, "seconds");
+      updateTag(TAGS.mySalons);
+      if (staffData.salonId) {
+        updateTag(TAGS.staff(staffData.salonId));
+        // The manage-salon page lists staff from the salon record itself.
+        updateTag(TAGS.salon(staffData.salonId));
+      }
     }
 
     return result;

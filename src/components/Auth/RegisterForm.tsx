@@ -10,6 +10,7 @@ import {
   Eye,
   Sparkles,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 import { Input } from "../ui/input";
@@ -39,15 +40,17 @@ const RegisterForm = ({ googleEnabled = false }: { googleEnabled?: boolean }) =>
       {/* Left Side - Image Showcase */}
       <div className="hidden lg:flex lg:w-1/2 relative p-4">
         <div className="w-full h-full rounded-[2.5rem] bg-slate-900 overflow-hidden relative shadow-2xl">
-          <img 
-            src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1200&h=1600&fit=crop" 
-            alt="Salon Journey" 
-            className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay"
+          <Image
+            src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1200&h=1600&fit=crop"
+            alt="Salon Journey"
+            fill
+            sizes="(min-width: 1024px) 50vw, 0px"
+            className="object-cover opacity-60 mix-blend-overlay"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
           
           <div className="absolute inset-0 p-16 flex flex-col justify-end">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white/90 text-xs font-bold uppercase tracking-wider mb-6 w-fit">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-full text-white/90 text-xs font-bold uppercase tracking-wider mb-6 w-fit">
               <Sparkles className="w-4 h-4 text-primary-300" />
               Start Your Journey
             </div>
@@ -63,7 +66,7 @@ const RegisterForm = ({ googleEnabled = false }: { googleEnabled?: boolean }) =>
 
       {/* Right Side - Form Inputs */}
       <div className="flex-1 flex flex-col justify-center p-8 sm:px-12 lg:px-24 overflow-y-auto">
-        <div className="w-full max-w-xl mx-auto animate-fade-in py-8">
+        <div className="w-full max-w-xl mx-auto py-8">
           
           <Link href="/" className="inline-flex items-center gap-2 mb-10 group">
             <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all">

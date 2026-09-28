@@ -13,21 +13,20 @@ import {
   type RefObject,
   type SetStateAction,
 } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import L from "leaflet";
-import { Popup, useMap } from "react-leaflet";
+import { Circle, Popup, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { RotateCw, Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import SafeImage from "@/components/Shared/SafeImage";
 import { cn } from "@/lib/utils";
 import { formatBDT } from "@/lib/money";
 import { formatDistance, haversineMeters, type LatLng } from "@/lib/geo";
-import { usableImage } from "@/lib/salon-card";
 import type { Bbox, SalonMarker } from "@/lib/api-types";
 import { getSalonMarkers } from "@/services/salon/getSalonMarkers";
-import LeafletMap, { PinMarker } from "./LeafletMap";
+import LeafletMap, { LocateControl, PinMarker } from "./LeafletMap";
 import { clusterIcon } from "./pin";
 
 const FETCH_DEBOUNCE_MS = 500;
@@ -40,6 +39,15 @@ const FETCH_PAD = 0.25;
 const MOVED_PX = 80;
 const MAX_FIT_ZOOM = 16;
 const FIT_PADDING = L.point(32, 32);
+// Gold like the search-centre marker: this is the area searched, which is not
+// necessarily where the customer is standing (that is the blue live dot).
+const REACH_STYLE: L.PathOptions = {
+  color: "#b8860b",
+  weight: 1.5,
+  dashArray: "6 6",
+  fillColor: "#d4a017",
+  fillOpacity: 0.06,
+};
 
 export type SearchArea = { lat: number; lng: number; halfWidthKm: number };
 
@@ -149,6 +157,11 @@ function MapController({
 
   useEffect(() => {
     const f = fetches.current;
+    // Pins are limited to the reach around the origin, so a new origin makes
+    // every cached box stale.
+    f.key = "";
+    f.box = null;
+    const near = { lat, lng, radiusKm };
 
     const load = async () => {
       const view = toBox(map.getBounds());
@@ -162,7 +175,7 @@ function MapController({
       if (key === f.key) return;
 
       const id = ++f.id;
-      const res = await getSalonMarkers(box);
+      const res = await getSalonMarkers(box, near);
       if (id !== f.id) return;
       if (!res.success || !res.data) {
         // Keep the pins we have; the next move retries.
@@ -203,7 +216,7 @@ function MapController({
       clearTimeout(f.timer);
       f.id++; // drop a response still in flight
     };
-  }, [map, setMoved, setLayer]);
+  }, [map, setMoved, setLayer, lat, lng, radiusKm]);
 
   return null;
 }
@@ -218,8 +231,8 @@ function SalonPopup({ marker, origin }: { marker: SalonMarker; origin: LatLng })
   return (
     <div>
       <div className="relative h-28 w-full bg-muted">
-        <Image
-          src={usableImage(marker.image)}
+        <SafeImage
+          src={marker.image}
           alt=""
           fill
           sizes="224px"
@@ -304,7 +317,18 @@ export default function SalonsMap({
           setMoved={setMoved}
           setLayer={setLayer}
         />
-        <PinMarker position={origin} kind="user" title={originLabel} />
+        <Circle
+          center={origin}
+          radius={radiusKm * 1000}
+          pathOptions={REACH_STYLE}
+          interactive={false}
+        />
+        <PinMarker
+          position={origin}
+          kind="center"
+          title={originLabel ? `Searching near ${originLabel}` : "Search centre"}
+        />
+        <LocateControl zoom={15} />
         <MarkerClusterGroup
           chunkedLoading
           showCoverageOnHover={false}

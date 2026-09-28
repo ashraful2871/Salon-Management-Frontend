@@ -11,13 +11,13 @@ const config = {
           200: "oklch(88.73% 0.052 100.67)",
           300: "oklch(80.15% 0.083 95.58)",
           400: "oklch(71.05% 0.126 89.45)",
-          500: "oklch(64.66% 0.153 81.54)",
-          600: "oklch(56.21% 0.142 79.21)",
-          700: "oklch(47.83% 0.128 77.15)",
+          500: "oklch(55% 0.12 78)",
+          600: "oklch(50% 0.11 78)",
+          700: "oklch(45% 0.10 77)",
           800: "oklch(39.45% 0.108 75.89)",
           900: "oklch(31.22% 0.085 74.63)",
           950: "oklch(23.45% 0.062 73.12)",
-          DEFAULT: "oklch(64.66% 0.153 81.54)",
+          DEFAULT: "var(--primary)",
         },
         accent: {
           rose: "oklch(0.76 0.11 20)",
@@ -73,7 +73,6 @@ const config = {
         card: "0 8px 30px -8px oklch(44.51% 0.062 87.24 / 0.12)",
         gold: "0 8px 25px -8px oklch(64.66% 0.153 81.54 / 0.35)",
         elevated: "0 20px 60px -12px oklch(0% 0 0 / 0.15)",
-        "inner-glow": "inset 0 2px 4px 0 oklch(100% 0 0 / 0.06)",
         glow: "0 0 25px -5px oklch(64.66% 0.153 81.54 / 0.4)",
         premium:
           "0 20px 40px -10px oklch(0% 0 0 / 0.2), inset 0 1px 0 0 oklch(100% 0 0 / 0.1)",
@@ -82,15 +81,6 @@ const config = {
         "2xl": "1rem",
         "3xl": "1.5rem",
         "4xl": "2rem",
-      },
-      keyframes: {
-        marquee: {
-          "0%": { transform: "translateX(0%)" },
-          "100%": { transform: "translateX(-50%)" },
-        },
-      },
-      animation: {
-        marquee: "marquee 50s linear infinite",
       },
       backdropBlur: {
         xs: "2px",

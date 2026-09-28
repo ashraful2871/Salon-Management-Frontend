@@ -1,6 +1,7 @@
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse } from "@/lib/api-types";
 import type { TopupIntentStatus } from "@/services/wallet/checkTopupStatus";
+import { TAGS } from "@/lib/cache-tags";
 
 /** One entry of a top-up's refund history, as `GET /payments/admin/intents` sends it. */
 export type AdminTopupRefund = {
@@ -55,7 +56,7 @@ export const getAdminTopups = async (
     const response = await serverFetch.get(url, {
       next: {
         revalidate: 30,
-        tags: ["admin-topups"],
+        tags: [TAGS.adminTopups],
       },
     });
 

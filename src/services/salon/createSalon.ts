@@ -2,7 +2,8 @@
 
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse, Salon } from "@/lib/api-types";
-import { revalidateTag } from "next/cache";
+import { revalidateTag, updateTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 
 interface CreateSalonPayload {
   name: string;
@@ -72,8 +73,9 @@ export const createSalon = async (
     const result: ApiResponse<Salon> = await response.json();
 
     if (result.success) {
-      revalidateTag("salons", "seconds");
-      revalidateTag("my-salons", "seconds");
+      revalidateTag(TAGS.salons, "max");
+      updateTag(TAGS.mySalons);
+      if (result.data?.id) updateTag(TAGS.salon(result.data.id));
     }
 
     if (!result.success && result.errorDetails) {

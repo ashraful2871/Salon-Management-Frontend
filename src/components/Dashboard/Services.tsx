@@ -1,285 +1,281 @@
 "use client";
-import { motion } from "framer-motion";
-import { useState, useTransition } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { useOptimistic, useState, useTransition } from "react";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Search,
-  Plus,
-  Edit,
-  Trash2,
+  Banknote,
   Clock,
-  DollarSign,
-  AlertTriangle,
+  MoreHorizontal,
+  Package,
+  Pencil,
+  Plus,
+  Search,
+  Tags,
+  Trash2,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import AddServiceModal from "./AddServiceModal";
 import { deleteService } from "@/services/service/deleteService";
-import { useRouter } from "next/navigation";
 import { showResultToast } from "@/components/Shared/showResultToast";
 import { formatBDT } from "@/lib/money";
+import type { ApiResponse, SalonService } from "@/lib/api-types";
+import { PageHeader } from "@/components/Shared/PageHeader";
+import { StatCard } from "@/components/Shared/StatCard";
+import { ConfirmDialog } from "@/components/Shared/ConfirmDialog";
+import { DataList, type Column } from "@/components/Shared/DataList";
+import { FilterBar } from "@/components/Shared/FilterBar";
+import { EmptyState } from "@/components/Shared/EmptyState";
+import { humanizeStatus } from "@/components/Shared/ToneBadge";
+
+type SalonOption = { id: string; name: string };
+
+const categoryOf = (service: SalonService) =>
+  service.category ? humanizeStatus(service.category) : "Other";
+
+const average = (values: number[]) =>
+  values.length ? Math.round(values.reduce((sum, v) => sum + v, 0) / values.length) : 0;
 
 export default function Services({
   servicesResponse,
   salonsResponse,
 }: {
-  servicesResponse: any;
-  salonsResponse: any;
+  servicesResponse: ApiResponse<SalonService[]>;
+  salonsResponse: ApiResponse<SalonOption[]>;
 }) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [deleteServiceId, setDeleteServiceId] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
-  const router = useRouter();
+  const [query, setQuery] = useState("");
+  const [, startTransition] = useTransition();
 
-  const servicesData = Array.isArray(servicesResponse?.data)
+  // The form remounts on every open (a new key), so it starts from the row.
+  const [formOpen, setFormOpen] = useState(false);
+  const [formKey, setFormKey] = useState(0);
+  const [editing, setEditing] = useState<SalonService | null>(null);
+  const openForm = (service: SalonService | null) => {
+    setEditing(service);
+    setFormKey((key) => key + 1);
+    setFormOpen(true);
+  };
+
+  // Kept apart from `open`, so the text doesn't blank while the dialog fades out.
+  const [deleteTarget, setDeleteTarget] = useState<SalonService | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const serverServices = Array.isArray(servicesResponse?.data)
     ? servicesResponse.data
     : [];
-  const salonsData = Array.isArray(salonsResponse?.data)
-    ? salonsResponse.data
-    : [];
-
-  const filteredServices = servicesData.filter(
-    (service: any) =>
-      service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      service.category.toLowerCase().includes(searchTerm.toLowerCase()),
+  // A deleted service leaves the list at once and comes back if the API refuses.
+  const [services, removeService] = useOptimistic(
+    serverServices,
+    (list: SalonService[], id: string) => list.filter((s) => s.id !== id),
   );
+  const salons = Array.isArray(salonsResponse?.data) ? salonsResponse.data : [];
+  const manySalons = salons.length > 1;
 
-  const categories = [...new Set(servicesData.map((s: any) => s.category))];
+  const needle = query.trim().toLowerCase();
+  const visible = needle
+    ? services.filter(
+        (s) =>
+          s.name.toLowerCase().includes(needle) ||
+          (s.category ?? "").toLowerCase().includes(needle),
+      )
+    : services;
+
+  const categories = new Set(services.map((s) => s.category ?? "OTHER"));
 
   const confirmDelete = () => {
-    if (!deleteServiceId) return;
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
+    setConfirmOpen(false);
 
     startTransition(async () => {
-      const res = await deleteService(deleteServiceId);
-      showResultToast(res, "Service deleted successfully", "Failed to delete service");
-      setDeleteServiceId(null);
-      router.refresh();
+      removeService(id);
+      const res = await deleteService(id);
+      showResultToast(res, "Service deleted", "Failed to delete the service");
     });
   };
 
-  return (
-    <div className="space-y-8">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-4"
-      >
-        <div>
-          <h1 className="font-serif text-3xl font-bold">Services</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your salon services and pricing
+  const columns: Column<SalonService>[] = [
+    {
+      key: "name",
+      header: "Service",
+      mobile: "primary",
+      cell: (s) => (
+        <div className="min-w-0">
+          <p className="truncate font-medium">{s.name}</p>
+          <p className="truncate text-xs text-muted-foreground">
+            {[categoryOf(s), manySalons && s.salon?.name].filter(Boolean).join(" · ")}
           </p>
         </div>
+      ),
+      mobileCell: (s) => s.name,
+    },
+    {
+      // Phone cards only: the table shows it under the name.
+      key: "category",
+      header: "Category",
+      mobile: "secondary",
+      className: "hidden",
+      cell: (s) =>
+        [categoryOf(s), manySalons && s.salon?.name].filter(Boolean).join(" · "),
+    },
+    {
+      key: "duration",
+      header: "Duration",
+      mobile: "meta",
+      cell: (s) => (
+        <span className="whitespace-nowrap tabular-nums">
+          {s.duration ? `${s.duration} min` : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "price",
+      header: "Price",
+      align: "right",
+      mobile: "meta",
+      cell: (s) => (
+        <span className="whitespace-nowrap font-medium tabular-nums">
+          {formatBDT(s.priceMinor ?? 0)}
+        </span>
+      ),
+    },
+  ];
+
+  const rowActions = (s: SalonService) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         <Button
-          onClick={() => setIsAddModalOpen(true)}
-          className="bg-sage hover:opacity-90 text-white"
+          variant="outline"
+          size="icon-sm"
+          className="shrink-0"
+          aria-label={`More actions for ${s.name}`}
         >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Service
+          <MoreHorizontal aria-hidden="true" />
         </Button>
-      </motion.div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuItem onSelect={() => openForm(s)}>
+          <Pencil aria-hidden="true" />
+          Edit
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          variant="destructive"
+          onSelect={() => {
+            setDeleteTarget(s);
+            setConfirmOpen(true);
+          }}
+        >
+          <Trash2 aria-hidden="true" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: "Total Services", value: servicesData.length },
-          { label: "Categories", value: categories.length },
-          {
-            label: "Avg. Duration",
-            value: `${
-              servicesData.length
-                ? Math.round(
-                    servicesData.reduce(
-                      (acc: any, s: any) => acc + s.duration,
-                      0,
-                    ) / servicesData.length,
-                  )
-                : 0
-            } min`,
-          },
-          {
-            label: "Avg. Price",
-            value: servicesData.length
-              ? formatBDT(
-                  Math.round(
-                    servicesData.reduce(
-                      (acc: any, s: any) => acc + s.priceMinor,
-                      0,
-                    ) / servicesData.length,
-                  ),
-                )
-              : formatBDT(0),
-          },
-        ].map((stat, index) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card className="shadow-soft">
-              <CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold">{stat.value}</p>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Services Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-      >
-        <Card className="shadow-card">
-          <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <CardTitle>All Services</CardTitle>
-            <div className="relative w-full md:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search services..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-          </CardHeader>
-          <CardContent>
-            {filteredServices.length === 0 ? (
-              <p className="text-center text-muted-foreground py-10">
-                No services found.
-              </p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Service</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Duration</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Salon</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredServices.map((service: any) => (
-                    <TableRow key={service.id} className="hover:bg-muted/50">
-                      <TableCell className="font-medium">
-                        {service.name}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{service.category}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Clock className="h-4 w-4" />
-                          {service.duration} min
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1 font-semibold text-sage">
-                          {formatBDT(service.priceMinor)}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground">
-                          {service.salon?.name || "N/A"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon">
-                            <Edit className="h-4 w-4 text-primary" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                            onClick={() => setDeleteServiceId(service.id)}
-                            disabled={isPending}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Add Modal */}
-      <AddServiceModal
-        open={isAddModalOpen}
-        setOpen={setIsAddModalOpen}
-        salons={salonsData}
-        onCreate={() => {
-          router.refresh();
-        }}
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Services"
+        description="What your salons offer, for how long and at what price."
+        actions={
+          <Button onClick={() => openForm(null)}>
+            <Plus aria-hidden="true" />
+            Add service
+          </Button>
+        }
       />
 
-      {/* Delete Confirmation Modal */}
-      <Dialog
-        open={!!deleteServiceId}
-        onOpenChange={(open) => !open && setDeleteServiceId(null)}
-      >
-        <DialogContent className="sm:max-w-[425px] overflow-hidden rounded-2xl p-0">
-          <div className="p-6 pb-4 border-b bg-destructive/5 shrink-0">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-xl text-destructive">
-                <AlertTriangle className="h-5 w-5" />
-                Confirm Deletion
-              </DialogTitle>
-              <DialogDescription className="text-muted-foreground mt-2">
-                Are you sure you want to delete this service? This action cannot
-                be undone.
-              </DialogDescription>
-            </DialogHeader>
-          </div>
-          <div className="p-6 bg-background flex justify-end gap-3 shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setDeleteServiceId(null)}
-              disabled={isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={confirmDelete}
-              disabled={isPending}
-              className="text-white"
-            >
-              {isPending ? "Deleting..." : "Delete Service"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+        <StatCard label="Total services" value={services.length} icon={Package} />
+        <StatCard label="Categories" value={categories.size} icon={Tags} />
+        <StatCard
+          label="Avg. duration"
+          value={`${average(services.map((s) => s.duration ?? 0))} min`}
+          icon={Clock}
+        />
+        <StatCard
+          label="Avg. price"
+          value={formatBDT(average(services.map((s) => s.priceMinor ?? 0)))}
+          icon={Banknote}
+        />
+      </div>
+
+      <div className="space-y-4">
+        {services.length > 0 && (
+          <FilterBar
+            search={{
+              value: query,
+              onChange: setQuery,
+              onSubmit: setQuery,
+              placeholder: "Search services",
+              label: "Search services",
+            }}
+            activeCount={needle ? 1 : 0}
+            onClear={() => setQuery("")}
+          />
+        )}
+
+        <DataList
+          items={visible}
+          rowKey={(s) => s.id}
+          columns={columns}
+          rowActions={rowActions}
+          caption="Services"
+          empty={
+            <div className="rounded-2xl border border-border bg-surface px-4">
+              {services.length === 0 ? (
+              <EmptyState
+                icon={Package}
+                title="No services yet"
+                description="Add what you offer, then generate slots so customers can book it."
+                action={
+                  <Button onClick={() => openForm(null)}>
+                    <Plus aria-hidden="true" />
+                    Add your first service
+                  </Button>
+                }
+              />
+            ) : (
+              <EmptyState
+                icon={Search}
+                title="No services match"
+                description={`Nothing is called "${query.trim()}".`}
+                action={
+                  <Button variant="outline" onClick={() => setQuery("")}>
+                    Clear search
+                  </Button>
+                }
+              />
+              )}
+            </div>
+          }
+        />
+      </div>
+
+      <AddServiceModal
+        key={formKey}
+        open={formOpen}
+        setOpen={setFormOpen}
+        salons={salons}
+        service={editing}
+      />
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        tone="danger"
+        title="Delete this service?"
+        description={`Customers will no longer be able to book ${
+          deleteTarget ? `"${deleteTarget.name}"` : "it"
+        }. This can't be undone.`}
+        confirmLabel="Delete service"
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

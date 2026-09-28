@@ -2,7 +2,8 @@
 
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse, Appointment } from "@/lib/api-types";
-import { revalidateTag } from "next/cache";
+import { revalidateTag, updateTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 
 export const bookingAppointment = async (
   _currentState: ApiResponse<Appointment> | null,
@@ -27,13 +28,13 @@ export const bookingAppointment = async (
     const result: ApiResponse<Appointment> = await res.json();
 
     if (result.success) {
-      revalidateTag("appointments", "seconds");
-      revalidateTag("my-appointments", "seconds");
+      revalidateTag(TAGS.appointments, "max");
+      updateTag(TAGS.myAppointments);
       // A new booking holds a deposit, so both the counts and the held-money
       // figures on every dashboard are now stale.
-      revalidateTag("dashboard-stats", "seconds");
-      revalidateTag("earnings", "seconds");
-      revalidateTag("slots", "max");
+      revalidateTag(TAGS.dashboardStats, "max");
+      revalidateTag(TAGS.earnings, "max");
+      revalidateTag(TAGS.slots, "max");
     }
 
     return result;

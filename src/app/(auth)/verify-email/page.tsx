@@ -1,12 +1,11 @@
 import Link from "next/link";
-import { MailQuestionMark } from "lucide-react";
 import AuthShell from "@/components/Auth/AuthShell";
 import OtpVerifyView from "@/components/Auth/OtpVerifyView";
 import { Button } from "@/components/ui/button";
 import { readVerifyCookie } from "@/lib/verify-cookie";
 
 export const metadata = {
-  title: "Verify email | SalonKhuji",
+  title: "Verify email",
 };
 
 // Reads the `sm_verify` cookie on every request.
@@ -61,7 +60,7 @@ export default async function VerifyEmailPage({
       <div className="space-y-6">
         <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm flex gap-4">
           <div className="w-10 h-10 shrink-0 rounded-xl bg-slate-50 flex items-center justify-center">
-            <MailQuestionMark className="w-5 h-5 text-slate-500" />
+            <span className="text-xl leading-none">📧</span>
           </div>
           <p className="text-sm text-slate-600 font-medium leading-relaxed">
             {token
@@ -70,11 +69,11 @@ export default async function VerifyEmailPage({
           </p>
         </div>
 
-        <Link href="/login" className="block">
-          <Button className="w-full h-12 rounded-xl bg-primary hover:bg-primary-600 text-white font-bold shadow-premium hover:shadow-glow transition-all duration-300 cursor-pointer">
+        <Button className="w-full h-12 rounded-xl bg-primary hover:bg-primary-600 text-white font-bold shadow-premium hover:shadow-glow transition-all duration-300 cursor-pointer" asChild>
+          <Link href="/login">
             Sign in
-          </Button>
-        </Link>
+          </Link>
+        </Button>
 
         <p className="text-center text-slate-500 font-medium">
           New here?{" "}

@@ -1,28 +1,17 @@
 "use client";
 
-import React, { useActionState, useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { useActionState, useId, useState } from "react";
+import { ImageIcon, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ImageIcon, X, Plus, Clock, DollarSign, List, Info, Building2 } from "lucide-react";
+import { ResponsiveDialog } from "@/components/Shared/ResponsiveDialog";
+import { showResultToast } from "@/components/Shared/showResultToast";
 import { createService } from "@/services/service/createService";
-import { toast } from "sonner";
+import { updateService } from "@/services/service/updateService";
+import type { ApiResponse, SalonService } from "@/lib/api-types";
+import { toTaka } from "@/lib/money";
 
 export type AddServicePayload = {
   name: string;
@@ -34,201 +23,306 @@ export type AddServicePayload = {
   images: string[];
 };
 
+const CATEGORIES = [
+  "HAIRCUT",
+  "STYLING",
+  "COLORING",
+  "TREATMENT",
+  "SPA",
+  "FACIAL",
+  "MANICURE",
+  "PEDICURE",
+  "MAKEUP",
+  "WAXING",
+  "MASSAGE",
+  "OTHER",
+];
+
+// Native, not Radix: a Radix Select portal inside the phone's drawer fights
+// the drawer for focus and scroll, and the native picker suits a phone anyway.
+const SELECT_CLASS =
+  "border-input h-11 w-full min-w-0 rounded-xl border bg-surface px-3 text-base shadow-xs outline-none focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-ring md:h-10 md:text-sm";
+
+const initialForm = (
+  service: SalonService | null | undefined,
+  salons: { id: string }[],
+): AddServicePayload =>
+  service
+    ? {
+        name: service.name,
+        description: service.description ?? "",
+        category: service.category ?? "HAIRCUT",
+        price:
+          typeof service.priceMinor === "number"
+            ? String(toTaka(service.priceMinor))
+            : "",
+        duration: service.duration ? String(service.duration) : "",
+        salonId: service.salonId ?? salons[0]?.id ?? "",
+        images: service.images ?? [],
+      }
+    : {
+        name: "",
+        description: "",
+        category: "HAIRCUT",
+        price: "",
+        duration: "",
+        salonId: salons[0]?.id ?? "",
+        images: [],
+      };
+
+/**
+ * Add a service, or edit one when `service` is passed. The parent remounts it
+ * (a new `key`) each time it opens, so the fields always start from `service`.
+ */
 export default function AddServiceModal({
   open,
   setOpen,
   salons,
-  onCreate,
+  service,
 }: {
   open: boolean;
   setOpen: (v: boolean) => void;
   salons: { id: string; name: string }[];
-  onCreate: () => void;
+  service?: SalonService | null;
 }) {
-  const [state, formAction, isPending] = useActionState(createService, null);
-
-  const [form, setForm] = useState<AddServicePayload>({
-    name: "",
-    description: "",
-    category: "HAIRCUT",
-    price: "",
-    duration: "",
-    salonId: salons[0]?.id || "",
-    images: [],
-  });
-  
+  const formId = useId();
+  const [form, setForm] = useState(() => initialForm(service, salons));
   const [imageUrl, setImageUrl] = useState("");
 
-  const lastProcessedState = React.useRef(state);
+  // The dialog closes only once the API has answered, so the form stays in
+  // view (and editable after a failure) while it saves.
+  const [, formAction, isPending] = useActionState(
+    async (
+      previous: ApiResponse<SalonService> | null,
+      formData: FormData,
+    ): Promise<ApiResponse<SalonService>> => {
+      const result = service
+        ? await updateService(service.id, {
+            name: String(formData.get("name") ?? "").trim(),
+            description: String(formData.get("description") ?? ""),
+            category: String(formData.get("category") ?? ""),
+            price: Number(formData.get("price")),
+            duration: Number(formData.get("duration")),
+            images: JSON.parse(String(formData.get("images") || "[]")),
+          })
+        : await createService(previous, formData);
 
-  useEffect(() => {
-    if (!state || lastProcessedState.current === state) return;
-    lastProcessedState.current = state;
-    
-    if (state?.success) {
-      toast.success(state?.message || "Service Created Successfully");
-      onCreate();
-      setOpen(false);
-      setTimeout(() => {
-        setForm({
-          name: "",
-          description: "",
-          category: "HAIRCUT",
-          price: "",
-          duration: "",
-          salonId: salons[0]?.id || "",
-          images: [],
-        });
-        setImageUrl("");
-      }, 0);
-    } else if (!state.success) {
-      toast.error(state.message || "Failed to create Service");
-    }
-  }, [state, setOpen, onCreate, salons]);
+      showResultToast(
+        result,
+        service ? "Service updated" : "Service added",
+        service ? "Failed to update the service" : "Failed to add the service",
+      );
+      if (result.success) setOpen(false);
+      return result;
+    },
+    null,
+  );
 
-  const update = (key: keyof AddServicePayload, value: any) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  };
+  const update = <K extends keyof AddServicePayload>(
+    key: K,
+    value: AddServicePayload[K],
+  ) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const addImage = () => {
-    if (!imageUrl.trim()) return;
-    if (form.images.includes(imageUrl.trim())) return;
-    update("images", [...form.images, imageUrl.trim()]);
+    const url = imageUrl.trim();
+    if (!url || form.images.includes(url)) return;
+    update("images", [...form.images, url]);
     setImageUrl("");
-  };
-
-  const removeImage = (url: string) => {
-    update("images", form.images.filter((u) => u !== url));
   };
 
   const isValid =
     form.name.trim() &&
-    form.category.trim() &&
-    form.price &&
-    form.duration &&
+    form.category &&
+    Number(form.price) > 0 &&
+    Number(form.duration) > 0 &&
     form.salonId;
 
+  const field = (name: string) => `${formId}-${name}`;
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="w-[100vw] sm:w-[95vw] md:w-[700px] max-w-full h-auto p-0 overflow-hidden rounded-none sm:rounded-2xl flex flex-col">
-        <form action={formAction} className="flex flex-col h-full overflow-hidden">
-          <input type="hidden" name="images" value={JSON.stringify(form.images)} />
-          <input type="hidden" name="salonId" value={form.salonId} />
-          <input type="hidden" name="category" value={form.category} />
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={(next) => !isPending && setOpen(next)}
+      title={service ? "Edit service" : "Add service"}
+      description={
+        service
+          ? "Changes show on your salon page as soon as they're saved."
+          : "Customers can book it once it has slots."
+      }
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={isPending}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" form={formId} disabled={!isValid} loading={isPending}>
+            {service ? "Save changes" : "Save service"}
+          </Button>
+        </>
+      }
+    >
+      <form id={formId} action={formAction} className="space-y-4">
+        <input type="hidden" name="images" value={JSON.stringify(form.images)} />
+        <input type="hidden" name="salonId" value={form.salonId} />
 
-          <div className="p-6 pb-4 border-b bg-gradient-card shrink-0">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-xl">
-                <Plus className="h-5 w-5 text-primary" />
-                Add New Service
-              </DialogTitle>
-              <DialogDescription className="text-muted-foreground">
-                Add a new service offering for your salon.
-              </DialogDescription>
-            </DialogHeader>
+        {!service && salons.length === 0 && (
+          <p className="rounded-xl bg-warning-soft px-3 py-2 text-sm text-warning">
+            Add a salon first: every service belongs to one.
+          </p>
+        )}
+
+        {/* A service can't move between salons, so the picker is for new ones. */}
+        {!service && salons.length > 1 && (
+          <div className="space-y-2">
+            <Label htmlFor={field("salon")}>Salon</Label>
+            <select
+              id={field("salon")}
+              value={form.salonId}
+              onChange={(e) => update("salonId", e.target.value)}
+              className={SELECT_CLASS}
+            >
+              {salons.map((salon) => (
+                <option key={salon.id} value={salon.id}>
+                  {salon.name}
+                </option>
+              ))}
+            </select>
           </div>
+        )}
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-              {salons.length > 0 && (
-                <Field icon={<Building2 className="h-4 w-4 text-primary" />} label="Select Salon *">
-                  <Select value={form.salonId} onValueChange={(val) => update("salonId", val)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a salon" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {salons.map((salon) => (
-                        <SelectItem key={salon.id} value={salon.id}>
-                          {salon.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-              )}
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <Field icon={<Info className="h-4 w-4 text-primary" />} label="Service Name *">
-                  <Input name="name" value={form.name} onChange={(e) => update("name", e.target.value)} placeholder="e.g. Haircut & Styling" />
-                </Field>
-                
-                <Field icon={<List className="h-4 w-4 text-primary" />} label="Category *">
-                  <Select value={form.category} onValueChange={(val) => update("category", val)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["HAIRCUT", "STYLING", "COLORING", "TREATMENT", "SPA", "FACIAL", "MANICURE", "PEDICURE", "MAKEUP", "WAXING", "MASSAGE", "OTHER"].map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat.charAt(0) + cat.slice(1).toLowerCase()}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <Field icon={<DollarSign className="h-4 w-4 text-primary" />} label="Price *">
-                  <Input name="price" type="number" min="0" value={form.price} onChange={(e) => update("price", e.target.value)} placeholder="e.g. 50" />
-                </Field>
-
-                <Field icon={<Clock className="h-4 w-4 text-primary" />} label="Duration (Minutes) *">
-                  <Input name="duration" type="number" min="1" value={form.duration} onChange={(e) => update("duration", e.target.value)} placeholder="e.g. 45" />
-                </Field>
-              </div>
-
-              <Field label="Description">
-                <Textarea name="description" value={form.description} onChange={(e) => update("description", e.target.value)} placeholder="Short description about the service..." className="min-h-[90px]" />
-              </Field>
-
-              <div className="rounded-xl border bg-muted/30 p-4 space-y-3">
-                <p className="text-sm font-medium mb-3 flex items-center gap-2">Service Images</p>
-                <div className="flex flex-col md:flex-row gap-3">
-                  <div className="flex-1">
-                    <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addImage(); } }} placeholder="Paste image url and click Add" />
-                  </div>
-                  <Button type="button" onClick={addImage} variant="outline" className="md:w-32"><Plus className="mr-2 h-4 w-4" /> Add</Button>
-                </div>
-                {form.images.length === 0 ? (
-                  <p className="text-xs text-muted-foreground flex items-center gap-2"><ImageIcon className="h-4 w-4" /> No images added yet.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {form.images.map((url) => (
-                      <div key={url} className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2">
-                        <p className="text-xs text-muted-foreground break-all">{url}</p>
-                        <Button size="icon" variant="ghost" type="button" className="text-destructive" onClick={() => removeImage(url)}><X className="h-4 w-4" /></Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-            </motion.div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor={field("name")}>Name</Label>
+            <Input
+              id={field("name")}
+              name="name"
+              required
+              value={form.name}
+              onChange={(e) => update("name", e.target.value)}
+              placeholder="e.g. Haircut & styling"
+            />
           </div>
-
-          <div className="p-6 border-t bg-background shrink-0">
-            <DialogFooter className="flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={!isValid || isPending} className="bg-sage hover:opacity-90 text-white">
-                {isPending ? "Saving..." : "Save Service"}
-              </Button>
-            </DialogFooter>
+          <div className="space-y-2">
+            <Label htmlFor={field("category")}>Category</Label>
+            <select
+              id={field("category")}
+              name="category"
+              value={form.category}
+              onChange={(e) => update("category", e.target.value)}
+              className={SELECT_CLASS}
+            >
+              {CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat.charAt(0) + cat.slice(1).toLowerCase()}
+                </option>
+              ))}
+            </select>
           </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
+        </div>
 
-function Field({ label, icon, children }: { label: string; icon?: React.ReactNode; children: React.ReactNode; }) {
-  return (
-    <div className="space-y-2">
-      <p className="text-sm font-medium flex items-center gap-2">
-        {icon}
-        {label}
-      </p>
-      {children}
-    </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor={field("price")}>Price (৳)</Label>
+            <Input
+              id={field("price")}
+              name="price"
+              type="number"
+              inputMode="decimal"
+              min="0.01"
+              step="0.01"
+              required
+              value={form.price}
+              onChange={(e) => update("price", e.target.value)}
+              placeholder="e.g. 500"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={field("duration")}>Duration (min)</Label>
+            <Input
+              id={field("duration")}
+              name="duration"
+              type="number"
+              inputMode="numeric"
+              min="1"
+              required
+              value={form.duration}
+              onChange={(e) => update("duration", e.target.value)}
+              placeholder="e.g. 45"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor={field("description")}>Description</Label>
+          <Textarea
+            id={field("description")}
+            name="description"
+            value={form.description}
+            onChange={(e) => update("description", e.target.value)}
+            placeholder="A line or two about the service"
+            className="min-h-[88px]"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor={field("image")}>Images</Label>
+          <div className="flex gap-2">
+            <Input
+              id={field("image")}
+              type="url"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addImage();
+                }
+              }}
+              placeholder="Paste an image link"
+            />
+            <Button type="button" variant="outline" onClick={addImage} className="shrink-0">
+              <Plus aria-hidden="true" />
+              Add
+            </Button>
+          </div>
+          {form.images.length === 0 ? (
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+              <ImageIcon aria-hidden="true" className="size-4" />
+              No images yet.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {form.images.map((url) => (
+                <li
+                  key={url}
+                  className="flex items-center justify-between gap-2 rounded-xl border border-border bg-surface-subtle py-1 pr-1 pl-3"
+                >
+                  <span className="min-w-0 truncate text-xs text-muted-foreground">{url}</span>
+                  <Button
+                    type="button"
+                    size="icon-sm"
+                    variant="ghost"
+                    className="shrink-0 text-danger hover:bg-danger-soft hover:text-danger"
+                    aria-label="Remove image"
+                    onClick={() =>
+                      update(
+                        "images",
+                        form.images.filter((u) => u !== url),
+                      )
+                    }
+                  >
+                    <X aria-hidden="true" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </form>
+    </ResponsiveDialog>
   );
 }

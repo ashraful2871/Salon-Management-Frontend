@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertTriangle } from "lucide-react";
 
 import BookingSummary from "@/components/Salons/BookingSummary";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,7 @@ import { getUserRoles } from "@/services/get-roles/getUserRoles";
 import { resolveDepositMinor } from "@/lib/deposit";
 
 export const metadata = {
-  title: "Review your booking | SalonKhuji",
+  title: "Review your booking",
 };
 
 // The wallet balance and the slot's availability are both live figures — a
@@ -36,8 +35,8 @@ const InvalidSelection = ({
 }) => (
   <div className="min-h-[70vh] flex items-center justify-center px-4">
     <div className="max-w-md text-center">
-      <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
-        <AlertTriangle className="h-8 w-8 text-amber-600" />
+      <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-warning-soft">
+        <span className="text-2xl leading-none">⚠️</span>
       </div>
       <h1 className="mb-2 text-2xl font-bold">{title}</h1>
       <p className="mb-8 text-muted-foreground">{message}</p>

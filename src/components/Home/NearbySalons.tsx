@@ -2,18 +2,23 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ArrowRight, Loader2, LocateFixed, MapPin } from "lucide-react";
+import { ArrowRight, Map as MapIcon, MapPin, Search } from "lucide-react";
 
 import { Button } from "../ui/button";
 import SalonCard from "../Shared/SalonCard";
+import { EmptyState } from "../Shared/EmptyState";
+import { IconTile } from "../Shared/FeatureCard";
+import { SNAP_ITEM, SNAP_ROW, Section, SectionHeader } from "../Shared/Section";
 import { SalonCardSkeleton } from "../Shared/SkeletonCard";
 import LocationDialog from "../Location/LocationDialog";
+import NearbyLocationPrompt from "./NearbyLocationPrompt";
 import { useSavedLocation } from "@/hooks/useSavedLocation";
 import { useLocateAndSave } from "@/hooks/useLocateAndSave";
+import { NEARBY_RADIUS_KM } from "@/lib/geo";
+import { saveLocation } from "@/lib/location-cookie";
 import { toSalonCardData, type SalonCardData } from "@/lib/salon-card";
 import { getNearbySalons } from "@/services/salon/getNearbySalons";
 
-const RADIUS_KM = 10;
 const LIMIT = 6;
 
 const noopSubscribe = () => () => {};
@@ -24,11 +29,13 @@ type Result = { key: string; salons: SalonCardData[]; failed: boolean };
 // "near you".
 const placeName = (label: string) => {
   const first = label.split(",")[0]?.trim();
-  return first && first !== "Current location" ? first : null;
+  return first && first !== "Current location" && first !== "Pinned location"
+    ? first
+    : null;
 };
 
-// Home "Salons near …" strip, right after the hero. A client component so the
-// home page stays static: the saved location is a cookie the server page
+// Home "Salons near …" section, right after the hero. A client component so
+// the home page stays static: the saved location is a cookie the server page
 // never reads.
 export default function NearbySalons() {
   // Until mounted the cookie is unknown, so show neither the list nor the CTA.
@@ -37,6 +44,11 @@ export default function NearbySalons() {
   const { locate, busy, canAsk } = useLocateAndSave();
   const [result, setResult] = useState<Result | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"options" | "map">("options");
+  const setDialog = (mode: "options" | "map") => {
+    setDialogMode(mode);
+    setDialogOpen(true);
+  };
 
   const lat = saved?.lat;
   const lng = saved?.lng;
@@ -45,7 +57,7 @@ export default function NearbySalons() {
   useEffect(() => {
     if (lat == null || lng == null) return;
     let active = true;
-    getNearbySalons({ lat, lng, limit: LIMIT, radiusKm: RADIUS_KM }).then(
+    getNearbySalons({ lat, lng, limit: LIMIT, radiusKm: NEARBY_RADIUS_KM }).then(
       (res) => {
         if (!active) return;
         setResult({
@@ -63,56 +75,42 @@ export default function NearbySalons() {
   const locateMe = async () => {
     const stored = canAsk ? await locate() : null;
     // Saving fires the cookie event, which re-renders this with the list.
-    if (!stored) setDialogOpen(true);
+    if (!stored) setDialog("options");
   };
 
-  const dialog = (
-    <LocationDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+  const locationDialog = (
+    <LocationDialog
+      open={dialogOpen}
+      onOpenChange={setDialogOpen}
+      initialStep={dialogMode}
+    />
   );
 
   if (mounted && !saved) {
     return (
-      <section className="py-16">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto flex max-w-4xl flex-col items-center gap-6 rounded-3xl border border-gold/30 bg-gold/5 px-6 py-10 text-center md:flex-row md:text-left">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gold/15">
-              <MapPin className="h-7 w-7 text-gold" />
-            </div>
-            <div className="flex-1">
-              <h2 className="font-display text-2xl font-bold text-foreground">
-                Find salons near you
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                See the closest salons and how far each one is, then book in a
-                few taps.
-              </p>
-            </div>
-            <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
-              <Button
-                variant="gold"
-                onClick={locateMe}
-                disabled={busy}
-                aria-busy={busy}
-              >
-                {busy ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  <LocateFixed />
-                )}
-                Use my location
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setDialogOpen(true)}
-                aria-haspopup="dialog"
-              >
-                Choose area
-              </Button>
-            </div>
-          </div>
-        </div>
-        {dialog}
-      </section>
+      <Section labelledBy="nearby-salons-heading">
+        <SectionHeader
+          overline="Near you"
+          title="Salons near you"
+          titleId="nearby-salons-heading"
+          description={`Share your location to see salons within ${NEARBY_RADIUS_KM} km.`}
+        />
+        <NearbyLocationPrompt
+          onLocate={locateMe}
+          locating={busy}
+          onPickOnMap={() => setDialog("map")}
+          // Saving fires the cookie event, which swaps this for the list.
+          onPickArea={(area) =>
+            saveLocation({
+              lat: area.lat,
+              lng: area.lng,
+              label: `${area.name}, Dhaka`,
+              source: "area",
+            })
+          }
+        />
+        {locationDialog}
+      </Section>
     );
   }
 
@@ -120,94 +118,118 @@ export default function NearbySalons() {
   const loading = !mounted || result?.key !== key;
   const salons = loading ? [] : (result?.salons ?? []);
   const seeAllHref = saved
-    ? `/salons?lat=${saved.lat}&lng=${saved.lng}&r=${RADIUS_KM}&sort=distance`
+    ? `/salons?lat=${saved.lat}&lng=${saved.lng}&r=${NEARBY_RADIUS_KM}&sort=distance`
     : "/salons";
 
-  return (
-    <section className="py-16" aria-labelledby="nearby-salons-heading">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-          <div className="min-w-0">
-            <h2
-              id="nearby-salons-heading"
-              className="truncate font-display text-3xl font-bold text-foreground"
-            >
-              {place ? `Salons near ${place}` : "Salons near you"}
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Within {RADIUS_KM} km, closest first
-              {saved && (
-                <>
-                  {" · "}
-                  <button
-                    type="button"
-                    onClick={() => setDialogOpen(true)}
-                    aria-haspopup="dialog"
-                    className="rounded-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                  >
-                    Change
-                  </button>
-                </>
-              )}
-            </p>
-          </div>
-          <Link
-            href={seeAllHref}
-            className="inline-flex shrink-0 items-center gap-1 rounded-sm text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-          >
-            See all
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
+  // Shared by the failed and the empty state.
+  const fallbackActions = (
+    <div className="flex flex-wrap justify-center gap-2">
+      <Button variant="outline" onClick={() => setDialog("map")}>
+        <MapIcon />
+        Pick another spot
+      </Button>
+      <Button asChild>
+        <Link href="/salons">Browse all salons</Link>
+      </Button>
+    </div>
+  );
 
-        {loading ? (
-          <div
-            aria-busy="true"
-            aria-label="Loading nearby salons"
-            className="-mx-4 flex gap-5 overflow-hidden px-4 pb-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
-          >
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="w-[280px] shrink-0 sm:w-[300px]">
-                <SalonCardSkeleton />
-              </div>
-            ))}
+  return (
+    <Section labelledBy="nearby-salons-heading">
+      <SectionHeader
+        overline="Near you"
+        titleId="nearby-salons-heading"
+        title={
+          place ? (
+            <>
+              Salons near <span className="text-primary">{place}</span>
+            </>
+          ) : (
+            "Salons near you"
+          )
+        }
+        description={`Within ${NEARBY_RADIUS_KM} km, closest first.`}
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            {saved && (
+              <button
+                type="button"
+                onClick={() => setDialog("options")}
+                aria-haspopup="dialog"
+                aria-label={`Location: ${saved.label}. Change location`}
+                className="inline-flex h-10 min-w-0 max-w-full cursor-pointer items-center gap-2 rounded-full border border-border bg-surface pl-3 pr-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                <MapPin className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                <span className="max-w-[12rem] truncate">{saved.label}</span>
+                <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-foreground">
+                  Change
+                </span>
+              </button>
+            )}
+            <Button variant="outline" asChild>
+              <Link href={seeAllHref}>
+                <MapIcon />
+                See all
+              </Link>
+            </Button>
           </div>
-        ) : result?.failed ? (
-          <p className="rounded-2xl border bg-muted/40 px-6 py-8 text-center text-sm text-muted-foreground">
-            We couldn&apos;t load nearby salons right now.{" "}
-            <Link href="/salons" className="font-semibold text-primary hover:underline">
-              Browse all salons
-            </Link>
-          </p>
-        ) : salons.length === 0 ? (
-          <div className="rounded-2xl border bg-muted/40 px-6 py-8 text-center">
-            <p className="font-semibold text-foreground">
-              No salons within {RADIUS_KM} km
-              {place ? ` of ${place}` : ""} yet.
-            </p>
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              <Button variant="outline" onClick={() => setDialogOpen(true)}>
-                Change area
-              </Button>
-              <Button variant="gold" asChild>
-                <Link href="/salons">Browse all salons</Link>
-              </Button>
+        }
+      />
+
+      {loading ? (
+        <div aria-busy="true" aria-label="Loading nearby salons" className={SNAP_ROW}>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className={SNAP_ITEM}>
+              <SalonCardSkeleton />
             </div>
-          </div>
-        ) : (
-          <ul
-            aria-label={place ? `Salons near ${place}` : "Salons near you"}
-            className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-5 overflow-x-auto overflow-y-hidden px-4 pb-4 sm:-mx-6 sm:scroll-px-6 sm:px-6 lg:-mx-8 lg:scroll-px-8 lg:px-8"
-          >
-            {salons.map((salon, index) => (
-              <li key={salon.id} className="w-[280px] shrink-0 snap-start sm:w-[300px]">
-                <SalonCard salon={salon} index={index} distance={salon.distance} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-      {dialog}
-    </section>
+          ))}
+        </div>
+      ) : result?.failed ? (
+        <div className="rounded-2xl border border-dashed border-border px-4">
+          <EmptyState
+            icon={MapPin}
+            title="We couldn't load nearby salons right now."
+            description="Try another spot, or browse every salon in the city."
+            action={fallbackActions}
+          />
+        </div>
+      ) : salons.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border px-4">
+          <EmptyState
+            icon={Search}
+            title={`No salons within ${NEARBY_RADIUS_KM} km${place ? ` of ${place}` : ""} yet`}
+            description="Try another spot, or browse every salon in the city."
+            action={fallbackActions}
+          />
+        </div>
+      ) : (
+        <ul
+          aria-label={place ? `Salons near ${place}` : "Salons near you"}
+          className={SNAP_ROW}
+        >
+          {salons.map((salon, index) => (
+            <li key={salon.id} className={SNAP_ITEM}>
+              <SalonCard salon={salon} index={index} distance={salon.distance} />
+            </li>
+          ))}
+          {/* The row's own way on, for thumbs that reach its end. */}
+          <li className={`${SNAP_ITEM} lg:hidden`}>
+            <Link
+              href={seeAllHref}
+              className="flex h-full min-h-72 flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-surface-subtle p-6 text-center transition-colors hover:bg-primary-soft"
+            >
+              <IconTile icon={ArrowRight} />
+              <span className="font-semibold text-foreground">
+                See all nearby salons
+              </span>
+              <span className="text-xs text-muted-foreground">
+                On the list and the map
+              </span>
+            </Link>
+          </li>
+        </ul>
+      )}
+      {locationDialog}
+    </Section>
   );
 }

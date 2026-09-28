@@ -1,87 +1,78 @@
-"use client";
-import React from "react";
-import { Button } from "../ui/button";
-import { ArrowRight, Clock3, Sparkles, Users } from "lucide-react";
+import Link from "next/link";
+import { Clock3, MapPin, Users } from "lucide-react";
 
-function useAuthMock() {
-  const [loading] = React.useState(false);
-  const [user] = React.useState<{
-    id: string;
-    name?: string;
-    email?: string;
-  } | null>({
-    id: "user_123",
-    name: "Admin",
-    email: "admin@example.com",
-  });
-  return { user, loading };
+import { Button } from "../ui/button";
+import { PublicPageHero } from "../Shared/PublicPageHero";
+import type { UserRole } from "@/services/auth/auth-utils";
+
+const HIGHLIGHTS = [
+  { icon: MapPin, label: "Get found nearby" },
+  { icon: Clock3, label: "Faster scheduling" },
+  { icon: Users, label: "Repeat customers" },
+] as const;
+
+const SIGN_IN_HREF = "/login?redirect=/become-salon-owner";
+
+function heroActions(role?: UserRole) {
+  switch (role) {
+    case "SALON_OWNER":
+      return (
+        <Button size="lg" asChild className="w-full sm:w-auto">
+          <Link href="/dashboard/store">Go to my salons</Link>
+        </Button>
+      );
+    case "CUSTOMER":
+      return (
+        <Button size="lg" asChild className="w-full sm:w-auto">
+          <Link href="#apply">Apply now</Link>
+        </Button>
+      );
+    case "ADMIN":
+      return (
+        <Button variant="outline" size="lg" asChild className="w-full sm:w-auto">
+          <Link href="/dashboard/become-a-salon-owner-request">
+            Review owner requests
+          </Link>
+        </Button>
+      );
+    case undefined:
+      return (
+        <>
+          <Button size="lg" asChild className="w-full sm:w-auto">
+            <Link href="#apply">Apply now</Link>
+          </Button>
+          <Button variant="outline" size="lg" asChild className="w-full sm:w-auto">
+            <Link href={SIGN_IN_HREF}>Sign in</Link>
+          </Button>
+        </>
+      );
+    // AGENT: the owner-requests route would bounce them, and they can't apply.
+    default:
+      return null;
+  }
 }
 
-const PageHero = () => {
-  const { user, loading } = useAuthMock();
-  const isAuthed = !!user && !loading;
+const PageHero = ({ role }: { role?: UserRole }) => {
+  const actions = heroActions(role);
+
   return (
-    <section className="py-20 bg-muted/50">
-      <div className="container mx-auto px-4">
-        <div className="max-w-4xl mx-auto text-center animate-fade-in">
-          <span className="inline-block px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium mb-6">
-            Become a Salon Owner
-          </span>
-
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-foreground mb-6">
-            Grow your salon with
-            <br />
-            <span className="text-primary">more bookings</span> and loyal
-            customers
-          </h1>
-
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Join our platform to get discovered, manage appointments, and build
-            a premium brand presence—without the hassle.
-          </p>
-
-          <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              variant="gold"
-              size="lg"
-              onClick={() =>
-                document
-                  .getElementById("apply")
-                  ?.scrollIntoView({ behavior: "smooth" })
-              }
-            >
-              Apply Now <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-
-            {!isAuthed ? (
-              <Button variant="outline" size="lg">
-                Login to Apply
-              </Button>
-            ) : (
-              <Button variant="outline" size="lg">
-                View Partner Guidelines
-              </Button>
-            )}
-          </div>
-
-          {/* quick highlights pills */}
-          <div className="mt-10 flex flex-wrap gap-3 justify-center">
-            <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm shadow-soft">
-              <Sparkles className="h-4 w-4 text-primary" />
-              Premium visibility
-            </div>
-            <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm shadow-soft">
-              <Clock3 className="h-4 w-4 text-primary" />
-              Faster scheduling
-            </div>
-            <div className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm shadow-soft">
-              <Users className="h-4 w-4 text-primary" />
-              Repeat customers
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+    <PublicPageHero
+      overline="For salon owners"
+      title="Grow your salon with more bookings"
+      description="Get found by customers nearby, take bookings with live slots, and run your day from one dashboard."
+      actions={actions ?? undefined}
+    >
+      <ul className="flex flex-wrap justify-center gap-2">
+        {HIGHLIGHTS.map(({ icon: Icon, label }) => (
+          <li key={label}>
+            <span className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-surface px-4 text-sm font-medium text-foreground">
+              <Icon aria-hidden className="size-4 text-primary" />
+              {label}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </PublicPageHero>
   );
 };
 

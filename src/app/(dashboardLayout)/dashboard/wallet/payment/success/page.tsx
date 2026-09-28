@@ -3,7 +3,7 @@ import { CHAT_RESUME_COOKIE } from "@/lib/assistant-request";
 import { getCookie } from "@/services/auth/cookiesHandler";
 
 export const metadata = {
-  title: "Payment successful | SalonKhuji",
+  title: "Payment successful",
 };
 
 export const dynamic = "force-dynamic";

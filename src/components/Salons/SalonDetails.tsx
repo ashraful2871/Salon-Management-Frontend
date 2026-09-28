@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   Calendar,
@@ -25,7 +24,9 @@ import ReviewModal from "./ReviewModal";
 import SalonLocationCard from "./SalonLocationCard";
 import { getMyAppointments } from "@/services/appoinments/getMyAppointments";
 import { formatBDT } from "@/lib/money";
+import { formatRating } from "@/lib/rating";
 import { useAssistantLauncher } from "@/components/Assistant/AssistantContext";
+import SafeImage from "@/components/Shared/SafeImage";
 
 type OperatingHour = { open: string; close: string };
 type OperatingHours = Partial<
@@ -156,17 +157,8 @@ const SalonDetails = ({ salon }: { salon: any }) => {
     }
     setReviewModalOpen(false);
   };
-  const fallbackHeroImage = "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&h=700&fit=crop";
-  const imgStr = salon?.images?.[0]?.trim();
-  const heroImage = (
-    imgStr &&
-    imgStr !== "" &&
-    imgStr !== "null" &&
-    imgStr !== "undefined" &&
-    (imgStr.startsWith("http://") || imgStr.startsWith("https://") || imgStr.startsWith("/") || imgStr.startsWith("data:"))
-  )
-    ? imgStr
-    : fallbackHeroImage;
+  // SafeImage swaps an empty or broken URL for the placeholder.
+  const heroImage = salon?.images?.[0];
 
   const openNow = useMemo(
     () => isOpenNow(salon?.operatingHours),
@@ -205,12 +197,13 @@ const SalonDetails = ({ salon }: { salon: any }) => {
             >
               <Card className="overflow-hidden border-none shadow-md">
                 <div className="relative w-full h-[300px] md:h-[400px]">
-                  <Image
+                  <SafeImage
                     src={heroImage}
                     alt={salon?.name || "Salon image"}
                     fill
+                    sizes="(min-width: 1536px) 880px, (min-width: 1024px) 58vw, 100vw"
                     className="object-cover"
-                    priority
+                    preload
                   />
                   <div className="absolute top-4 left-4 flex gap-2">
                     <Badge className="bg-primary/90 hover:bg-primary backdrop-blur-sm">
@@ -249,7 +242,7 @@ const SalonDetails = ({ salon }: { salon: any }) => {
                       <div className="mt-2 flex items-center gap-2 text-sm">
                         <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                         <span className="font-semibold text-foreground">
-                          {rating}
+                          {formatRating(rating)}
                         </span>
                         <span className="text-muted-foreground">
                           ({totalReviews} reviews)
@@ -402,7 +395,7 @@ const SalonDetails = ({ salon }: { salon: any }) => {
                             <div className="flex items-center gap-3">
                               <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
                                 {isValidUrl(m?.user?.profilePhoto) ? (
-                                  <Image
+                                  <SafeImage
                                     src={m.user.profilePhoto}
                                     alt={m?.user?.name || "Staff"}
                                     width={56}
@@ -645,6 +638,7 @@ const SalonDetails = ({ salon }: { salon: any }) => {
           open={reviewModalOpen}
           onClose={handleSkipReview}
           appointmentId={unreviewedAppointmentId}
+          salonId={salon?.id}
         />
       )}
     </div>

@@ -1,5 +1,6 @@
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse, SalonService } from "@/lib/api-types";
+import { TAGS } from "@/lib/cache-tags";
 
 export const getAllServices = async (
   salonId?: string,
@@ -9,7 +10,7 @@ export const getAllServices = async (
     const response = await serverFetch.get(url, {
       next: {
         revalidate: 60,
-        tags: ["services"],
+        tags: [TAGS.services],
       },
     });
 

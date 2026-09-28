@@ -2,6 +2,7 @@
 
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse, CashSummary } from "@/lib/api-types";
+import { TAGS } from "@/lib/cache-tags";
 
 // One day's takings for the owner's salons, or one salon when `salonId` is
 // given. `date` is YYYY-MM-DD.
@@ -15,7 +16,7 @@ export const getCashSummary = async (params: {
 
     const response = await serverFetch.get(
       `/appointments/cash-summary?${qs.toString()}`,
-      { next: { revalidate: 30, tags: ["appointments", "dashboard-stats"] } },
+      { next: { revalidate: 30, tags: [TAGS.appointments, TAGS.dashboardStats] } },
     );
 
     const result: ApiResponse<CashSummary> = await response.json();

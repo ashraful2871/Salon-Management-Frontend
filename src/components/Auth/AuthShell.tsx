@@ -1,4 +1,5 @@
 import { Scissors, Sparkles } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 
@@ -24,7 +25,7 @@ const AuthShell = ({ title, subtitle, showcase, children }: AuthShellProps) => {
     <div className="min-h-screen flex bg-slate-50">
       {/* Left Side - Form */}
       <div className="flex-1 flex flex-col justify-center p-8 sm:px-12 lg:px-24">
-        <div className="w-full max-w-sm mx-auto animate-fade-in">
+        <div className="w-full max-w-sm mx-auto">
           <Link href="/" className="inline-flex items-center gap-2 mb-10 group">
             <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all">
               <Scissors className="w-5 h-5 text-primary" />
@@ -48,16 +49,17 @@ const AuthShell = ({ title, subtitle, showcase, children }: AuthShellProps) => {
       {/* Right Side - Image Showcase */}
       <div className="hidden lg:flex lg:w-1/2 relative p-4">
         <div className="w-full h-full rounded-[2.5rem] bg-slate-900 overflow-hidden relative shadow-2xl">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={showcase.image}
             alt="Salon Service"
-            className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay"
+            fill
+            sizes="(min-width: 1024px) 50vw, 0px"
+            className="object-cover opacity-60 mix-blend-overlay"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
 
           <div className="absolute inset-0 p-16 flex flex-col justify-end">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white/90 text-xs font-bold uppercase tracking-wider mb-6 w-fit">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-full text-white/90 text-xs font-bold uppercase tracking-wider mb-6 w-fit">
               <Sparkles className="w-4 h-4 text-primary-300" />
               {showcase.badge}
             </div>

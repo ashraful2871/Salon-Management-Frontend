@@ -6,6 +6,7 @@ import { Sparkles } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useAssistantLauncher } from "./AssistantContext";
+import { preloadAssistantPanel } from "./preloadPanel";
 
 /** Shown once, ever, to say the button is new. A ring that pulses on every
  *  visit is a nag, not an invitation. */
@@ -51,7 +52,7 @@ const AssistantLauncher = () => {
   };
 
   return (
-    <div className="fixed bottom-20 right-5 z-40 md:bottom-5">
+    <div className="fixed bottom-[calc(5rem+var(--launcher-offset))] right-5 z-40 md:bottom-[calc(1.25rem+var(--launcher-offset))]">
       {pulse && (
         <span
           className="absolute inset-0 animate-ping rounded-full bg-gold/40"
@@ -62,6 +63,10 @@ const AssistantLauncher = () => {
       <button
         type="button"
         onClick={handleClick}
+        // Start fetching the panel chunk before the click lands.
+        onPointerEnter={preloadAssistantPanel}
+        onFocus={preloadAssistantPanel}
+        onTouchStart={preloadAssistantPanel}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
         aria-label="Book with AI"

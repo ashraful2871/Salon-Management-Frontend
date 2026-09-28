@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
 import Link from "next/link";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +22,10 @@ import {
   Calendar,
   ArrowUpRight,
   Dot,
+  FileClock,
 } from "lucide-react";
+import { PageHeader } from "@/components/Shared/PageHeader";
+import { EmptyState } from "@/components/Shared/EmptyState";
 
 /* ---------------- Types ---------------- */
 
@@ -124,24 +126,24 @@ export default function CheckStatus({
 
   if (!app) {
     return (
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle>Application Status</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Alert>
-            <AlertTitle>No application found</AlertTitle>
-            <AlertDescription className="text-muted-foreground">
-              You haven’t submitted any salon owner application yet. Please
-              apply first.
-            </AlertDescription>
-          </Alert>
-
-          <Button asChild className="bg-sage hover:opacity-90 text-white">
-            <Link href="/become-salon-owner">Apply Now</Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <div>
+        <PageHeader
+          title="Application status"
+          description="Track your salon owner application progress"
+        />
+        <div className="rounded-2xl border border-dashed border-border bg-surface">
+          <EmptyState
+            icon={FileClock}
+            title="No application found"
+            description="You haven’t applied to become a salon owner yet. Apply once and track every step of the review here."
+            action={
+              <Button asChild>
+                <Link href="/become-salon-owner">Apply now</Link>
+              </Button>
+            }
+          />
+        </div>
+      </div>
     );
   }
 
@@ -151,27 +153,19 @@ export default function CheckStatus({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -14 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-4"
-      >
-        <div>
-          <h1 className="font-serif text-3xl font-bold">Application Status</h1>
-          <p className="text-muted-foreground mt-1">
-            Track your salon owner application progress
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {statusBadge(app.applicationStatus)}
-          {verifiedBadge(app.verificationStatus)}
-          <Badge variant="secondary" className="text-xs">
-            ID: {app.id.slice(0, 8)}...
-          </Badge>
-        </div>
-      </motion.div>
+      <PageHeader
+        title="Application status"
+        description="Track your salon owner application progress"
+        actions={
+          <>
+            {statusBadge(app.applicationStatus)}
+            {verifiedBadge(app.verificationStatus)}
+            <Badge variant="secondary" className="text-xs">
+              ID: {app.id.slice(0, 8)}...
+            </Badge>
+          </>
+        }
+      />
 
       {/* Stepper (Professional UX) */}
       <Card className="shadow-soft">
@@ -271,7 +265,7 @@ export default function CheckStatus({
               </p>
             </div>
 
-            <Button className="bg-sage hover:opacity-90 text-white" asChild>
+            <Button asChild>
               <Link href="/dashboard">
                 Go to Dashboard <ArrowUpRight className="ml-2 h-4 w-4" />
               </Link>
