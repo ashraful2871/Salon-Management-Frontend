@@ -18,6 +18,7 @@ import {
 import {
   ArrowDown,
   Loader2,
+  PlusCircleIcon,
   RotateCcw,
   Send,
   Sparkles,
@@ -34,27 +35,17 @@ import Chip from "./Chip";
 import PrivacyFooter from "./PrivacyFooter";
 import type { SendAction } from "./block-props";
 
-/** Any Bangla letter: the field switches to the Bangla font stack. */
 const BANGLA = /[ঀ-৿]/;
 
 type AssistantPanelProps = {
-  /** `overlay` is the floating panel / bottom sheet; `page` is the same chat
-   *  filling `/assistant`, where it is content rather than a dialog. */
   variant?: "overlay" | "page";
-  /** `/assistant?resume=1`, the way back from the wallet result page: reopen
-   *  the chat and ask about the payment once. Page variant only. */
   resume?: boolean;
-  /** From the `sm_chat_resume` cookie, for a tab with no chat of its own. */
   resumeId?: string | null;
 };
 
 const FOCUSABLE =
   'a[href],button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
-/** How a top-up is watched: from the moment the customer is back (window
- *  focus), every few seconds, for a few minutes — then a "Check again" tap. The
- *  IPN and the reconciliation sweep settle the payment whether anyone watches
- *  or not; this only decides when the chat finds out. */
 const POLL_EVERY_MS = 5_000;
 const POLL_FOR_MS = 3 * 60_000;
 
@@ -91,12 +82,7 @@ const AssistantPanel = ({
 
   const panelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  // Whether the transcript is parked at the bottom. A ref, not state, so the
-  // scroll effect does not re-run every time it flips.
   const atBottomRef = useRef(true);
-  // A smooth scroll fires scroll events all the way down, every one of them
-  // reading as "not at the bottom" until it lands. Without this the widget
-  // announces a new message the customer is already looking at.
   const autoScrollUntil = useRef(0);
   const [unseen, setUnseen] = useState(false);
   const [draft, setDraft] = useState("");
@@ -293,7 +279,10 @@ const AssistantPanel = ({
           <Sparkles className="h-4.5 w-4.5" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 id={headingId} className="truncate text-sm font-bold text-foreground">
+          <h2
+            id={headingId}
+            className="truncate text-sm font-bold text-foreground"
+          >
             Book with AI
           </h2>
           <p className="truncate text-xs text-muted-foreground">
@@ -320,7 +309,7 @@ const AssistantPanel = ({
           aria-label="Start a new chat"
           className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
         >
-          <RotateCcw className="h-4 w-4" aria-hidden />
+          <PlusCircleIcon className="h-4 w-4" aria-hidden />
         </button>
 
         {isOverlay && (
@@ -463,7 +452,11 @@ const AssistantPanel = ({
   const enter = reduceMotion
     ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
     : {
-        initial: { opacity: 0, y: isMobile ? 24 : 12, scale: isMobile ? 1 : 0.98 },
+        initial: {
+          opacity: 0,
+          y: isMobile ? 24 : 12,
+          scale: isMobile ? 1 : 0.98,
+        },
         animate: { opacity: 1, y: 0, scale: 1 },
         exit: { opacity: 0, y: isMobile ? 24 : 12, scale: isMobile ? 1 : 0.98 },
       };

@@ -243,6 +243,13 @@ export type CashSummary = {
   depositsAppliedMinor: number;
 };
 
+export type UserStatus =
+  | "ACTIVE"
+  | "INACTIVE"
+  | "SUSPENDED"
+  | "DELETED"
+  | "BLOCKED";
+
 export type User = {
   id: string;
   name: string;
@@ -250,7 +257,7 @@ export type User = {
   phoneNumber?: string;
   gender?: string;
   role: string;
-  status?: string;
+  status: UserStatus;
   profilePhoto?: string;
   createdAt?: string;
 };

@@ -218,7 +218,7 @@ const LoginForm = ({
 
           <div className="mt-8 text-center">
             <p className="text-slate-500 font-medium">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <Link
                 href="/register"
                 className="text-primary font-bold hover:text-primary-600 transition-colors"
