@@ -141,7 +141,7 @@ const PrivacyFooter = ({
       {open && (
         <div
           id={noticeId}
-          className="absolute inset-x-3 bottom-full z-10 mb-2 max-h-[min(60svh,420px)] overflow-y-auto rounded-xl border border-border bg-background p-4 text-left text-xs leading-relaxed text-muted-foreground shadow-xl"
+          className="absolute inset-x-3 bottom-full z-10 mb-2 max-h-[min(60svh,420px)] overflow-y-auto rounded-xl border border-border bg-surface p-4 text-left text-xs leading-relaxed text-muted-foreground shadow-xl"
         >
           <div className="mb-2 flex items-start justify-between gap-3">
             <h3 className="text-sm font-semibold text-foreground">

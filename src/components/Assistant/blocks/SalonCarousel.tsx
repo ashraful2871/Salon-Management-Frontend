@@ -42,7 +42,7 @@ const CarouselCard = ({
   return (
     <article
       className={cn(
-        "flex w-[232px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border bg-background",
+        "flex w-[232px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border bg-surface",
         selected ? "border-primary/60 shadow-sm" : "border-border",
       )}
     >
@@ -55,7 +55,7 @@ const CarouselCard = ({
           className="h-full w-full object-cover"
         />
         {distance && (
-          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur-sm">
+          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-surface/95 px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-sm">
             <MapPin className="h-3 w-3 text-gold" aria-hidden />
             {distance}
           </span>
@@ -66,7 +66,7 @@ const CarouselCard = ({
               "absolute right-2 top-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold shadow-sm",
               salon.openNow
                 ? "bg-primary text-primary-foreground"
-                : "bg-background/90 text-muted-foreground backdrop-blur-sm",
+                : "bg-surface/95 text-muted-foreground",
             )}
           >
             <Clock className="h-3 w-3" aria-hidden />

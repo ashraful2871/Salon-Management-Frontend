@@ -76,7 +76,7 @@ const Action = ({
     href={href}
     {...(download ? { download } : {})}
     {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-    className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full border border-border bg-background px-3 text-xs font-semibold text-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+    className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full border border-border bg-surface px-3 text-xs font-semibold text-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
   >
     <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
     {label}
@@ -90,7 +90,7 @@ const Action = ({
  * the same thing.
  */
 const BookingConfirmedCard = ({ block }: { block: ConfirmedBlock }) => (
-  <div className="overflow-hidden rounded-xl border border-sage/40 bg-background">
+  <div className="overflow-hidden rounded-xl border border-sage/40 bg-surface">
     <div className="flex items-center gap-2 border-b border-border bg-sage/10 px-3.5 py-2.5">
       <CheckCircle2 className="h-4 w-4 shrink-0 text-sage" aria-hidden />
       <p className="text-[11px] font-semibold uppercase tracking-wider text-foreground">

@@ -119,7 +119,9 @@ const LoginForm = ({
               <input type="hidden" name="redirect" value={redirectTo} />
             )}
             <div>
-              <label className="block text-sm font-bold mb-2">Email</label>
+              <label htmlFor="email" className="block text-sm font-bold mb-2">
+                Email
+              </label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
@@ -139,7 +141,9 @@ const LoginForm = ({
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-bold">Password</label>
+                <label htmlFor="password" className="block text-sm font-bold">
+                  Password
+                </label>
                 <Link
                   href="/forgot-password"
                   className="text-sm font-medium text-primary hover:text-primary-hover transition-colors"
@@ -167,6 +171,7 @@ const LoginForm = ({
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   tabIndex={-1}
                   disabled={isPending}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -175,6 +180,11 @@ const LoginForm = ({
                   )}
                 </button>
               </div>
+              {state && !state.success && !isPending && (
+                <p role="alert" className="text-destructive text-sm mt-1.5 font-medium">
+                  {state.message || "Login failed"}
+                </p>
+              )}
             </div>
 
             <Button

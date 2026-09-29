@@ -32,7 +32,7 @@ const SalonDetails = ({
     salon.distanceMeters != null ? formatDistance(salon.distanceMeters) : null;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-background">
+    <div className="overflow-hidden rounded-xl border border-border bg-surface">
       <div className="relative h-28 w-full overflow-hidden bg-muted">
         <SafeImage
           src={salon.image}
@@ -42,7 +42,7 @@ const SalonDetails = ({
           className="h-full w-full object-cover"
         />
         {salon.openNow !== null && (
-          <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur-sm">
+          <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-surface/95 px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-sm">
             <Clock className="h-3 w-3 text-gold" aria-hidden />
             {salon.openNow ? "Open now" : "Closed"}
           </span>

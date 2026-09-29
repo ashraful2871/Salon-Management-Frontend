@@ -42,7 +42,7 @@ const ServicePicker = ({
                 "disabled:cursor-not-allowed disabled:opacity-50",
                 selected
                   ? "border-primary/60 bg-primary/10"
-                  : "border-border bg-background hover:border-primary/50 hover:bg-primary/5",
+                  : "border-border bg-surface hover:border-primary/50 hover:bg-primary/5",
               )}
             >
               <span className="min-w-0">

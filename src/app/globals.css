@@ -226,6 +226,14 @@
   --shadow-gold: 0 8px 25px -8px oklch(64.66% 0.153 81.54 / 0.35);
 }
 
+/* A page with a fixed mobile bar (salon details, booking summary) marks it
+   `data-bottom-bar`; the launcher then floats above it instead of on it. */
+@media (width < 64rem) {
+  :root:has([data-bottom-bar]) {
+    --launcher-offset: 5.5rem;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

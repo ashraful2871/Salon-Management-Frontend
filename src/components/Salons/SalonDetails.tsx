@@ -549,7 +549,7 @@ const SalonDetails = ({ salon }: { salon: any }) => {
       </section>
 
       {/* MOBILE STICKY BOOKING BAR */}
-      <div className="fixed inset-x-0 bottom-[env(safe-area-inset-bottom)] z-30 lg:hidden border-t bg-surface p-4 flex items-center justify-between shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+      <div data-bottom-bar className="fixed inset-x-0 bottom-[env(safe-area-inset-bottom)] z-30 lg:hidden border-t bg-surface p-4 flex items-center justify-between shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
         <div>
           {fromPrice > 0 && (
             <div className="text-xs text-muted-foreground font-medium">

@@ -52,10 +52,10 @@ const AssistantLauncher = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 md:bottom-8 md:right-8">
+    <div className="fixed right-4 bottom-[calc(1rem+var(--launcher-offset)+env(safe-area-inset-bottom))] z-50 transition-[bottom] duration-200 motion-reduce:transition-none md:right-8 md:bottom-[calc(2rem+var(--launcher-offset))]">
       {pulse && (
         <span
-          className="absolute inset-0 animate-ping rounded-full bg-primary/40"
+          className="absolute inset-0 rounded-full bg-primary/40 motion-safe:animate-ping"
           style={{ animationIterationCount: 3 }}
           aria-hidden
         />
@@ -71,13 +71,15 @@ const AssistantLauncher = () => {
         aria-expanded={isOpen}
         aria-label="AI Assistant"
         className={cn(
-          "relative flex h-14 cursor-pointer items-center gap-2 rounded-full bg-primary text-white shadow-premium px-5",
-          "transition-transform duration-200 hover:scale-105 active:scale-95",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
+          // A circle on phones (it shares the bottom edge with page pills), a
+          // labelled pill from `sm`.
+          "relative flex size-14 cursor-pointer items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground shadow-card sm:w-auto sm:px-5",
+          "transition-[background-color,transform] duration-200 hover:bg-primary-hover motion-safe:active:scale-95",
+          "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2"
         )}
       >
         <Sparkles className="h-5 w-5 shrink-0" aria-hidden />
-        <span className="text-sm font-semibold">
+        <span className="hidden text-sm font-semibold sm:inline">
           AI Assistant
         </span>
       </button>

@@ -705,7 +705,7 @@ const BookingSummary = ({
           </div>
 
           {/* MOBILE STICKY BOTTOM */}
-          <div className="fixed inset-x-0 bottom-0 z-30 lg:hidden border-t bg-surface pb-[env(safe-area-inset-bottom)] p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+          <div data-bottom-bar className="fixed inset-x-0 bottom-0 z-30 lg:hidden border-t bg-surface pb-[env(safe-area-inset-bottom)] p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Pay now</p>

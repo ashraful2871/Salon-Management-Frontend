@@ -70,13 +70,13 @@ const Chip = ({
       aria-pressed={selected}
       title={title}
       className={cn(
-        "inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border px-3 py-1 text-sm font-medium",
-        "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+        "inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium",
+        "transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring",
         "disabled:cursor-not-allowed disabled:opacity-50",
         style === "primary"
-          ? "border-transparent bg-primary text-primary-foreground hover:bg-primary/90"
-          : "border-border bg-surface text-foreground hover:border-primary-300 hover:bg-surface-hover",
-        selected && style !== "primary" && "border-primary/60 bg-primary/10",
+          ? "border-transparent bg-primary text-primary-foreground hover:bg-primary-hover"
+          : "border-border bg-surface text-foreground hover:border-primary/50 hover:bg-surface-subtle",
+        selected && style !== "primary" && "border-primary bg-primary-soft",
         className,
       )}
     >

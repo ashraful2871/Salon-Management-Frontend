@@ -18,7 +18,7 @@ const AuthShell = ({ title, subtitle, children }: AuthShellProps) => {
   return (
     <div className="min-h-screen flex bg-surface">
       {/* Left Side - Form */}
-      <div className="flex-1 flex flex-col justify-center items-center p-8 sm:px-12 lg:px-24">
+      <div className="flex-1 flex flex-col justify-center items-center px-4 py-10 sm:px-8 lg:px-16 xl:px-24">
         <div className="w-full max-w-md mx-auto">
           <Link href="/" className="inline-flex items-center gap-2 mb-10 group">
             <div className="w-10 h-10 rounded-xl bg-surface border flex items-center justify-center shadow-sm group-hover:shadow-md">
@@ -45,7 +45,7 @@ const AuthShell = ({ title, subtitle, children }: AuthShellProps) => {
         <div className="w-full h-full rounded-2xl bg-black overflow-hidden relative shadow-card">
           <Image
             src={heroImage}
-            alt="Salon Service"
+            alt=""
             fill
             sizes="50vw"
             className="object-cover opacity-60"

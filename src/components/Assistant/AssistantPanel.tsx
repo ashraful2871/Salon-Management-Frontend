@@ -267,13 +267,13 @@ const AssistantPanel = ({
           "flex shrink-0 items-center gap-3 border-b border-border px-4 py-3 bg-surface z-10",
         )}
       >
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-white shadow-premium">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary-soft text-primary-hover">
           <Sparkles className="h-4.5 w-4.5" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
           <h2
             id={headingId}
-            className="truncate text-sm font-bold text-foreground"
+            className="truncate font-display text-base font-semibold text-foreground"
           >
             Salon Assistant
           </h2>
@@ -299,7 +299,7 @@ const AssistantPanel = ({
           disabled={pending}
           title="Start a new chat"
           aria-label="Start a new chat"
-          className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
         >
           <PlusCircleIcon className="h-4 w-4" aria-hidden />
         </button>
@@ -309,7 +309,7 @@ const AssistantPanel = ({
             type="button"
             onClick={close}
             aria-label="Close the assistant"
-            className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
           >
             <X className="h-4.5 w-4.5" aria-hidden />
           </button>
@@ -345,7 +345,7 @@ const AssistantPanel = ({
               <button
                 type="button"
                 onClick={error.retry}
-                className="mt-2 inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                className="mt-2 inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
               >
                 <RotateCcw className="h-4 w-4" aria-hidden />
                 Try again
@@ -358,7 +358,7 @@ const AssistantPanel = ({
           <button
             type="button"
             onClick={() => scrollToBottom(true)}
-            className="absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 cursor-pointer items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-xs font-semibold text-background shadow-lg"
+            className="absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 cursor-pointer items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-xs font-semibold text-background shadow-card"
           >
             New message
             <ArrowDown className="h-3.5 w-3.5" aria-hidden />
@@ -369,15 +369,15 @@ const AssistantPanel = ({
       {pendingTopup && (
         <div
           role="status"
-          className="flex shrink-0 items-center gap-3 border-t border-gold/30 bg-gold/5 px-4 py-2.5"
+          className="flex shrink-0 items-center gap-3 border-t border-primary/30 bg-primary-soft px-4 py-2.5"
         >
           {checkingPayment || (!gaveUp && !pending) ? (
             <Loader2
-              className="h-4 w-4 shrink-0 animate-spin text-gold"
+              className="h-4 w-4 shrink-0 animate-spin text-primary-hover"
               aria-hidden
             />
           ) : (
-            <Wallet className="h-4 w-4 shrink-0 text-gold" aria-hidden />
+            <Wallet className="h-4 w-4 shrink-0 text-primary-hover" aria-hidden />
           )}
           <p className="min-w-0 flex-1 text-xs leading-snug text-foreground">
             <span className="font-semibold">
@@ -412,13 +412,13 @@ const AssistantPanel = ({
             lang={BANGLA.test(draft) ? "bn" : undefined}
             aria-label="Message the booking assistant"
             placeholder="Try “haircut in Dhanmondi tomorrow”"
-            className="min-h-11 min-w-0 flex-1 rounded-full border border-border bg-background px-4 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+            className="min-h-11 min-w-0 flex-1 rounded-full border border-input bg-surface px-4 text-base sm:text-sm text-foreground outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-ring disabled:opacity-50"
           />
           <button
             type="submit"
             disabled={pending || !draft.trim()}
             aria-label="Send"
-            className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-40 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
           >
             <Send className="h-4 w-4" aria-hidden />
           </button>
@@ -435,7 +435,7 @@ const AssistantPanel = ({
 
   if (!isOverlay) {
     return (
-      <div className="flex h-[min(760px,78svh)] w-full flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-xl">
+      <div className="flex h-[min(760px,78svh)] w-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
         {body}
       </div>
     );
@@ -457,7 +457,7 @@ const AssistantPanel = ({
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         onClick={close}
-        className="absolute inset-0 bg-black/40 md:bg-black/20"
+        className="absolute inset-0 bg-black/30 sm:bg-transparent"
       />
 
       <motion.div
@@ -470,7 +470,10 @@ const AssistantPanel = ({
         transition={{ duration: 0.2 }}
         drag={false}
         className={cn(
-          "fixed right-0 top-0 h-screen w-full sm:w-[400px] bg-surface shadow-2xl border-l border-border flex flex-col z-[100] transition-transform outline-none",
+          // Full screen on phones; a right-side sheet from `sm`. The safe-area
+          // padding keeps the header and composer clear of notches and the
+          // home indicator.
+          "fixed inset-y-0 right-0 z-[100] flex h-dvh w-full flex-col bg-surface pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] outline-none sm:w-[420px] sm:border-l sm:border-border sm:shadow-card",
         )}
       >
         {body}

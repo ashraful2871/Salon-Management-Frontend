@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import AssistantPanel from "@/components/Assistant/AssistantPanel";
+import { PublicPageHero } from "@/components/Shared/PublicPageHero";
 import { CHAT_RESUME_COOKIE } from "@/lib/assistant-request";
 import { getAssistantAccess } from "@/services/assistant/getAssistantAccess";
 import { getCookie } from "@/services/auth/cookiesHandler";
@@ -28,21 +29,23 @@ export default async function AssistantPage({
   const resumeId = resume ? await getCookie(CHAT_RESUME_COOKIE) : null;
 
   return (
-    <div className="min-h-screen bg-muted/30 pb-16 pt-10">
-      <section className="container mx-auto mb-8 px-4 text-center">
-        <h1 className="font-display text-3xl font-bold text-foreground md:text-4xl">
-          Book with AI
-        </h1>
-        <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-          Tap your way from &ldquo;salons near me&rdquo; to a time that suits
-          you &mdash; or just type it: &ldquo;haircut in Dhanmondi tomorrow
-          evening&rdquo;, in English, বাংলা or Banglish.
-        </p>
-      </section>
+    <>
+      <PublicPageHero
+        size="compact"
+        overline="AI booking assistant"
+        title="Book with AI"
+        description={
+          <>
+            Tap your way from &ldquo;salons near me&rdquo; to a time that suits
+            you &mdash; or just type it: &ldquo;haircut in Dhanmondi tomorrow
+            evening&rdquo;, in English, বাংলা or Banglish.
+          </>
+        }
+      />
 
-      <section className="container mx-auto max-w-2xl px-4">
+      <section className="container mx-auto max-w-2xl px-4 pb-16 pt-6 md:pt-8">
         <AssistantPanel variant="page" resume={resume} resumeId={resumeId} />
       </section>
-    </div>
+    </>
   );
 }
