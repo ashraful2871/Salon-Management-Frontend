@@ -11,9 +11,7 @@ import {
 import { createPortal } from "react-dom";
 import {
   motion,
-  useDragControls,
   useReducedMotion,
-  type PanInfo,
 } from "framer-motion";
 import {
   ArrowDown,
@@ -78,7 +76,6 @@ const AssistantPanel = ({
   const headingId = useId();
   const isMobile = !useMediaQuery("(min-width: 768px)");
   const reduceMotion = useReducedMotion();
-  const dragControls = useDragControls();
 
   const panelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -261,21 +258,16 @@ const AssistantPanel = ({
     sendText(query);
   };
 
-  const handleDragEnd = (_: unknown, info: PanInfo) => {
-    if (info.offset.y > 120 || info.velocity.y > 600) close();
-  };
-
   /* ------------------------------------------------------------- render */
 
   const body = (
     <>
       <header
         className={cn(
-          "flex shrink-0 items-center gap-3 border-b border-border px-4",
-          isOverlay && isMobile ? "pb-3 pt-1" : "py-3",
+          "flex shrink-0 items-center gap-3 border-b border-border px-4 py-3 bg-surface/80 backdrop-blur-md z-10",
         )}
       >
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-gold text-white shadow-gold">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-white shadow-premium">
           <Sparkles className="h-4.5 w-4.5" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
@@ -283,7 +275,7 @@ const AssistantPanel = ({
             id={headingId}
             className="truncate text-sm font-bold text-foreground"
           >
-            Book with AI
+            Salon Assistant
           </h2>
           <p className="truncate text-xs text-muted-foreground">
             Tap an option or type what you need
@@ -452,13 +444,9 @@ const AssistantPanel = ({
   const enter = reduceMotion
     ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
     : {
-        initial: {
-          opacity: 0,
-          y: isMobile ? 24 : 12,
-          scale: isMobile ? 1 : 0.98,
-        },
-        animate: { opacity: 1, y: 0, scale: 1 },
-        exit: { opacity: 0, y: isMobile ? 24 : 12, scale: isMobile ? 1 : 0.98 },
+        initial: { x: "100%" },
+        animate: { x: 0 },
+        exit: { x: "100%" },
       };
 
   return createPortal(
@@ -480,28 +468,11 @@ const AssistantPanel = ({
         tabIndex={-1}
         {...enter}
         transition={{ duration: 0.2 }}
-        drag={isMobile ? "y" : false}
-        dragControls={dragControls}
-        dragListener={false}
-        dragConstraints={{ top: 0, bottom: 0 }}
-        dragElastic={{ top: 0, bottom: 0.4 }}
-        onDragEnd={handleDragEnd}
+        drag={false}
         className={cn(
-          "absolute flex flex-col overflow-hidden border border-border bg-background shadow-2xl outline-none",
-          // `svh`, not `vh`: iOS Safari's toolbar makes `vh` taller than the
-          // screen, which buries the composer.
-          "inset-x-0 bottom-0 h-[88svh] rounded-t-2xl",
-          "md:inset-x-auto md:bottom-5 md:right-5 md:h-[min(680px,80vh)] md:w-[420px] md:rounded-2xl",
+          "fixed right-0 top-0 h-screen w-full sm:w-[400px] bg-surface shadow-2xl border-l border-border flex flex-col z-[100] transition-transform outline-none",
         )}
       >
-        {isMobile && (
-          <div
-            onPointerDown={(event) => dragControls.start(event)}
-            className="flex shrink-0 cursor-grab touch-none justify-center py-2.5 active:cursor-grabbing"
-          >
-            <span className="h-1 w-10 rounded-full bg-border" aria-hidden />
-          </div>
-        )}
         {body}
       </motion.div>
     </div>,

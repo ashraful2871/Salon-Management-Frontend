@@ -52,10 +52,10 @@ const AssistantLauncher = () => {
   };
 
   return (
-    <div className="fixed bottom-[calc(5rem+var(--launcher-offset))] right-5 z-40 md:bottom-[calc(1.25rem+var(--launcher-offset))]">
+    <div className="fixed bottom-6 right-6 z-50 md:bottom-8 md:right-8">
       {pulse && (
         <span
-          className="absolute inset-0 animate-ping rounded-full bg-gold/40"
+          className="absolute inset-0 animate-ping rounded-full bg-primary/40"
           style={{ animationIterationCount: 3 }}
           aria-hidden
         />
@@ -69,17 +69,16 @@ const AssistantLauncher = () => {
         onTouchStart={preloadAssistantPanel}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
-        aria-label="Book with AI"
+        aria-label="AI Assistant"
         className={cn(
-          "relative flex h-14 cursor-pointer items-center gap-2 rounded-full bg-gradient-gold text-white shadow-gold",
+          "relative flex h-14 cursor-pointer items-center gap-2 rounded-full bg-primary text-white shadow-premium px-5",
           "transition-transform duration-200 hover:scale-105 active:scale-95",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2",
-          "w-14 justify-center sm:w-auto sm:justify-start sm:px-5",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
         )}
       >
-        <Sparkles className="h-6 w-6 shrink-0 sm:h-5 sm:w-5" aria-hidden />
-        <span className="hidden text-sm font-semibold sm:inline">
-          Book with AI
+        <Sparkles className="h-5 w-5 shrink-0" aria-hidden />
+        <span className="text-sm font-semibold">
+          AI Assistant
         </span>
       </button>
     </div>

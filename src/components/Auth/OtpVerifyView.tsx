@@ -24,18 +24,7 @@ import { verifyOtpAction } from "@/services/auth/verifyOtp";
 import { resendOtpAction } from "@/services/auth/resendOtp";
 import { startOverAction } from "@/services/auth/startOver";
 
-const showcase = {
-  image:
-    "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&h=1600&fit=crop",
-  badge: "One Last Step",
-  heading: (
-    <>
-      Six digits <br />
-      and you&apos;re in.
-    </>
-  ),
-  body: "The code proves this inbox is yours, so booking confirmations, receipts and reminders always reach you.",
-};
+
 
 /** What the error line under the boxes says, and where focus goes next. */
 type Notice = {
@@ -184,13 +173,13 @@ const OtpVerifyView = ({ maskedEmail, expiresAt, resendAt }: Props) => {
       subtitle={
         <>
           We sent a 6-digit code to{" "}
-          <strong className="text-slate-900 break-all">{maskedEmail}</strong>.{" "}
+          <strong className="text-foreground break-all">{maskedEmail}</strong>.{" "}
           {expiresIn === 0 ? (
             "That code has expired, so send yourself a new one below."
           ) : (
             <>
               It expires in{" "}
-              <span className="tabular-nums font-bold text-slate-700">
+              <span className="tabular-nums font-bold text-foreground">
                 {mmss(expiresIn)}
               </span>
               .
@@ -198,7 +187,6 @@ const OtpVerifyView = ({ maskedEmail, expiresAt, resendAt }: Props) => {
           )}
         </>
       }
-      showcase={showcase}
     >
       <div className="space-y-6">
         <form ref={formRef} action={formAction} className="space-y-5">
@@ -207,7 +195,7 @@ const OtpVerifyView = ({ maskedEmail, expiresAt, resendAt }: Props) => {
           <div>
             <label
               htmlFor="otp-code"
-              className="block text-sm font-bold text-slate-700 mb-2"
+              className="block text-sm font-bold mb-2"
             >
               Verification code
             </label>
@@ -246,16 +234,16 @@ const OtpVerifyView = ({ maskedEmail, expiresAt, resendAt }: Props) => {
 
           <div id="otp-feedback" aria-live="polite" aria-atomic="true">
             {notice && (
-              <div className="p-4 bg-white border border-red-200 rounded-2xl shadow-sm flex gap-3">
-                <TriangleAlert className="w-5 h-5 shrink-0 text-red-500 mt-0.5" />
-                <p className="text-sm text-slate-600 font-medium leading-relaxed">
+              <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-2xl shadow-sm flex gap-3">
+                <TriangleAlert className="w-5 h-5 shrink-0 text-destructive mt-0.5" />
+                <p className="text-sm text-destructive font-medium leading-relaxed">
                   {notice.text}
                   {notice.signIn && (
                     <>
                       {" "}
                       <Link
                         href="/login"
-                        className="font-bold text-primary hover:text-primary-600 underline-offset-4 hover:underline"
+                        className="font-bold underline-offset-4 hover:underline"
                       >
                         {notice.signIn}
                       </Link>
@@ -268,21 +256,15 @@ const OtpVerifyView = ({ maskedEmail, expiresAt, resendAt }: Props) => {
 
           <Button
             type="submit"
-            disabled={code.length !== CODE_LENGTH || isVerifying || dead}
-            className="w-full h-12 rounded-xl bg-primary hover:bg-primary-600 text-white font-bold shadow-premium hover:shadow-glow transition-all duration-300 cursor-pointer"
+            disabled={code.length !== CODE_LENGTH || dead}
+            loading={isVerifying}
+            className="w-full rounded-full font-bold cursor-pointer"
           >
-            {isVerifying ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Verifying...
-              </>
-            ) : (
-              "Verify"
-            )}
+            Verify
           </Button>
         </form>
 
-        <div className="space-y-1 text-center text-sm text-slate-500 font-medium">
+        <div className="space-y-1 text-center text-sm text-muted-foreground font-medium">
           <p>
             Didn&apos;t get it?{" "}
             <button
@@ -290,7 +272,7 @@ const OtpVerifyView = ({ maskedEmail, expiresAt, resendAt }: Props) => {
               type="button"
               onClick={handleResend}
               aria-disabled={!canResend}
-              className="font-bold text-primary hover:text-primary-600 underline-offset-4 hover:underline aria-disabled:text-slate-400 aria-disabled:no-underline aria-disabled:cursor-not-allowed cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              className="font-bold text-primary hover:text-primary-hover underline-offset-4 hover:underline aria-disabled:text-muted-foreground aria-disabled:no-underline aria-disabled:cursor-not-allowed cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               {isResending
                 ? "Sending..."
@@ -299,16 +281,16 @@ const OtpVerifyView = ({ maskedEmail, expiresAt, resendAt }: Props) => {
                   : `Send a new code in ${mmss(resendIn)}`}
             </button>
           </p>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-muted-foreground">
             It can take a minute. Check your spam or promotions folder too.
           </p>
         </div>
 
-        <form action={startOverAction} className="text-center text-sm text-slate-500 font-medium">
+        <form action={startOverAction} className="text-center text-sm text-muted-foreground font-medium">
           Wrong email?{" "}
           <button
             type="submit"
-            className="font-bold text-slate-700 hover:text-primary underline-offset-4 hover:underline cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            className="font-bold text-foreground hover:text-primary underline-offset-4 hover:underline cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             Start over
           </button>

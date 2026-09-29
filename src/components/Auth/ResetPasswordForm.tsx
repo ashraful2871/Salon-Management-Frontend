@@ -8,19 +8,6 @@ import { Button } from "../ui/button";
 import AuthShell from "./AuthShell";
 import { resetPassword } from "@/services/auth/resetPassword";
 
-const showcase = {
-  image:
-    "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&h=1600&fit=crop",
-  badge: "Account Recovery",
-  heading: (
-    <>
-      Choose a new <br />
-      password.
-    </>
-  ),
-  body: "Pick something you haven't used elsewhere. We'll sign you in with it right away.",
-};
-
 const ResetPasswordForm = ({ token }: { token: string }) => {
   const [state, formAction, isPending] = useActionState(resetPassword, null);
   const [showPassword, setShowPassword] = useState(false);
@@ -32,19 +19,18 @@ const ResetPasswordForm = ({ token }: { token: string }) => {
       <AuthShell
         title="Link is incomplete"
         subtitle="This reset link is missing its token"
-        showcase={showcase}
       >
         <div className="space-y-6">
-          <div className="p-5 bg-white border border-red-200 rounded-2xl shadow-sm flex gap-4">
-            <div className="w-10 h-10 shrink-0 rounded-xl bg-red-50 flex items-center justify-center">
-              <TriangleAlert className="w-5 h-5 text-red-500" />
+          <div className="p-5 bg-surface border border-destructive rounded-2xl shadow-sm flex gap-4">
+            <div className="w-10 h-10 shrink-0 rounded-xl bg-destructive/10 flex items-center justify-center">
+              <TriangleAlert className="w-5 h-5 text-destructive" />
             </div>
-            <p className="text-sm text-slate-600 font-medium leading-relaxed">
+            <p className="text-sm text-foreground font-medium leading-relaxed">
               Open the link straight from your email, or request a fresh one.
             </p>
           </div>
 
-          <Button className="w-full h-12 rounded-xl bg-primary hover:bg-primary-600 text-white font-bold cursor-pointer" asChild>
+          <Button className="w-full rounded-full font-bold cursor-pointer" asChild>
             <Link href="/forgot-password">
               Request a new link
             </Link>
@@ -59,19 +45,18 @@ const ResetPasswordForm = ({ token }: { token: string }) => {
       <AuthShell
         title="Password updated"
         subtitle="You can now sign in with your new password"
-        showcase={showcase}
       >
         <div className="space-y-6">
-          <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm flex gap-4">
-            <div className="w-10 h-10 shrink-0 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+          <div className="p-5 bg-surface border rounded-2xl shadow-sm flex gap-4">
+            <div className="w-10 h-10 shrink-0 rounded-xl bg-success/10 flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 text-success" />
             </div>
-            <p className="text-sm text-slate-600 font-medium leading-relaxed">
+            <p className="text-sm text-foreground font-medium leading-relaxed">
               {state.message}
             </p>
           </div>
 
-          <Button className="w-full h-12 rounded-xl bg-primary hover:bg-primary-600 text-white font-bold shadow-premium hover:shadow-glow transition-all duration-300 cursor-pointer" asChild>
+          <Button className="w-full rounded-full font-bold cursor-pointer" asChild>
             <Link href="/login">
               Sign in
             </Link>
@@ -85,7 +70,6 @@ const ResetPasswordForm = ({ token }: { token: string }) => {
     <AuthShell
       title="Set a new password"
       subtitle="Choose a password you haven't used before"
-      showcase={showcase}
     >
       <form action={formAction} className="space-y-5">
         <input type="hidden" name="token" value={token} />
@@ -93,19 +77,19 @@ const ResetPasswordForm = ({ token }: { token: string }) => {
         <div>
           <label
             htmlFor="newPassword"
-            className="block text-sm font-bold text-slate-700 mb-2"
+            className="block text-sm font-bold mb-2"
           >
             New password
           </label>
           <div className="relative">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
               id="newPassword"
               name="newPassword"
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               minLength={8}
-              className="pl-11 pr-11 h-12 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl focus-visible:ring-primary focus-visible:border-primary shadow-sm"
+              className="pl-11 pr-11"
               required
               disabled={isPending}
               autoComplete="new-password"
@@ -113,7 +97,7 @@ const ResetPasswordForm = ({ token }: { token: string }) => {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               tabIndex={-1}
               disabled={isPending}
             >
@@ -124,7 +108,7 @@ const ResetPasswordForm = ({ token }: { token: string }) => {
               )}
             </button>
           </div>
-          <p className="text-xs text-slate-400 mt-1.5 font-medium">
+          <p className="text-xs text-muted-foreground mt-1.5 font-medium">
             At least 8 characters.
           </p>
         </div>
@@ -132,19 +116,19 @@ const ResetPasswordForm = ({ token }: { token: string }) => {
         <div>
           <label
             htmlFor="confirmPassword"
-            className="block text-sm font-bold text-slate-700 mb-2"
+            className="block text-sm font-bold mb-2"
           >
             Confirm password
           </label>
           <div className="relative">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
               id="confirmPassword"
               name="confirmPassword"
               type={showConfirm ? "text" : "password"}
               placeholder="••••••••"
               minLength={8}
-              className="pl-11 pr-11 h-12 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 rounded-xl focus-visible:ring-primary focus-visible:border-primary shadow-sm"
+              className="pl-11 pr-11"
               required
               disabled={isPending}
               autoComplete="new-password"
@@ -152,7 +136,7 @@ const ResetPasswordForm = ({ token }: { token: string }) => {
             <button
               type="button"
               onClick={() => setShowConfirm(!showConfirm)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               tabIndex={-1}
               disabled={isPending}
             >
@@ -166,11 +150,11 @@ const ResetPasswordForm = ({ token }: { token: string }) => {
         </div>
 
         {state && !state.success && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-            <p className="text-red-600 text-sm font-medium">{state.message}</p>
+          <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl">
+            <p className="text-destructive text-sm font-medium">{state.message}</p>
             <Link
               href="/forgot-password"
-              className="text-red-700 text-sm font-bold underline mt-1 inline-block"
+              className="text-destructive font-bold underline mt-1 inline-block"
             >
               Request a new link
             </Link>
@@ -179,17 +163,17 @@ const ResetPasswordForm = ({ token }: { token: string }) => {
 
         <Button
           type="submit"
-          disabled={isPending}
-          className="w-full h-12 rounded-xl bg-primary hover:bg-primary-600 text-white font-bold shadow-premium hover:shadow-glow transition-all duration-300"
+          loading={isPending}
+          className="w-full rounded-full font-bold"
         >
-          {isPending ? "Updating..." : "Update password"}
+          Update password
         </Button>
       </form>
 
       <div className="mt-8 text-center">
         <Link
           href="/login"
-          className="inline-flex items-center gap-2 text-slate-500 font-medium hover:text-primary transition-colors"
+          className="inline-flex items-center gap-2 text-muted-foreground font-medium hover:text-primary transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to sign in
