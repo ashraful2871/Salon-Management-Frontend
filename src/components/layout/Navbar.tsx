@@ -28,17 +28,11 @@ async function NavbarAccount() {
       if (walletResult.success && walletResult.data) {
         wallet = walletResult.data;
       }
-    } else if (user.role === "SALON_OWNER") {
-      const earningsResult = await getMyEarnings(1);
-      if (earningsResult.success && earningsResult.data) {
-        ownerRevenueMinor = earningsResult.data.summary.netEarningsMinor;
-      }
-    } else if (user.role === "ADMIN") {
-      const earningsResult = await getPlatformEarnings();
-      if (earningsResult.success && earningsResult.data) {
-        adminRevenueMinor = earningsResult.data.platformRevenueMinor;
-      }
     }
+    // For SALON_OWNER and ADMIN, we do not await their earnings here.
+    // getMyEarnings and getPlatformEarnings run heavy analytical queries
+    // that take several seconds, which blocks the navbar and user avatar 
+    // from rendering. They will be fetched asynchronously in NavbarClient.
   }
 
   // Pass the user data (or null) to the client component

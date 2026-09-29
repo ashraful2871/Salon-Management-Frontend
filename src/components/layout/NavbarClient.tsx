@@ -39,6 +39,8 @@ import LogoutButton from "./LogoutButton";
 import WalletMenu from "./WalletMenu";
 import BalanceReveal from "@/components/Shared/BalanceReveal";
 import LocationChip from "@/components/Location/LocationChip";
+import { getMyEarnings } from "@/services/settlement/getMyEarnings";
+import { getPlatformEarnings } from "@/services/settlement/getPlatformEarnings";
 
 interface UserData {
   role: string;
@@ -100,12 +102,15 @@ const UserAvatar = ({
 const NavbarClient = ({
   user,
   wallet,
-  ownerRevenueMinor,
-  adminRevenueMinor,
+  ownerRevenueMinor: initialOwnerRevenueMinor,
+  adminRevenueMinor: initialAdminRevenueMinor,
   accountLoading = false,
 }: NavbarClientProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [ownerRevenueMinor, setOwnerRevenueMinor] = useState(initialOwnerRevenueMinor ?? null);
+  const [adminRevenueMinor, setAdminRevenueMinor] = useState(initialAdminRevenueMinor ?? null);
+  const [balancesLoading, setBalancesLoading] = useState(false);
   const pathname = usePathname();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -117,6 +122,45 @@ const NavbarClient = ({
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Fetch balances asynchronously so the navbar doesn't wait for heavy analytical queries
+  useEffect(() => {
+    if (!user) return;
+
+    let isMounted = true;
+
+    async function fetchBalances() {
+      setBalancesLoading(true);
+      try {
+        if (user!.role === "SALON_OWNER" && initialOwnerRevenueMinor == null) {
+          const res = await getMyEarnings(1);
+          if (isMounted && res.success && res.data) {
+            setOwnerRevenueMinor(res.data.summary.netEarningsMinor);
+          }
+        } else if (user!.role === "ADMIN" && initialAdminRevenueMinor == null) {
+          const res = await getPlatformEarnings();
+          if (isMounted && res.success && res.data) {
+            setAdminRevenueMinor(res.data.platformRevenueMinor);
+          }
+        }
+      } catch (error) {
+        // Ignore fetch errors; the UI will gracefully show "--"
+      } finally {
+        if (isMounted) setBalancesLoading(false);
+      }
+    }
+
+    if (
+      (user.role === "SALON_OWNER" && initialOwnerRevenueMinor == null) ||
+      (user.role === "ADMIN" && initialAdminRevenueMinor == null)
+    ) {
+      fetchBalances();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, initialOwnerRevenueMinor, initialAdminRevenueMinor]);
 
   // The drawer is a route-level overlay, so a navigation has to dismiss it —
   // including a back/forward move, which no link handler sees. Adjusting during
@@ -263,6 +307,7 @@ const NavbarClient = ({
                         figures={[
                           { label: "Net earnings", amountMinor: ownerRevenueMinor ?? null },
                         ]}
+                        refreshing={balancesLoading}
                       />
                     )}
                     {user.role === "ADMIN" && (
@@ -272,6 +317,7 @@ const NavbarClient = ({
                         figures={[
                           { label: "Total", amountMinor: adminRevenueMinor ?? null },
                         ]}
+                        refreshing={balancesLoading}
                       />
                     )}
                   </div>
@@ -472,6 +518,7 @@ const NavbarClient = ({
                 figures={[
                   { label: "Net earnings", amountMinor: ownerRevenueMinor ?? null },
                 ]}
+                refreshing={balancesLoading}
                 footer={
                   <div className="border-t border-border p-3">
                     <Button variant="outline" size="sm" className="w-full" asChild>
@@ -490,6 +537,7 @@ const NavbarClient = ({
                 figures={[
                   { label: "Total", amountMinor: adminRevenueMinor ?? null },
                 ]}
+                refreshing={balancesLoading}
                 footer={
                   <div className="border-t border-border p-3">
                     <Button variant="outline" size="sm" className="w-full" asChild>
