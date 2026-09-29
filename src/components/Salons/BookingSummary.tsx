@@ -13,7 +13,6 @@ import {
   Clock,
   CreditCard,
   Info,
-  Loader2,
   Lock,
   MapPin,
   Pencil,
@@ -139,7 +138,7 @@ const DetailRow = ({
   hint?: string;
 }) => (
   <div className="flex items-start gap-4 py-4">
-    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft">
       <Icon className="h-4 w-4 text-primary" />
     </div>
     <div className="min-w-0 flex-1">
@@ -165,7 +164,7 @@ const Step = ({
     <span
       className={cn(
         "flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold",
-        state === "done" && "bg-primary/15 text-primary",
+        state === "done" && "bg-primary-soft text-primary",
         state === "current" && "bg-primary text-primary-foreground",
         state === "todo" && "bg-muted text-muted-foreground",
       )}
@@ -266,7 +265,7 @@ const BookingSummary = ({
     isBusy || Boolean(activeBlocker) || selectedMethod !== WALLET_METHOD_ID;
 
   return (
-    <div className="min-h-screen bg-muted/30 pb-16">
+    <div className="min-h-screen bg-surface-subtle pb-[calc(8rem+env(safe-area-inset-bottom))] lg:pb-16">
       {/* HEADER */}
       <div className="border-b bg-background">
         <div className="container mx-auto px-4 py-5">
@@ -314,7 +313,7 @@ const BookingSummary = ({
             <div className="space-y-6 lg:col-span-7">
               <div>
                 <Card className="overflow-hidden shadow-sm">
-                  <div className="flex items-center gap-4 border-b bg-gradient-to-r from-primary/5 to-transparent p-5">
+                  <div className="flex items-center gap-4 border-b bg-surface-subtle p-5">
                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted">
                       <SafeImage
                         src={salon.image}
@@ -435,7 +434,7 @@ const BookingSummary = ({
                       salon.
                     </p>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-3" role="radiogroup" aria-label="Payment method">
                     {PAYMENT_METHODS.map((method) => {
                       const Icon = METHOD_ICONS[method.id] || CreditCard;
                       const available = method.status === "AVAILABLE";
@@ -447,12 +446,13 @@ const BookingSummary = ({
                           type="button"
                           disabled={!available}
                           onClick={() => available && setSelectedMethod(method.id)}
-                          aria-pressed={selected}
+                          role="radio"
+                          aria-checked={selected}
                           className={cn(
                             "flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-colors",
                             selected &&
-                              "border-primary bg-primary/5 ring-2 ring-primary/20",
-                            available && !selected && "hover:border-primary/40 hover:bg-muted/50",
+                              "border-primary bg-primary-soft ring-2 ring-primary/20",
+                            available && !selected && "bg-surface hover:border-primary/40 hover:bg-surface-subtle",
                             !available && "cursor-not-allowed border-dashed opacity-60",
                           )}
                         >
@@ -490,7 +490,7 @@ const BookingSummary = ({
                                 <span
                                   className={cn(
                                     "font-semibold",
-                                    hasShortfall ? "text-destructive" : "text-sage",
+                                    hasShortfall ? "text-destructive" : "text-success",
                                   )}
                                 >
                                   {wallet.loaded
@@ -527,14 +527,14 @@ const BookingSummary = ({
 
               {/* POLICY */}
               <div>
-                <Alert className="bg-muted/30 border-none">
-                  <ShieldCheck className="h-4 w-4 text-sage" />
+                <Alert className="border-border bg-surface-subtle">
+                  <ShieldCheck className="h-4 w-4 text-success" />
                   <AlertTitle className="text-base flex items-center gap-2">
                     Deposit & cancellation policy
                   </AlertTitle>
                   <AlertDescription className="space-y-3 mt-3 text-muted-foreground">
                     <p className="flex gap-2">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-sage" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                       <span>
                         <strong className="text-foreground">You turn up:</strong>{" "}
                         the {formatBDT(depositMinor)} deposit comes off your bill
@@ -542,7 +542,7 @@ const BookingSummary = ({
                       </span>
                     </p>
                     <p className="flex gap-2">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-sage" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                       <span>
                         <strong className="text-foreground">
                           You cancel in time:
@@ -571,7 +571,7 @@ const BookingSummary = ({
 
             {/* RIGHT: money and confirm */}
             <div className="lg:col-span-5">
-              <div className="lg:sticky lg:top-6 space-y-4">
+              <div className="lg:sticky lg:top-24 space-y-4">
                 <Card className="shadow-md">
                   <CardHeader>
                     <CardTitle className="text-base">Payment summary</CardTitle>
@@ -664,20 +664,19 @@ const BookingSummary = ({
                       </div>
                     ) : null}
 
+                    {/* Phones confirm from the fixed bar below. */}
                     <Button
                       type="submit"
                       size="lg"
-                      className="w-full gap-2 text-base font-semibold"
+                      className="hidden w-full text-base lg:inline-flex"
                       disabled={confirmDisabled}
+                      loading={isBusy}
                     >
                       {isBusy ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Confirming...
-                        </>
+                        "Confirming..."
                       ) : (
                         <>
-                          <Lock className="h-4 w-4" />
+                          <Lock aria-hidden />
                           Confirm &amp; hold {formatBDT(depositMinor)}
                         </>
                       )}
@@ -705,24 +704,39 @@ const BookingSummary = ({
           </div>
 
           {/* MOBILE STICKY BOTTOM */}
-          <div data-bottom-bar className="fixed inset-x-0 bottom-0 z-30 lg:hidden border-t bg-surface pb-[env(safe-area-inset-bottom)] p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Pay now</p>
-                <p className="text-lg font-bold text-primary">{formatBDT(depositMinor)}</p>
+          <div
+            data-bottom-bar
+            className="fixed inset-x-0 bottom-0 z-30 lg:hidden border-t bg-surface/95 pb-[env(safe-area-inset-bottom)]"
+          >
+            <div className="container mx-auto px-4 py-3">
+              {activeBlocker && (
+                <Link
+                  href={activeBlocker.action.href}
+                  className="mb-2 flex items-center gap-1.5 text-sm font-medium text-warning"
+                >
+                  <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
+                  <span className="truncate">{activeBlocker.title}</span>
+                  <ChevronRight className="ml-auto h-4 w-4 shrink-0" aria-hidden />
+                </Link>
+              )}
+              <div className="flex items-center justify-between gap-4">
+                <div className="shrink-0">
+                  <p className="text-xs text-muted-foreground">
+                    Pay now · total{" "}
+                    <span className="tabular-nums">{formatBDT(service.priceMinor)}</span>
+                  </p>
+                  <p className="text-lg font-bold tabular-nums">{formatBDT(depositMinor)}</p>
+                </div>
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="min-w-0 flex-1 text-base"
+                  disabled={confirmDisabled}
+                  loading={isBusy}
+                >
+                  {isBusy ? "Confirming..." : "Confirm booking"}
+                </Button>
               </div>
-              <Button
-                type="submit"
-                size="lg"
-                className="flex-1 rounded-full text-base font-semibold"
-                disabled={confirmDisabled}
-              >
-                {isBusy ? (
-                  <><Loader2 className="h-5 w-5 animate-spin mr-2" /> Confirming...</>
-                ) : (
-                  "Confirm booking"
-                )}
-              </Button>
             </div>
           </div>
         </form>

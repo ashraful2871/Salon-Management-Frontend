@@ -39,7 +39,7 @@ const BookingConfirmedPage = async ({
     return (
       <div className="min-h-[70vh] flex items-center justify-center px-4">
         <div className="max-w-md text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-sage/15">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-success-soft">
             <span className="text-2xl leading-none">✅</span>
           </div>
           <h1 className="mb-2 text-2xl font-bold">Your appointment is booked</h1>

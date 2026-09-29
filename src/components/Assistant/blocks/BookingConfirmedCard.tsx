@@ -13,51 +13,23 @@ import {
 
 import CopyButton from "@/components/Wallet/CopyButton";
 import { formatBDT } from "@/lib/money";
+import { bookingEventDescription, calendarFileName, calendarHref } from "@/lib/calendar";
 import type { Block } from "@/lib/assistant-types";
 import { formatDhakaClock, formatTime, formatYmd } from "../format";
 
 type ConfirmedBlock = Extract<Block, { type: "booking_confirmed" }>;
 
-/**
- * `.ics` built in the browser rather than fetched: the whole event is already
- * on this card, so a data URL is the entire feature. Times are the salon's wall
- * clock with no zone, which is what a floating VEVENT means — the right answer
- * for an appointment you attend in person.
- */
-const calendarHref = (block: ConfirmedBlock): string => {
-  const stamp = (time: string) =>
-    `${block.date.replace(/-/g, "")}T${time.replace(":", "")}00`;
+const eventHref = (block: ConfirmedBlock): string =>
+  calendarHref({
+    id: block.appointmentId,
+    date: block.date,
+    startTime: block.startTime,
+    endTime: block.endTime,
+    title: `${block.serviceName} at ${block.salonName}`,
+    location: block.salonAddress,
+    description: bookingEventDescription(block),
+  });
 
-  const escape = (value: string) =>
-    value.replace(/[\\;,]/g, (c) => `\\${c}`).replace(/\n/g, "\\n");
-
-  const lines = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//SalonKhuji//Booking//EN",
-    "BEGIN:VEVENT",
-    `UID:${block.appointmentId}@salonkhuji`,
-    `DTSTART:${stamp(block.startTime)}`,
-    `DTEND:${stamp(block.endTime ?? block.startTime)}`,
-    `SUMMARY:${escape(`${block.serviceName} at ${block.salonName}`)}`,
-    `LOCATION:${escape(block.salonAddress)}`,
-    `DESCRIPTION:${escape(
-      [
-        block.token ? `Token ${block.token}` : "",
-        block.serialNumber ? `Serial #${block.serialNumber}` : "",
-        block.dueAtSalonMinor > 0
-          ? `Pay ${formatBDT(block.dueAtSalonMinor)} at the salon`
-          : "Nothing left to pay at the salon",
-      ]
-        .filter(Boolean)
-        .join(" · "),
-    )}`,
-    "END:VEVENT",
-    "END:VCALENDAR",
-  ];
-
-  return `data:text/calendar;charset=utf-8,${encodeURIComponent(lines.join("\r\n"))}`;
-};
 
 const Action = ({
   href,
@@ -188,10 +160,10 @@ const BookingConfirmedCard = ({ block }: { block: ConfirmedBlock }) => (
           />
         )}
         <Action
-          href={calendarHref(block)}
+          href={eventHref(block)}
           icon={CalendarPlus}
           label="Add to calendar"
-          download={`${block.salonName.replace(/[^\w-]+/g, "-")}-${block.date}.ics`}
+          download={calendarFileName(block.salonName, block.date)}
         />
         <Link
           href={block.manageUrl}

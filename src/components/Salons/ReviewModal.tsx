@@ -1,12 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ResponsiveDialog } from "@/components/Shared/ResponsiveDialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Star } from "lucide-react";
@@ -47,51 +42,53 @@ const ReviewModal = ({ open, onClose, appointmentId, salonId }: ReviewModalProps
   };
 
   return (
-    <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Rate Your Experience</DialogTitle>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-4 py-4">
-          <div className="flex justify-center gap-2">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <button
-                key={star}
-                type="button"
-                onClick={() => setRating(star)}
-                className="focus:outline-none transition-transform hover:scale-110"
-              >
-                <Star
-                  className={`h-8 w-8 ${
-                    rating >= star
-                      ? "fill-gold text-gold"
-                      : "text-muted-foreground hover:text-gold-light"
-                  }`}
-                />
-              </button>
-            ))}
-          </div>
-
-          <Textarea
-            placeholder="Tell us about your experience... (optional)"
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            className="resize-none"
-            rows={4}
-          />
-        </div>
-
-        <div className="flex justify-end gap-3">
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={(val) => !val && onClose()}
+      title="Rate your experience"
+      description="How was your visit? Your review helps other customers choose."
+      className="sm:max-w-md"
+      footer={
+        <>
           <Button variant="outline" onClick={onClose} disabled={loading}>
             Skip
           </Button>
-          <Button onClick={handleSubmit} disabled={loading}>
-            {loading ? "Submitting..." : "Submit Review"}
+          <Button onClick={handleSubmit} loading={loading}>
+            Submit review
           </Button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        <div className="flex justify-center gap-1" role="radiogroup" aria-label="Rating">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              role="radio"
+              aria-checked={rating === star}
+              aria-label={`${star} star${star === 1 ? "" : "s"}`}
+              onClick={() => setRating(star)}
+              className="grid size-11 place-items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Star
+                className={`h-8 w-8 ${
+                  rating >= star ? "fill-gold text-gold" : "text-muted-foreground"
+                }`}
+              />
+            </button>
+          ))}
         </div>
-      </DialogContent>
-    </Dialog>
+
+        <Textarea
+          placeholder="Tell us about your experience... (optional)"
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          className="resize-none"
+          rows={4}
+        />
+      </div>
+    </ResponsiveDialog>
   );
 };
 

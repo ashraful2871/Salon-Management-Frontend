@@ -7,24 +7,26 @@ import {
   ArrowLeft,
   ArrowRight,
   CalendarDays,
+  Check,
   Clock,
   Loader2,
   Scissors,
   Store,
   UserRound,
+  X,
 } from "lucide-react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
+  DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
   Drawer,
   DrawerContent,
-  DrawerHeader,
+  DrawerDescription,
   DrawerTitle,
 } from "@/components/ui/drawer";
 
@@ -32,8 +34,16 @@ import { Button } from "../ui/button";
 import { getSlots } from "@/services/slots/slot-api";
 import { cn } from "@/lib/utils";
 import { formatBDT } from "@/lib/money";
-import { resolveDepositMinor } from "@/lib/deposit";
-import { addDays, format } from "date-fns";
+import { addDays, format, parseISO } from "date-fns";
+
+const STEPS = ["Service", "Date & time", "Review"] as const;
+
+const formatClock = (time: string) => {
+  const [hourStr, minute] = time.split(":");
+  const hour = Number(hourStr);
+  if (!Number.isFinite(hour) || minute === undefined) return time;
+  return `${hour % 12 || 12}:${minute} ${hour >= 12 ? "PM" : "AM"}`;
+};
 
 type CounterItem = {
   id: string;
@@ -276,75 +286,119 @@ export default function BookAppointmentModal({
   };
 
   const fieldClass =
-    "mt-2 w-full h-11 rounded-lg border border-input bg-background px-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20";
+    "mt-2 w-full h-11 rounded-xl border border-input bg-surface px-3 text-base md:text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20";
   const disabledFieldClass = "cursor-not-allowed bg-muted/40 text-muted-foreground";
 
-  const stepperHeader = (
-    <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b">
-      <div className="flex-1">
-        <DialogTitle className="text-xl font-bold font-display">Book Appointment</DialogTitle>
-        <p className="text-sm text-muted-foreground">{salon?.name}</p>
-        
-        <div className="flex items-center gap-2 mt-4 text-xs font-semibold uppercase tracking-wider">
-          <span className={cn(step === 1 ? "text-primary" : "text-primary/40")}>Service</span>
-          <span className="text-muted-foreground">→</span>
-          <span className={cn(step === 2 ? "text-primary" : "text-primary/40")}>Date & Time</span>
-          <span className="text-muted-foreground">→</span>
-          <span className="text-muted-foreground">Review</span>
+  const renderHeader = (
+    Title: typeof DialogTitle | typeof DrawerTitle,
+    Description: typeof DialogDescription | typeof DrawerDescription,
+  ) => (
+    <div className="shrink-0 border-b px-4 pt-3 pb-4 sm:px-6 sm:pt-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <Title className="font-display text-lg font-semibold sm:text-xl">Book an appointment</Title>
+          <Description className="truncate text-sm text-muted-foreground">{salon?.name}</Description>
         </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          aria-label="Close"
+          className="-mr-2 shrink-0"
+        >
+          <X aria-hidden />
+        </Button>
       </div>
-      <Button type="button" variant="ghost" size="icon" onClick={onClose} className="rounded-full -mt-8">
-        ✕
-      </Button>
+
+      <ol className="mt-4 flex items-center gap-2" aria-label="Booking steps">
+        {STEPS.map((label, i) => {
+          const index = i + 1;
+          const state = index < step ? "done" : index === step ? "current" : "todo";
+          return (
+            <li
+              key={label}
+              aria-current={state === "current" ? "step" : undefined}
+              className={cn("flex min-w-0 items-center gap-2", i < STEPS.length - 1 && "flex-1")}
+            >
+              <span
+                className={cn(
+                  "grid size-6 shrink-0 place-items-center rounded-full text-xs font-semibold",
+                  state === "done" && "bg-primary-soft text-primary",
+                  state === "current" && "bg-primary text-primary-foreground",
+                  state === "todo" && "bg-muted text-muted-foreground",
+                )}
+              >
+                {state === "done" ? <Check className="size-3.5" aria-hidden /> : index}
+              </span>
+              <span
+                className={cn(
+                  "truncate text-xs sm:text-sm",
+                  state === "current" ? "font-semibold text-foreground" : "text-muted-foreground",
+                )}
+              >
+                {label}
+              </span>
+              {i < STEPS.length - 1 && (
+                <span aria-hidden className={cn("h-px min-w-3 flex-1", index < step ? "bg-primary" : "bg-border")} />
+              )}
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 
   const step1Content = (
     <div className="space-y-6">
-      <div>
-        <label className="flex items-center gap-2 text-sm font-medium mb-2">
-          <Scissors className="h-4 w-4 text-primary" /> Service *
-        </label>
+      <fieldset>
+        <legend className="flex items-center gap-2 text-sm font-medium mb-2">
+          <Scissors className="h-4 w-4 text-primary" aria-hidden /> Service
+        </legend>
         <div className="space-y-2">
           {services.map((service) => (
             <label
               key={service.id}
               className={cn(
-                "flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-colors",
-                form.serviceId === service.id ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-muted"
+                "flex items-center justify-between gap-3 p-4 rounded-2xl border cursor-pointer transition-colors",
+                form.serviceId === service.id
+                  ? "border-primary bg-primary-soft ring-1 ring-primary"
+                  : "border-border bg-surface hover:bg-surface-subtle",
               )}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <input
                   type="radio"
                   name="service"
                   value={service.id}
                   checked={form.serviceId === service.id}
                   onChange={(e) => setField("serviceId", e.target.value)}
-                  className="size-4 accent-primary"
+                  className="size-4 shrink-0 accent-primary"
                 />
-                <div>
-                  <div className="font-medium">{service.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {typeof service.duration === "number" ? `${service.duration} min` : ""}
-                  </div>
+                <div className="min-w-0">
+                  <div className="font-medium break-words">{service.name}</div>
+                  {typeof service.duration === "number" && (
+                    <div className="text-xs text-muted-foreground">{service.duration} min</div>
+                  )}
                 </div>
               </div>
               {typeof service.priceMinor === "number" && (
-                <div className="font-bold">{formatBDT(service.priceMinor)}</div>
+                <div className="shrink-0 font-semibold tabular-nums">{formatBDT(service.priceMinor)}</div>
               )}
             </label>
           ))}
         </div>
         {errors.serviceId && <p className="mt-1 text-xs text-destructive">{errors.serviceId}</p>}
-      </div>
+      </fieldset>
 
       {staffList.length > 0 && (
         <div>
-          <label className="flex items-center gap-2 text-sm font-medium">
-            <UserRound className="h-4 w-4 text-primary" /> Preferred specialist <span className="font-normal text-muted-foreground">(optional)</span>
+          <label htmlFor="booking-staff" className="flex items-center gap-2 text-sm font-medium">
+            <UserRound className="h-4 w-4 text-primary" aria-hidden /> Preferred specialist{" "}
+            <span className="font-normal text-muted-foreground">(optional)</span>
           </label>
           <select
+            id="booking-staff"
             className={fieldClass}
             value={form.staffId}
             onChange={(e) => setField("staffId", e.target.value)}
@@ -361,9 +415,12 @@ export default function BookAppointmentModal({
       )}
 
       <div>
-        <label className="text-sm font-medium">Notes (optional)</label>
+        <label htmlFor="booking-notes" className="text-sm font-medium">
+          Notes <span className="font-normal text-muted-foreground">(optional)</span>
+        </label>
         <textarea
-          className="mt-2 w-full min-h-[5rem] rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
+          id="booking-notes"
+          className="mt-2 w-full min-h-[5rem] rounded-xl border border-input bg-surface px-3 py-2 text-base md:text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
           placeholder="Allergies, preferred style, etc."
           value={form.notes}
           onChange={(e) => setField("notes", e.target.value)}
@@ -374,71 +431,99 @@ export default function BookAppointmentModal({
 
   const step2Content = (
     <div className="space-y-6">
+      {selectedService && (
+        <div className="flex items-center justify-between gap-3 rounded-2xl bg-surface-subtle px-4 py-3 text-sm">
+          <span className="min-w-0 truncate font-medium">{selectedService.name}</span>
+          {typeof selectedService.priceMinor === "number" && (
+            <span className="shrink-0 font-semibold tabular-nums">{formatBDT(selectedService.priceMinor)}</span>
+          )}
+        </div>
+      )}
+
       <div>
-        <label className="flex items-center gap-2 text-sm font-medium mb-3">
-          <CalendarDays className="h-4 w-4 text-primary" /> Select Date
-        </label>
-        <div className="flex overflow-x-auto gap-2 pb-2 snap-x snap-mandatory scrollbar-hide -mx-2 px-2 sm:mx-0 sm:px-0">
-          {dateStrip.map((dateStr) => {
-            const date = new Date(dateStr);
-            const dayName = format(date, "EEE");
-            const dayNum = format(date, "d");
-            const month = format(date, "MMM");
+        <p className="flex items-center gap-2 text-sm font-medium mb-3">
+          <CalendarDays className="h-4 w-4 text-primary" aria-hidden /> Date
+        </p>
+        <div
+          role="group"
+          aria-label="Day"
+          className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain scroll-px-1 p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {dateStrip.map((dateStr, i) => {
+            const date = parseISO(dateStr);
             const isSelected = form.appointmentDate === dateStr;
-            
+            const isToday = i === 0;
+
             return (
               <button
                 key={dateStr}
+                type="button"
+                aria-pressed={isSelected}
+                aria-label={`${isToday ? "Today, " : ""}${format(date, "EEEE d MMMM")}`}
                 onClick={() => setField("appointmentDate", dateStr)}
                 className={cn(
-                  "snap-center shrink-0 flex flex-col items-center justify-center h-16 min-w-[4.5rem] rounded-xl border transition-colors",
-                  isSelected ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-muted"
+                  "flex h-16 w-14 shrink-0 snap-start flex-col items-center justify-center gap-0.5 rounded-2xl border text-center transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                  isSelected
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : isToday
+                      ? "border-primary/50 bg-primary-soft text-foreground hover:bg-primary-soft/70"
+                      : "border-border bg-surface text-foreground hover:bg-surface-subtle",
                 )}
               >
-                <span className={cn("text-[10px] uppercase font-semibold", isSelected ? "text-primary-foreground/80" : "text-muted-foreground")}>{dayName}</span>
-                <span className="text-lg font-bold leading-tight">{dayNum}</span>
-                <span className={cn("text-[10px] font-medium", isSelected ? "text-primary-foreground/80" : "text-muted-foreground")}>{month}</span>
+                <span
+                  className={cn(
+                    "text-xs",
+                    isSelected ? "text-primary-foreground" : "text-muted-foreground",
+                    isToday && "font-semibold",
+                  )}
+                >
+                  {isToday ? "Today" : format(date, "EEE")}
+                </span>
+                <span className="text-lg leading-none font-semibold tabular-nums">{format(date, "d")}</span>
               </button>
             );
           })}
         </div>
-        
-        <div className="mt-3 flex items-center gap-2">
-          <input
-            type="date"
-            min={todayStr}
-            className={cn(fieldClass, "mt-0 flex-1")}
-            value={form.appointmentDate}
-            onChange={(e) => setField("appointmentDate", e.target.value)}
-          />
-        </div>
+
+        <label htmlFor="booking-date" className="sr-only">
+          Or pick another date
+        </label>
+        <input
+          id="booking-date"
+          type="date"
+          min={todayStr}
+          className={cn(fieldClass, "mt-3")}
+          value={form.appointmentDate}
+          onChange={(e) => setField("appointmentDate", e.target.value)}
+        />
         {errors.appointmentDate && <p className="mt-1 text-xs text-destructive">{errors.appointmentDate}</p>}
       </div>
 
       <div>
-        <label className="flex items-center gap-2 text-sm font-medium">
-          <Store className="h-4 w-4 text-primary" /> Counter
+        <label htmlFor="booking-counter" className="flex items-center gap-2 text-sm font-medium">
+          <Store className="h-4 w-4 text-primary" aria-hidden /> Counter
         </label>
 
         {!counterStepReady ? (
           <div className={cn(fieldClass, disabledFieldClass, "flex items-center gap-2")}>
             {loadingSlots ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Checking availability...</>
+              <><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Checking availability...</>
             ) : (
               "Select a date first"
             )}
           </div>
         ) : counterOptions.length === 0 ? (
-          <div className="mt-2 rounded-xl bg-muted p-4 text-center text-sm text-muted-foreground">
+          <div className="mt-2 rounded-2xl bg-warning-soft p-4 text-center text-sm text-warning">
             No counter is free on this date. Try another day.
           </div>
         ) : counterOptions.length === 1 ? (
-          <div className={cn(fieldClass, "flex items-center bg-muted/50 font-medium")}>
+          <div className={cn(fieldClass, "flex items-center bg-surface-subtle font-medium")}>
             {selectedCounter?.name}
             {selectedCounter?.code ? ` (${selectedCounter.code})` : ""}
           </div>
         ) : (
           <select
+            id="booking-counter"
             className={fieldClass}
             value={selectedCounterId}
             onChange={(e) => setField("counterId", e.target.value)}
@@ -457,28 +542,32 @@ export default function BookAppointmentModal({
 
       {counterStepReady && selectedCounter && (
         <div>
-          <label className="flex items-center gap-2 text-sm font-medium">
-            <Clock className="h-4 w-4 text-primary" /> Available times
-          </label>
-          <div className="grid grid-cols-3 gap-2 mt-3">
-            {visibleSlots.map((slot) => (
-              <button
-                key={slot.id}
-                type="button"
-                onClick={() => setField("slotId", slot.id)}
-                className={cn(
-                  "h-11 rounded-full border text-sm font-medium transition-colors",
-                  form.slotId === slot.id
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background hover:bg-muted"
-                )}
-              >
-                {slot.startTime}
-              </button>
-            ))}
+          <p className="flex items-center gap-2 text-sm font-medium">
+            <Clock className="h-4 w-4 text-primary" aria-hidden /> Available times
+          </p>
+          <div role="group" aria-label="Time" className="grid grid-cols-3 gap-2 mt-3 sm:grid-cols-4">
+            {visibleSlots.map((slot) => {
+              const selected = form.slotId === slot.id;
+              return (
+                <button
+                  key={slot.id}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => setField("slotId", slot.id)}
+                  className={cn(
+                    "h-11 min-w-0 rounded-full border px-2 text-sm font-medium whitespace-nowrap tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                    selected
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-surface hover:border-primary/50 hover:bg-primary-soft",
+                  )}
+                >
+                  {formatClock(slot.startTime)}
+                </button>
+              );
+            })}
           </div>
           {visibleSlots.length === 0 && (
-            <div className="text-sm text-muted-foreground">No times available.</div>
+            <p className="text-sm text-muted-foreground">No times available.</p>
           )}
           {errors.slotId && <p className="mt-1 text-xs text-destructive">{errors.slotId}</p>}
         </div>
@@ -486,44 +575,40 @@ export default function BookAppointmentModal({
     </div>
   );
 
-  const mainContent = (
-    <>
-      {stepperHeader}
-      <div className="p-6 overflow-y-auto flex-1">
-        {step === 1 ? step1Content : step2Content}
-      </div>
-      <div className="flex items-center justify-between border-t px-6 py-4 bg-background">
-        <Button
-          type="button"
-          variant="outline"
-          className="rounded-full px-6"
-          onClick={step === 1 ? onClose : handleBack}
-        >
-          {step === 1 ? "Cancel" : <><ArrowLeft className="h-4 w-4 mr-2" /> Back</>}
-        </Button>
-        <Button
-          type="button"
-          className="rounded-full px-8 gap-2"
-          onClick={handleNext}
-          disabled={isNavigating}
-        >
-          {isNavigating ? (
-            <><Loader2 className="h-4 w-4 animate-spin" /> Next</>
-          ) : step === 1 ? (
-            <>Next <ArrowRight className="h-4 w-4" /></>
-          ) : (
-            <>Review Booking <ArrowRight className="h-4 w-4" /></>
-          )}
-        </Button>
-      </div>
-    </>
+  const body = (
+    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+      {step === 1 ? step1Content : step2Content}
+    </div>
+  );
+
+  const footer = (
+    <div className="flex shrink-0 items-center justify-between gap-3 border-t bg-surface px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-4">
+      <Button
+        type="button"
+        variant="outline"
+        onClick={step === 1 ? onClose : handleBack}
+      >
+        {step === 1 ? "Cancel" : <><ArrowLeft aria-hidden /> Back</>}
+      </Button>
+      <Button
+        type="button"
+        className="min-w-0 flex-1 sm:flex-none sm:px-8"
+        onClick={handleNext}
+        loading={isNavigating}
+      >
+        {step === 1 ? "Next" : "Review booking"}
+        {!isNavigating && <ArrowRight aria-hidden />}
+      </Button>
+    </div>
   );
 
   if (!isDesktop) {
     return (
       <Drawer open={open} onOpenChange={(val) => !val && onClose()}>
-        <DrawerContent className="h-[100dvh] max-h-[100dvh] rounded-none flex flex-col p-0">
-          {mainContent}
+        <DrawerContent className="h-[95dvh] bg-surface p-0 data-[vaul-drawer-direction=bottom]:mt-0 data-[vaul-drawer-direction=bottom]:max-h-[95dvh] data-[vaul-drawer-direction=bottom]:rounded-t-2xl">
+          {renderHeader(DrawerTitle, DrawerDescription)}
+          {body}
+          {footer}
         </DrawerContent>
       </Drawer>
     );
@@ -531,8 +616,13 @@ export default function BookAppointmentModal({
 
   return (
     <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
-      <DialogContent className="max-w-2xl rounded-2xl p-0 overflow-hidden flex flex-col max-h-[85vh]">
-        {mainContent}
+      <DialogContent
+        showCloseButton={false}
+        className="flex max-h-[85dvh] flex-col gap-0 overflow-hidden rounded-2xl bg-surface p-0 sm:max-w-2xl"
+      >
+        {renderHeader(DialogTitle, DialogDescription)}
+        {body}
+        {footer}
       </DialogContent>
     </Dialog>
   );
