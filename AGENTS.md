@@ -51,9 +51,9 @@ All API calls live in `src/services/<domain>/`. Each file exports a single async
 ## Styling
 
 - Tailwind CSS v4 via `@tailwindcss/postcss` (no `tailwind.config.ts` — config is in `globals.css`).
-- Custom color tokens: `gold`, `gold-light`, `cream`, `charcoal`, `rose`, `sage` (defined as CSS custom properties in `globals.css`).
+- Custom color tokens: `primary`, `success`, `warning`, `danger`, `info` + their `-soft` variants, plus `gold`, `gold-light` (defined as CSS custom properties in `globals.css`).
 - `cn()` utility from `@/lib/utils` (clsx + tailwind-merge).
-- Font: Playfair Display (serif) applied globally via root layout.
+- Fonts: Outfit (`font-display`) for headings, Inter for body. Light mode only.
 
 ## Gotchas
 

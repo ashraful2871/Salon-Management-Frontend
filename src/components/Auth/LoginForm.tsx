@@ -84,7 +84,7 @@ const LoginForm = ({
     >
       {demoLogins && (
         <div className="mb-8 p-5 bg-surface border rounded-2xl shadow-sm">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
                 Demo Access
               </h3>
               <div className="grid grid-cols-2 gap-2">

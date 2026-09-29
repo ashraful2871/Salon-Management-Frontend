@@ -65,8 +65,8 @@ const ReviewModal = ({ open, onClose, appointmentId, salonId }: ReviewModalProps
                 <Star
                   className={`h-8 w-8 ${
                     rating >= star
-                      ? "fill-amber-400 text-amber-400"
-                      : "text-muted-foreground hover:text-amber-200"
+                      ? "fill-gold text-gold"
+                      : "text-muted-foreground hover:text-gold-light"
                   }`}
                 />
               </button>

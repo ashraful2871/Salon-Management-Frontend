@@ -40,12 +40,12 @@ const LocationChip = ({
           }
           title={saved?.label}
           className={cn(
-            "relative grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full border border-slate-200 bg-white text-slate-700 transition-colors hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+            "relative grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full border border-border bg-white text-foreground transition-colors hover:border-gold/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
             className,
           )}
         >
           <MapPin
-            className={cn("h-[18px] w-[18px]", saved ? "text-primary" : "text-slate-500")}
+            className={cn("h-[18px] w-[18px]", saved ? "text-primary" : "text-muted-foreground")}
           />
           {!saved && (
             // Nothing set yet: a small dot nudges toward setting one.
@@ -70,14 +70,14 @@ const LocationChip = ({
         className={cn(
           "inline-flex min-w-0 cursor-pointer items-center gap-1.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
           variant === "block"
-            ? "w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 hover:bg-slate-100"
-            : "h-10 rounded-full border border-slate-200 bg-white px-3 text-slate-700 hover:border-slate-300 hover:shadow-sm",
-          saved ? "" : "text-slate-600",
+            ? "w-full rounded-xl border border-border bg-surface-subtle px-4 py-3 text-foreground hover:bg-muted"
+            : "h-10 rounded-full border border-border bg-white px-3 text-foreground hover:border-gold/50 hover:shadow-sm",
+          saved ? "" : "text-muted-foreground",
           className,
         )}
       >
         <MapPin
-          className={cn("h-4 w-4 shrink-0", saved ? "text-primary" : "text-slate-400")}
+          className={cn("h-4 w-4 shrink-0", saved ? "text-primary" : "text-muted-foreground/60")}
         />
         {variant === "compact" ? (
           <span className="max-w-24 truncate max-[380px]:sr-only">{shortLabel}</span>
@@ -91,7 +91,7 @@ const LocationChip = ({
             {label}
           </span>
         )}
-        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
       </button>
 
       <LocationDialog open={open} onOpenChange={setOpen} onDone={onDone} />

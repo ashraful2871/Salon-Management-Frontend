@@ -264,7 +264,7 @@ const AssistantPanel = ({
     <>
       <header
         className={cn(
-          "flex shrink-0 items-center gap-3 border-b border-border px-4 py-3 bg-surface/80 backdrop-blur-md z-10",
+          "flex shrink-0 items-center gap-3 border-b border-border px-4 py-3 bg-surface z-10",
         )}
       >
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-white shadow-premium">

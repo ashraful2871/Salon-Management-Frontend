@@ -50,7 +50,7 @@ type PaginationProps = {
 };
 
 const baseButton =
-  "inline-flex h-10 min-w-10 cursor-pointer items-center justify-center rounded-xl border text-sm font-semibold tabular-nums transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex h-10 min-w-10 cursor-pointer items-center justify-center rounded-xl border text-sm font-semibold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-40";
 
 export default function Pagination({
   page,

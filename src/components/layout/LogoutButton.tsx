@@ -21,7 +21,7 @@ const LogoutButton = ({
       size="sm"
       title={iconOnly ? "Log out" : undefined}
       className={cn(
-        "w-full cursor-pointer text-red-500 hover:bg-red-50 hover:text-red-600",
+        "w-full cursor-pointer text-danger hover:bg-danger-soft hover:text-danger",
         iconOnly ? "justify-center px-0" : "justify-start",
         className,
       )}

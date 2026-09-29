@@ -171,14 +171,14 @@ export default function MyProfile({ profile }: MyProfileProps) {
                   <div className="pt-1">
                     {(() => {
                       const status = profile.status?.toUpperCase() || "ACTIVE";
-                      let colorClass = "bg-emerald-100 text-emerald-700";
+                      let colorClass = "bg-success-soft text-success";
 
                       if (status === "INACTIVE") {
-                        colorClass = "bg-amber-100 text-amber-700";
+                        colorClass = "bg-warning-soft text-warning";
                       } else if (
                         ["SUSPENDED", "DELETED", "BLOCKED"].includes(status)
                       ) {
-                        colorClass = "bg-red-100 text-red-700";
+                        colorClass = "bg-danger-soft text-danger";
                       }
 
                       return (

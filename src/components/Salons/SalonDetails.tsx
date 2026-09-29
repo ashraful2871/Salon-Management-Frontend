@@ -279,7 +279,7 @@ const SalonDetails = ({ salon }: { salon: any }) => {
                   <h1 className="font-display text-title-lg mb-1">{salon?.name}</h1>
                   <div className="flex items-center gap-3 text-sm">
                     <div className="flex items-center gap-1 font-semibold">
-                      <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                      <Star className="h-4 w-4 fill-gold text-gold" />
                       <span>{formatRating(rating)}</span>
                     </div>
                     <span className="text-muted-foreground">({totalReviews} reviews)</span>
@@ -424,7 +424,7 @@ const SalonDetails = ({ salon }: { salon: any }) => {
                     <div className="flex items-center gap-6 bg-muted/30 p-6 rounded-2xl mb-6">
                       <div className="text-center px-4">
                         <div className="text-4xl font-display font-bold">{formatRating(rating)}</div>
-                        <div className="flex text-amber-400 mt-2">
+                        <div className="flex text-gold mt-2">
                           {[1, 2, 3, 4, 5].map((s) => (
                             <Star key={s} className={`h-4 w-4 ${rating >= s ? "fill-current" : ""}`} />
                           ))}
@@ -440,7 +440,7 @@ const SalonDetails = ({ salon }: { salon: any }) => {
                             <div key={s} className="flex items-center gap-3 text-xs text-muted-foreground">
                               <span className="w-2">{s}</span>
                               <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                                <div className="h-full bg-amber-400" style={{ width: `${pct}%` }} />
+                                <div className="h-full bg-gold" style={{ width: `${pct}%` }} />
                               </div>
                             </div>
                           );
@@ -453,7 +453,7 @@ const SalonDetails = ({ salon }: { salon: any }) => {
                         <div className="flex items-center justify-between mb-2">
                           <p className="font-medium">{r?.user?.name || "Customer"}</p>
                           <div className="flex items-center gap-1 text-sm">
-                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                            <Star className="h-3.5 w-3.5 fill-gold text-gold" />
                             <span className="font-bold">{r?.rating ?? 0}</span>
                           </div>
                         </div>
@@ -549,7 +549,7 @@ const SalonDetails = ({ salon }: { salon: any }) => {
       </section>
 
       {/* MOBILE STICKY BOOKING BAR */}
-      <div className="fixed inset-x-0 bottom-[env(safe-area-inset-bottom)] z-30 lg:hidden border-t bg-surface/95 backdrop-blur-md p-4 flex items-center justify-between shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+      <div className="fixed inset-x-0 bottom-[env(safe-area-inset-bottom)] z-30 lg:hidden border-t bg-surface p-4 flex items-center justify-between shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
         <div>
           {fromPrice > 0 && (
             <div className="text-xs text-muted-foreground font-medium">

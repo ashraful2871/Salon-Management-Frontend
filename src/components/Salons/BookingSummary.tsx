@@ -334,7 +334,7 @@ const BookingSummary = ({
                       </p>
                       {typeof salon.rating === "number" && salon.rating > 0 && (
                         <p className="mt-1 flex items-center gap-1 text-sm">
-                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                          <Star className="h-3.5 w-3.5 fill-gold text-gold" />
                           <span className="font-semibold">
                             {salon.rating.toFixed(1)}
                           </span>
@@ -449,7 +449,7 @@ const BookingSummary = ({
                           onClick={() => available && setSelectedMethod(method.id)}
                           aria-pressed={selected}
                           className={cn(
-                            "flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-all",
+                            "flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-colors",
                             selected &&
                               "border-primary bg-primary/5 ring-2 ring-primary/20",
                             available && !selected && "hover:border-primary/40 hover:bg-muted/50",
@@ -555,7 +555,7 @@ const BookingSummary = ({
                       </span>
                     </p>
                     <p className="flex gap-2">
-                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                       <span>
                         <strong className="text-foreground">
                           You do not show up:
@@ -644,18 +644,18 @@ const BookingSummary = ({
                     </div>
 
                     {activeBlocker ? (
-                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-                        <p className="flex items-center gap-2 font-semibold text-amber-900">
+                      <div className="rounded-lg border border-warning-soft bg-warning-soft p-4">
+                        <p className="flex items-center gap-2 font-semibold text-warning">
                           <AlertTriangle className="h-4 w-4" />
                           {activeBlocker.title}
                         </p>
-                        <p className="mt-1 text-sm text-amber-800">
+                        <p className="mt-1 text-sm text-warning">
                           {activeBlocker.body}
                         </p>
                         <Button
                           asChild
                           size="sm"
-                          className="mt-3 w-full bg-amber-600 hover:bg-amber-700"
+                          className="mt-3 w-full bg-warning text-white hover:bg-warning/90"
                         >
                           <Link href={activeBlocker.action.href}>
                             {activeBlocker.action.label}
@@ -705,7 +705,7 @@ const BookingSummary = ({
           </div>
 
           {/* MOBILE STICKY BOTTOM */}
-          <div className="fixed inset-x-0 bottom-0 z-30 lg:hidden border-t bg-surface/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)] p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+          <div className="fixed inset-x-0 bottom-0 z-30 lg:hidden border-t bg-surface pb-[env(safe-area-inset-bottom)] p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Pay now</p>
