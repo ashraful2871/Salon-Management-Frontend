@@ -2,7 +2,6 @@
 
 import React from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import {
   CalendarDays,
   CheckCircle2,
@@ -112,17 +111,12 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
   return (
     <div className="min-h-screen bg-muted/30 py-12">
       <div className="container mx-auto max-w-3xl px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="text-center"
-        >
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-sage/15">
-            <CheckCircle2 className="h-11 w-11 text-sage" />
+        <div className="text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-success/15">
+            <CheckCircle2 className="h-11 w-11 text-success" />
           </div>
           <h1 className="mt-6 font-display text-3xl font-bold md:text-4xl">
-            Your appointment is booked
+            You're booked
           </h1>
           <p className="mt-2 text-muted-foreground">
             We have emailed the confirmation to you. {booking.salonName} is
@@ -144,14 +138,9 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
               <Copy className="h-3.5 w-3.5 text-muted-foreground" />
             </button>
           )}
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.08 }}
-          className="mt-8 space-y-6"
-        >
+        <div className="mt-8 space-y-6">
           {(hasSerial || booking.token) && (
             <Card className="border-primary/30 shadow-sm">
               <CardContent className="text-center">
@@ -189,7 +178,20 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
               </Badge>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
+              <div className="flex flex-col divide-y">
+                <Row
+                  icon={Store}
+                  label="Salon"
+                  value={booking.salonName}
+                />
+                <Row
+                  icon={CalendarDays}
+                  label="Date & Time"
+                  value={
+                    `${formatCalendarDate(booking.date)} · ${formatClock(booking.startTime)}` + 
+                    (booking.endTime ? ` – ${formatClock(booking.endTime)}` : "")
+                  }
+                />
                 <Row
                   icon={Scissors}
                   label="Service"
@@ -200,33 +202,9 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
                   }
                 />
                 <Row
-                  icon={CalendarDays}
-                  label="Date"
-                  value={formatCalendarDate(booking.date)}
-                />
-                <Row
-                  icon={Clock}
-                  label="Time"
-                  value={
-                    booking.endTime
-                      ? `${formatClock(booking.startTime)} – ${formatClock(booking.endTime)}`
-                      : formatClock(booking.startTime)
-                  }
-                />
-                <Row
-                  icon={Store}
-                  label="Counter"
-                  value={booking.counterName || "Assigned at the salon"}
-                />
-                <Row
-                  icon={UserRound}
-                  label="Specialist"
-                  value={booking.staffName || "Assigned by the salon"}
-                />
-                <Row
-                  icon={MapPin}
-                  label="Where"
-                  value={booking.salonAddress || booking.salonName}
+                  icon={Wallet}
+                  label="Amount"
+                  value={formatBDT(booking.totalMinor)}
                 />
               </div>
 
@@ -287,11 +265,13 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
           </Card>
 
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Button asChild size="lg" className="flex-1">
+            <Button asChild size="lg" className="flex-1 rounded-full">
               <Link href="/dashboard/appointments">View my bookings</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="flex-1">
-              <Link href={`/salons/${booking.salonId}`}>Back to the salon</Link>
+            <Button asChild size="lg" variant="outline" className="flex-1 rounded-full">
+              <a href={`https://maps.google.com/?q=${encodeURIComponent(booking.salonAddress || booking.salonName)}`} target="_blank" rel="noopener noreferrer">
+                Get directions
+              </a>
             </Button>
           </div>
 
@@ -301,7 +281,7 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
               Need to change something? Call the salon on {booking.salonPhone}.
             </p>
           )}
-        </motion.div>
+        </div>
       </div>
     </div>
   );

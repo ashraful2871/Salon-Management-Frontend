@@ -3,7 +3,6 @@
 import React, { useActionState, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -34,6 +33,7 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Separator } from "../ui/separator";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { cn } from "@/lib/utils";
 import { formatBDT } from "@/lib/money";
 import {
@@ -312,11 +312,7 @@ const BookingSummary = ({
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
             {/* LEFT: what is being booked */}
             <div className="space-y-6 lg:col-span-7">
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25 }}
-              >
+              <div>
                 <Card className="overflow-hidden shadow-sm">
                   <div className="flex items-center gap-4 border-b bg-gradient-to-r from-primary/5 to-transparent p-5">
                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted">
@@ -424,14 +420,10 @@ const BookingSummary = ({
                     </div>
                   </CardContent>
                 </Card>
-              </motion.div>
+              </div>
 
               {/* PAYMENT METHOD */}
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: 0.05 }}
-              >
+              <div>
                 <Card className="shadow-sm">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
@@ -531,22 +523,16 @@ const BookingSummary = ({
                     </p>
                   </CardContent>
                 </Card>
-              </motion.div>
+              </div>
 
               {/* POLICY */}
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: 0.1 }}
-              >
-                <Card className="shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <ShieldCheck className="h-4 w-4 text-sage" />
-                      Deposit &amp; cancellation policy
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3 text-sm text-muted-foreground">
+              <div>
+                <Alert className="bg-muted/30 border-none">
+                  <ShieldCheck className="h-4 w-4 text-sage" />
+                  <AlertTitle className="text-base flex items-center gap-2">
+                    Deposit & cancellation policy
+                  </AlertTitle>
+                  <AlertDescription className="space-y-3 mt-3 text-muted-foreground">
                     <p className="flex gap-2">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-sage" />
                       <span>
@@ -578,19 +564,14 @@ const BookingSummary = ({
                         to appeal if that was a mistake.
                       </span>
                     </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
+                  </AlertDescription>
+                </Alert>
+              </div>
             </div>
 
             {/* RIGHT: money and confirm */}
             <div className="lg:col-span-5">
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: 0.05 }}
-                className="lg:sticky lg:top-6 space-y-4"
-              >
+              <div className="lg:sticky lg:top-6 space-y-4">
                 <Card className="shadow-md">
                   <CardHeader>
                     <CardTitle className="text-base">Payment summary</CardTitle>
@@ -719,7 +700,29 @@ const BookingSummary = ({
                     </p>
                   </CardContent>
                 </Card>
-              </motion.div>
+              </div>
+            </div>
+          </div>
+
+          {/* MOBILE STICKY BOTTOM */}
+          <div className="fixed inset-x-0 bottom-0 z-30 lg:hidden border-t bg-surface/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)] p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Pay now</p>
+                <p className="text-lg font-bold text-primary">{formatBDT(depositMinor)}</p>
+              </div>
+              <Button
+                type="submit"
+                size="lg"
+                className="flex-1 rounded-full text-base font-semibold"
+                disabled={confirmDisabled}
+              >
+                {isBusy ? (
+                  <><Loader2 className="h-5 w-5 animate-spin mr-2" /> Confirming...</>
+                ) : (
+                  "Confirm booking"
+                )}
+              </Button>
             </div>
           </div>
         </form>
