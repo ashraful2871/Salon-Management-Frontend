@@ -5,7 +5,9 @@ import HairTryOnSection from "@/components/Home/HairTryOnSection";
 import HowItWorks from "@/components/Home/HowItWorks";
 import NearbySalons from "@/components/Home/NearbySalons";
 import ServiceCategories from "@/components/Home/ServiceCategories";
-import TopRatedSalons, { TopRatedSkeleton } from "@/components/Home/TopRatedSalons";
+import TopRatedSalons, {
+  TopRatedSkeleton,
+} from "@/components/Home/TopRatedSalons";
 import WhySalonKhuji from "@/components/Home/WhySalonKhuji";
 import RecentReviews from "@/components/Home/RecentReviews";
 import PartnerCtaSection from "@/components/Home/PartnerCtaSection";
