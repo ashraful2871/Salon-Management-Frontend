@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import Hero from "@/components/Home/Hero";
+import HairTryOnSection from "@/components/Home/HairTryOnSection";
 import HowItWorks from "@/components/Home/HowItWorks";
 import NearbySalons from "@/components/Home/NearbySalons";
 import ServiceCategories from "@/components/Home/ServiceCategories";
@@ -20,6 +21,7 @@ export default function Home() {
       <Suspense fallback={<TopRatedSkeleton />}>
         <TopRatedSalons />
       </Suspense>
+      <HairTryOnSection />
       <HowItWorks />
       <WhySalonKhuji />
       {/* Renders nothing below three good reviews, so no skeleton to collapse. */}
