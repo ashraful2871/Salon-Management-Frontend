@@ -172,7 +172,7 @@ export function RefundDialog({
         </dl>
 
         {topup.availableMinor < remaining ? (
-          <p className="flex gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+          <p className="flex gap-2 rounded-md border border-warning-soft bg-warning-soft/30 p-3 text-sm text-warning">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
               The customer has only {formatBDT(topup.availableMinor)} available. A

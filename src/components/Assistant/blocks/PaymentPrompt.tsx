@@ -272,7 +272,7 @@ const PaymentPrompt = ({
           {block.methods.map((m) => (
             <span
               key={m}
-              className="rounded-full border border-border bg-background px-2 py-0.5"
+              className="rounded-full border border-border bg-surface px-2 py-0.5"
             >
               {m}
             </span>

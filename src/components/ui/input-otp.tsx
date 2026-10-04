@@ -30,7 +30,7 @@ function InputOTPGroup({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="input-otp-group"
-      className={cn("flex items-center", className)}
+      className={cn("flex items-center gap-1.5", className)}
       {...props}
     />
   )
@@ -51,7 +51,7 @@ function InputOTPSlot({
       data-slot="input-otp-slot"
       data-active={isActive}
       className={cn(
-        "relative flex h-12 w-10 sm:w-12 items-center justify-center border-y border-r border-slate-200 bg-white text-lg font-bold text-slate-900 shadow-sm transition-all outline-none first:rounded-l-xl first:border-l last:rounded-r-xl",
+        "relative flex size-11 min-[380px]:size-12 items-center justify-center rounded-xl border border-input bg-surface text-lg font-semibold text-foreground shadow-xs transition-[color,box-shadow] outline-none",
         "data-[active=true]:z-10 data-[active=true]:border-primary data-[active=true]:ring-[3px] data-[active=true]:ring-primary/25",
         "aria-invalid:border-destructive data-[active=true]:aria-invalid:border-destructive data-[active=true]:aria-invalid:ring-destructive/20",
         className
@@ -61,7 +61,7 @@ function InputOTPSlot({
       {char}
       {hasFakeCaret && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="animate-caret-blink h-5 w-px bg-slate-900 duration-1000" />
+          <div className="animate-caret-blink h-5 w-px bg-foreground duration-1000" />
         </div>
       )}
     </div>
@@ -73,7 +73,7 @@ function InputOTPSeparator({ ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="input-otp-separator"
       role="separator"
-      className="text-slate-300"
+      className="text-muted-foreground"
       {...props}
     >
       <MinusIcon className="size-4" />

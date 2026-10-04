@@ -463,8 +463,8 @@ export function LocateControl({
           title={label}
           aria-busy={status === "locating"}
           className={cn(
-            "grid h-10 w-10 cursor-pointer place-items-center rounded-xl border border-black/10 bg-white shadow-md transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60",
-            fix && centred ? "text-blue-600" : "text-slate-700",
+            "grid h-10 w-10 cursor-pointer place-items-center rounded-xl border border-black/10 bg-white shadow-md transition-colors hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+            fix && centred ? "text-primary" : "text-muted-foreground",
           )}
         >
           <Icon

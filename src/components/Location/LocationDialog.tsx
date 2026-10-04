@@ -480,7 +480,7 @@ const OptionButton = ({
     onClick={onClick}
     disabled={disabled}
     className={cn(
-      "group flex w-full cursor-pointer items-center gap-3 rounded-2xl border p-3.5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60",
+      "group flex w-full cursor-pointer items-center gap-3 rounded-2xl border p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60",
       primary
         ? "border-transparent bg-gradient-gold text-white shadow-gold hover:brightness-105"
         : "border-border bg-background hover:border-gold/50 hover:bg-gold/5",
@@ -826,7 +826,7 @@ const MapStep = ({
           <span
             aria-hidden="true"
             className={cn(
-              "absolute left-1/2 top-1/2 h-1.5 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/30 blur-[1px] transition-transform duration-200",
+              "absolute left-1/2 top-1/2 h-1.5 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/20 transition-transform duration-200",
               moving && "scale-150 opacity-60",
             )}
           />

@@ -3,7 +3,6 @@
 import React, { useActionState, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -14,7 +13,6 @@ import {
   Clock,
   CreditCard,
   Info,
-  Loader2,
   Lock,
   MapPin,
   Pencil,
@@ -34,6 +32,7 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Separator } from "../ui/separator";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { cn } from "@/lib/utils";
 import { formatBDT } from "@/lib/money";
 import {
@@ -139,7 +138,7 @@ const DetailRow = ({
   hint?: string;
 }) => (
   <div className="flex items-start gap-4 py-4">
-    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-soft">
       <Icon className="h-4 w-4 text-primary" />
     </div>
     <div className="min-w-0 flex-1">
@@ -165,7 +164,7 @@ const Step = ({
     <span
       className={cn(
         "flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold",
-        state === "done" && "bg-primary/15 text-primary",
+        state === "done" && "bg-primary-soft text-primary",
         state === "current" && "bg-primary text-primary-foreground",
         state === "todo" && "bg-muted text-muted-foreground",
       )}
@@ -266,7 +265,7 @@ const BookingSummary = ({
     isBusy || Boolean(activeBlocker) || selectedMethod !== WALLET_METHOD_ID;
 
   return (
-    <div className="min-h-screen bg-muted/30 pb-16">
+    <div className="min-h-screen bg-surface-subtle pb-[calc(8rem+env(safe-area-inset-bottom))] lg:pb-16">
       {/* HEADER */}
       <div className="border-b bg-background">
         <div className="container mx-auto px-4 py-5">
@@ -312,13 +311,9 @@ const BookingSummary = ({
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
             {/* LEFT: what is being booked */}
             <div className="space-y-6 lg:col-span-7">
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25 }}
-              >
+              <div>
                 <Card className="overflow-hidden shadow-sm">
-                  <div className="flex items-center gap-4 border-b bg-gradient-to-r from-primary/5 to-transparent p-5">
+                  <div className="flex items-center gap-4 border-b bg-surface-subtle p-5">
                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted">
                       <SafeImage
                         src={salon.image}
@@ -338,7 +333,7 @@ const BookingSummary = ({
                       </p>
                       {typeof salon.rating === "number" && salon.rating > 0 && (
                         <p className="mt-1 flex items-center gap-1 text-sm">
-                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                          <Star className="h-3.5 w-3.5 fill-gold text-gold" />
                           <span className="font-semibold">
                             {salon.rating.toFixed(1)}
                           </span>
@@ -424,14 +419,10 @@ const BookingSummary = ({
                     </div>
                   </CardContent>
                 </Card>
-              </motion.div>
+              </div>
 
               {/* PAYMENT METHOD */}
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: 0.05 }}
-              >
+              <div>
                 <Card className="shadow-sm">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
@@ -443,7 +434,7 @@ const BookingSummary = ({
                       salon.
                     </p>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-3" role="radiogroup" aria-label="Payment method">
                     {PAYMENT_METHODS.map((method) => {
                       const Icon = METHOD_ICONS[method.id] || CreditCard;
                       const available = method.status === "AVAILABLE";
@@ -455,12 +446,13 @@ const BookingSummary = ({
                           type="button"
                           disabled={!available}
                           onClick={() => available && setSelectedMethod(method.id)}
-                          aria-pressed={selected}
+                          role="radio"
+                          aria-checked={selected}
                           className={cn(
-                            "flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-all",
+                            "flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-colors",
                             selected &&
-                              "border-primary bg-primary/5 ring-2 ring-primary/20",
-                            available && !selected && "hover:border-primary/40 hover:bg-muted/50",
+                              "border-primary bg-primary-soft ring-2 ring-primary/20",
+                            available && !selected && "bg-surface hover:border-primary/40 hover:bg-surface-subtle",
                             !available && "cursor-not-allowed border-dashed opacity-60",
                           )}
                         >
@@ -498,7 +490,7 @@ const BookingSummary = ({
                                 <span
                                   className={cn(
                                     "font-semibold",
-                                    hasShortfall ? "text-destructive" : "text-sage",
+                                    hasShortfall ? "text-destructive" : "text-success",
                                   )}
                                 >
                                   {wallet.loaded
@@ -531,24 +523,18 @@ const BookingSummary = ({
                     </p>
                   </CardContent>
                 </Card>
-              </motion.div>
+              </div>
 
               {/* POLICY */}
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: 0.1 }}
-              >
-                <Card className="shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <ShieldCheck className="h-4 w-4 text-sage" />
-                      Deposit &amp; cancellation policy
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3 text-sm text-muted-foreground">
+              <div>
+                <Alert className="border-border bg-surface-subtle">
+                  <ShieldCheck className="h-4 w-4 text-success" />
+                  <AlertTitle className="text-base flex items-center gap-2">
+                    Deposit & cancellation policy
+                  </AlertTitle>
+                  <AlertDescription className="space-y-3 mt-3 text-muted-foreground">
                     <p className="flex gap-2">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-sage" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                       <span>
                         <strong className="text-foreground">You turn up:</strong>{" "}
                         the {formatBDT(depositMinor)} deposit comes off your bill
@@ -556,7 +542,7 @@ const BookingSummary = ({
                       </span>
                     </p>
                     <p className="flex gap-2">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-sage" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                       <span>
                         <strong className="text-foreground">
                           You cancel in time:
@@ -569,7 +555,7 @@ const BookingSummary = ({
                       </span>
                     </p>
                     <p className="flex gap-2">
-                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                       <span>
                         <strong className="text-foreground">
                           You do not show up:
@@ -578,19 +564,14 @@ const BookingSummary = ({
                         to appeal if that was a mistake.
                       </span>
                     </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
+                  </AlertDescription>
+                </Alert>
+              </div>
             </div>
 
             {/* RIGHT: money and confirm */}
             <div className="lg:col-span-5">
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: 0.05 }}
-                className="lg:sticky lg:top-6 space-y-4"
-              >
+              <div className="lg:sticky lg:top-24 space-y-4">
                 <Card className="shadow-md">
                   <CardHeader>
                     <CardTitle className="text-base">Payment summary</CardTitle>
@@ -663,18 +644,18 @@ const BookingSummary = ({
                     </div>
 
                     {activeBlocker ? (
-                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-                        <p className="flex items-center gap-2 font-semibold text-amber-900">
+                      <div className="rounded-lg border border-warning-soft bg-warning-soft p-4">
+                        <p className="flex items-center gap-2 font-semibold text-warning">
                           <AlertTriangle className="h-4 w-4" />
                           {activeBlocker.title}
                         </p>
-                        <p className="mt-1 text-sm text-amber-800">
+                        <p className="mt-1 text-sm text-warning">
                           {activeBlocker.body}
                         </p>
                         <Button
                           asChild
                           size="sm"
-                          className="mt-3 w-full bg-amber-600 hover:bg-amber-700"
+                          className="mt-3 w-full bg-warning text-white hover:bg-warning/90"
                         >
                           <Link href={activeBlocker.action.href}>
                             {activeBlocker.action.label}
@@ -683,20 +664,19 @@ const BookingSummary = ({
                       </div>
                     ) : null}
 
+                    {/* Phones confirm from the fixed bar below. */}
                     <Button
                       type="submit"
                       size="lg"
-                      className="w-full gap-2 text-base font-semibold"
+                      className="hidden w-full text-base lg:inline-flex"
                       disabled={confirmDisabled}
+                      loading={isBusy}
                     >
                       {isBusy ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Confirming...
-                        </>
+                        "Confirming..."
                       ) : (
                         <>
-                          <Lock className="h-4 w-4" />
+                          <Lock aria-hidden />
                           Confirm &amp; hold {formatBDT(depositMinor)}
                         </>
                       )}
@@ -719,7 +699,44 @@ const BookingSummary = ({
                     </p>
                   </CardContent>
                 </Card>
-              </motion.div>
+              </div>
+            </div>
+          </div>
+
+          {/* MOBILE STICKY BOTTOM */}
+          <div
+            data-bottom-bar
+            className="fixed inset-x-0 bottom-0 z-30 lg:hidden border-t bg-surface/95 pb-[env(safe-area-inset-bottom)]"
+          >
+            <div className="container mx-auto px-4 py-3">
+              {activeBlocker && (
+                <Link
+                  href={activeBlocker.action.href}
+                  className="mb-2 flex items-center gap-1.5 text-sm font-medium text-warning"
+                >
+                  <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
+                  <span className="truncate">{activeBlocker.title}</span>
+                  <ChevronRight className="ml-auto h-4 w-4 shrink-0" aria-hidden />
+                </Link>
+              )}
+              <div className="flex items-center justify-between gap-4">
+                <div className="shrink-0">
+                  <p className="text-xs text-muted-foreground">
+                    Pay now · total{" "}
+                    <span className="tabular-nums">{formatBDT(service.priceMinor)}</span>
+                  </p>
+                  <p className="text-lg font-bold tabular-nums">{formatBDT(depositMinor)}</p>
+                </div>
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="min-w-0 flex-1 text-base"
+                  disabled={confirmDisabled}
+                  loading={isBusy}
+                >
+                  {isBusy ? "Confirming..." : "Confirm booking"}
+                </Button>
+              </div>
             </div>
           </div>
         </form>

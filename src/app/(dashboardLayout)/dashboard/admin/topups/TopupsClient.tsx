@@ -73,7 +73,7 @@ const dateFormat = new Intl.DateTimeFormat("en-GB", {
 const formatDate = (iso?: string | null) =>
   iso ? dateFormat.format(new Date(iso)) : "—";
 
-const AMBER = "border-amber-300 bg-amber-100 text-amber-800";
+const AMBER = "border-warning-soft bg-warning-soft text-warning";
 
 const StatusBadge = ({ status }: { status: string }) => {
   switch (status) {
@@ -103,7 +103,7 @@ const RefundStatusBadge = ({
   status: AdminTopupRefund["status"];
 }) =>
   status === "COMPLETED" ? (
-    <Badge className="bg-green-600 text-white">Completed</Badge>
+    <Badge className="bg-success text-white">Completed</Badge>
   ) : status === "UNKNOWN" ? (
     <Badge variant="outline" className={AMBER}>
       Unknown
@@ -147,7 +147,7 @@ const RefundHistory = ({ topup }: { topup: AdminTopup }) => (
             <span
               className={cn(
                 "basis-full text-xs",
-                refund.status === "FAILED" ? "text-destructive" : "text-amber-700",
+                refund.status === "FAILED" ? "text-destructive" : "text-warning",
               )}
             >
               {refund.message}

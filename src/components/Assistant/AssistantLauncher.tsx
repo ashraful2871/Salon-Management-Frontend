@@ -52,10 +52,10 @@ const AssistantLauncher = () => {
   };
 
   return (
-    <div className="fixed bottom-[calc(5rem+var(--launcher-offset))] right-5 z-40 md:bottom-[calc(1.25rem+var(--launcher-offset))]">
+    <div className="fixed right-4 bottom-[calc(1rem+var(--launcher-offset)+env(safe-area-inset-bottom))] z-50 transition-[bottom] duration-200 motion-reduce:transition-none md:right-8 md:bottom-[calc(2rem+var(--launcher-offset))]">
       {pulse && (
         <span
-          className="absolute inset-0 animate-ping rounded-full bg-gold/40"
+          className="absolute inset-0 rounded-full bg-primary/40 motion-safe:animate-ping"
           style={{ animationIterationCount: 3 }}
           aria-hidden
         />
@@ -69,17 +69,18 @@ const AssistantLauncher = () => {
         onTouchStart={preloadAssistantPanel}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
-        aria-label="Book with AI"
+        aria-label="AI Assistant"
         className={cn(
-          "relative flex h-14 cursor-pointer items-center gap-2 rounded-full bg-gradient-gold text-white shadow-gold",
-          "transition-transform duration-200 hover:scale-105 active:scale-95",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2",
-          "w-14 justify-center sm:w-auto sm:justify-start sm:px-5",
+          // A circle on phones (it shares the bottom edge with page pills), a
+          // labelled pill from `sm`.
+          "relative flex size-14 cursor-pointer items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground shadow-card sm:w-auto sm:px-5",
+          "transition-[background-color,transform] duration-200 hover:bg-primary-hover motion-safe:active:scale-95",
+          "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2"
         )}
       >
-        <Sparkles className="h-6 w-6 shrink-0 sm:h-5 sm:w-5" aria-hidden />
+        <Sparkles className="h-5 w-5 shrink-0" aria-hidden />
         <span className="hidden text-sm font-semibold sm:inline">
-          Book with AI
+          AI Assistant
         </span>
       </button>
     </div>

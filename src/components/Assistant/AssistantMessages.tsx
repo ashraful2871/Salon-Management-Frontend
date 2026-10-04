@@ -35,7 +35,7 @@ const TypingIndicator = ({ label }: { label: string }) => (
       {[0, 1, 2].map((i) => (
         <span
           key={i}
-          className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/70"
+          className="h-1.5 w-1.5 rounded-full bg-muted-foreground/70 motion-safe:animate-bounce"
           style={{ animationDelay: `${i * 0.15}s` }}
         />
       ))}
@@ -104,7 +104,7 @@ const AssistantMessages = ({
           >
             {message.text && (
               <div className="flex items-start gap-2">
-                <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gradient-gold text-white">
+                <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary-soft text-primary-hover">
                   <Sparkles className="h-3.5 w-3.5" aria-hidden />
                 </span>
                 <p

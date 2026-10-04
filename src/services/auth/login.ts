@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import type { ApiResponse } from "@/lib/api-types";
 import type { AuthResult } from "@/lib/auth-types";
 import { applySession, extractTokens } from "@/lib/auth-session";
@@ -50,6 +51,8 @@ export const loginUser = async (
     if (!tokens) throw new Error("Tokens not found in response");
 
     await applySession(tokens);
+
+    revalidatePath("/", "layout");
 
     if (redirectTo) {
       redirect(redirectTo as string);

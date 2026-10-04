@@ -93,7 +93,7 @@ const ChatBookingSummary = ({
   const move = block.reschedule;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-primary/30 bg-background">
+    <div className="overflow-hidden rounded-xl border border-primary/30 bg-surface">
       <div className="border-b border-border bg-primary/5 px-3.5 py-2.5">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">
           {move ? `Moving your ${move.label} booking` : "Your appointment"}

@@ -2,27 +2,29 @@
 
 import React from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import {
   CalendarDays,
+  CalendarPlus,
   CheckCircle2,
-  Clock,
-  Copy,
-  MapPin,
+  Navigation,
   Phone,
   Scissors,
   ShieldCheck,
   Store,
-  UserRound,
   Wallet,
 } from "lucide-react";
-import { toast } from "sonner";
 
 import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Separator } from "../ui/separator";
+import CopyButton from "@/components/Wallet/CopyButton";
+import { ToneBadge } from "@/components/Shared/ToneBadge";
 import { formatBDT } from "@/lib/money";
+import {
+  bookingEventDescription,
+  calendarFileName,
+  calendarHref,
+} from "@/lib/calendar";
 
 export type ConfirmedBooking = {
   id: string;
@@ -75,11 +77,11 @@ const Row = ({
   value: React.ReactNode;
 }) => (
   <div className="flex items-start gap-3 py-3">
-    <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+    <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-primary-soft">
+      <Icon className="h-4 w-4 text-primary" />
+    </span>
     <div className="min-w-0 flex-1">
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
+      <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-0.5 font-semibold break-words">{value}</p>
     </div>
   </div>
@@ -92,104 +94,74 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
     Math.max(booking.totalMinor - booking.depositMinor, 0);
   const hasSerial =
     booking.serialNumber !== null && booking.serialNumber !== undefined;
-  const queueLine = [
-    booking.serviceName,
-    booking.counterName,
-    formatClock(booking.startTime),
-  ]
+  // The token is what the counter asks for; the ref is only a fallback so the
+  // customer is never handed two codes.
+  const code = booking.token || reference;
+  const codeLabel = booking.token ? "Token" : "Booking reference";
+  const queueLine = [booking.counterName, booking.staffName]
     .filter(Boolean)
     .join(" · ");
 
-  const copy = async (value: string, what: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
-      toast.success(`${what} copied`);
-    } catch {
-      toast.error(`Could not copy the ${what.toLowerCase()}`);
-    }
-  };
+  const directionsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    [booking.salonName, booking.salonAddress].filter(Boolean).join(", "),
+  )}`;
 
   return (
-    <div className="min-h-screen bg-muted/30 py-12">
-      <div className="container mx-auto max-w-3xl px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="text-center"
-        >
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-sage/15">
-            <CheckCircle2 className="h-11 w-11 text-sage" />
+    <div className="min-h-screen bg-surface-subtle py-10 md:py-14">
+      <div className="container mx-auto max-w-2xl px-4">
+        <div className="text-center">
+          <div className="mx-auto grid size-16 place-items-center rounded-full bg-success-soft md:size-20">
+            <CheckCircle2 className="size-9 text-success md:size-11" aria-hidden />
           </div>
-          <h1 className="mt-6 font-display text-3xl font-bold md:text-4xl">
-            Your appointment is booked
+          <h1 className="mt-5 font-display text-3xl font-bold md:text-4xl">
+            You&apos;re booked
           </h1>
           <p className="mt-2 text-muted-foreground">
             We have emailed the confirmation to you. {booking.salonName} is
             expecting you.
           </p>
+        </div>
 
-          {/* The token is what the counter asks for; the ref is only a
-              fallback so the customer is never handed two codes. */}
-          {!booking.token && (
-            <button
-              type="button"
-              onClick={() => copy(reference, "Booking reference")}
-              className="mt-5 inline-flex items-center gap-2 rounded-full border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
-            >
-              <span className="text-muted-foreground">Booking ref</span>
-              <span className="font-mono font-bold tracking-wider">
-                {reference}
-              </span>
-              <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-            </button>
-          )}
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.08 }}
-          className="mt-8 space-y-6"
-        >
-          {(hasSerial || booking.token) && (
-            <Card className="border-primary/30 shadow-sm">
-              <CardContent className="text-center">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Show this at the counter
+        <div className="mt-8 space-y-5">
+          <Card className="gap-0 border-primary/30 py-0 shadow-sm">
+            <CardContent className="p-6 text-center">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Show this at the counter
+              </p>
+              <div className="mt-3 flex items-center justify-center gap-2">
+                <span className="font-mono text-3xl font-bold tracking-widest break-all md:text-4xl">
+                  {code}
+                </span>
+                <CopyButton value={code} label={codeLabel} className="size-11" />
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">{codeLabel}</p>
+              {hasSerial && (
+                <p className="mt-4 font-display text-xl font-semibold tabular-nums text-primary">
+                  Serial #{booking.serialNumber}
                 </p>
-                {hasSerial && (
-                  <p className="mt-3 font-display text-5xl font-bold tabular-nums text-primary md:text-6xl">
-                    Serial #{booking.serialNumber}
-                  </p>
-                )}
-                <p className="mt-3 font-medium">{queueLine}</p>
-                {booking.token && (
-                  <button
-                    type="button"
-                    onClick={() => copy(booking.token ?? "", "Token")}
-                    className="mt-4 inline-flex items-center gap-2 rounded-full border border-dashed border-primary/40 bg-muted/40 px-4 py-2 text-sm transition-colors hover:bg-muted"
-                  >
-                    <span className="text-muted-foreground">Token</span>
-                    <span className="font-mono font-bold tracking-wider">
-                      {booking.token}
-                    </span>
-                    <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-                  </button>
-                )}
-              </CardContent>
-            </Card>
-          )}
+              )}
+              {queueLine && (
+                <p className="mt-1 text-sm text-muted-foreground">{queueLine}</p>
+              )}
+            </CardContent>
+          </Card>
 
           <Card className="shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between gap-3">
               <CardTitle className="text-base">Appointment details</CardTitle>
-              <Badge variant="secondary" className="uppercase">
-                {booking.status.replace(/_/g, " ")}
-              </Badge>
+              <ToneBadge status={booking.status} />
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
+              <div className="flex flex-col divide-y">
+                <Row icon={Store} label="Salon" value={booking.salonName} />
+                <Row
+                  icon={CalendarDays}
+                  label="Date · time"
+                  value={
+                    `${formatCalendarDate(booking.date)} · ${formatClock(booking.startTime)}` +
+                    (booking.endTime ? ` – ${formatClock(booking.endTime)}` : "")
+                  }
+                />
                 <Row
                   icon={Scissors}
                   label="Service"
@@ -200,33 +172,11 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
                   }
                 />
                 <Row
-                  icon={CalendarDays}
-                  label="Date"
-                  value={formatCalendarDate(booking.date)}
-                />
-                <Row
-                  icon={Clock}
-                  label="Time"
+                  icon={Wallet}
+                  label="Amount"
                   value={
-                    booking.endTime
-                      ? `${formatClock(booking.startTime)} – ${formatClock(booking.endTime)}`
-                      : formatClock(booking.startTime)
+                    <span className="tabular-nums">{formatBDT(booking.totalMinor)}</span>
                   }
-                />
-                <Row
-                  icon={Store}
-                  label="Counter"
-                  value={booking.counterName || "Assigned at the salon"}
-                />
-                <Row
-                  icon={UserRound}
-                  label="Specialist"
-                  value={booking.staffName || "Assigned by the salon"}
-                />
-                <Row
-                  icon={MapPin}
-                  label="Where"
-                  value={booking.salonAddress || booking.salonName}
                 />
               </div>
 
@@ -245,22 +195,22 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
           <Card className="shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <Wallet className="h-4 w-4 text-primary" />
+                <Wallet className="h-4 w-4 text-primary" aria-hidden />
                 What has been paid
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <span className="text-muted-foreground">Service price</span>
-                <span className="font-medium">
+                <span className="font-medium tabular-nums">
                   {formatBDT(booking.totalMinor)}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <span className="text-muted-foreground">
                   Deposit held from your wallet
                 </span>
-                <span className="font-semibold text-primary">
+                <span className="font-semibold text-primary tabular-nums">
                   {formatBDT(booking.depositMinor)}
                 </span>
               </div>
@@ -269,7 +219,7 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
                 {dueAtSalonMinor > 0 ? (
                   <>
                     Pay{" "}
-                    <span className="font-bold">
+                    <span className="font-bold tabular-nums">
                       {formatBDT(dueAtSalonMinor)}
                     </span>{" "}
                     at the salon
@@ -278,30 +228,60 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
                   "Nothing more to pay at the salon"
                 )}
               </p>
-              <p className="flex items-start gap-2 rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
-                <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sage" />
+              <p className="flex items-start gap-2 rounded-lg bg-surface-subtle p-3 text-xs text-muted-foreground">
+                <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" aria-hidden />
                 The deposit is held, not spent. It comes off your bill when you
                 arrive, and returns to your wallet in full if you cancel in time.
               </p>
             </CardContent>
           </Card>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button asChild size="lg" className="flex-1">
+          <div className="flex flex-col gap-3 sm:flex-row-reverse">
+            <Button asChild size="lg" className="sm:flex-1">
               <Link href="/dashboard/appointments">View my bookings</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="flex-1">
-              <Link href={`/salons/${booking.salonId}`}>Back to the salon</Link>
+            <Button asChild size="lg" variant="outline" className="sm:flex-1">
+              <a href={directionsHref} target="_blank" rel="noopener noreferrer">
+                <Navigation aria-hidden /> Get directions
+              </a>
+            </Button>
+          </div>
+          <div className="text-center">
+            <Button asChild variant="ghost" size="sm">
+              <a
+                href={calendarHref({
+                  id: booking.id,
+                  date: booking.date,
+                  startTime: booking.startTime,
+                  endTime: booking.endTime,
+                  title: `${booking.serviceName} at ${booking.salonName}`,
+                  location: booking.salonAddress,
+                  description: bookingEventDescription({
+                    token: booking.token,
+                    serialNumber: booking.serialNumber,
+                    dueAtSalonMinor,
+                  }),
+                })}
+                download={calendarFileName(booking.salonName, booking.date)}
+              >
+                <CalendarPlus aria-hidden /> Add to calendar
+              </a>
             </Button>
           </div>
 
           {booking.salonPhone && (
             <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Phone className="h-3.5 w-3.5" />
-              Need to change something? Call the salon on {booking.salonPhone}.
+              <Phone className="h-3.5 w-3.5" aria-hidden />
+              <span>
+                Need to change something? Call the salon on{" "}
+                <a href={`tel:${booking.salonPhone}`} className="font-medium text-foreground underline-offset-4 hover:underline">
+                  {booking.salonPhone}
+                </a>
+                .
+              </span>
             </p>
           )}
-        </motion.div>
+        </div>
       </div>
     </div>
   );

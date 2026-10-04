@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import type { ApiResponse } from "@/lib/api-types";
 import type { AuthResult } from "@/lib/auth-types";
 import { applySession, extractTokens } from "@/lib/auth-session";
@@ -78,6 +79,7 @@ export const verifyOtpAction = async (
     };
   }
 
+  revalidatePath("/", "layout");
   redirect(
     state.n ?? (state.k === "register" ? "/?registered=true" : "/?loggedIn=true"),
   );

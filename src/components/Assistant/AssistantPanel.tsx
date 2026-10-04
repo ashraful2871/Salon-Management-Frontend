@@ -11,13 +11,12 @@ import {
 import { createPortal } from "react-dom";
 import {
   motion,
-  useDragControls,
   useReducedMotion,
-  type PanInfo,
 } from "framer-motion";
 import {
   ArrowDown,
   Loader2,
+  PlusCircleIcon,
   RotateCcw,
   Send,
   Sparkles,
@@ -34,27 +33,17 @@ import Chip from "./Chip";
 import PrivacyFooter from "./PrivacyFooter";
 import type { SendAction } from "./block-props";
 
-/** Any Bangla letter: the field switches to the Bangla font stack. */
 const BANGLA = /[ঀ-৿]/;
 
 type AssistantPanelProps = {
-  /** `overlay` is the floating panel / bottom sheet; `page` is the same chat
-   *  filling `/assistant`, where it is content rather than a dialog. */
   variant?: "overlay" | "page";
-  /** `/assistant?resume=1`, the way back from the wallet result page: reopen
-   *  the chat and ask about the payment once. Page variant only. */
   resume?: boolean;
-  /** From the `sm_chat_resume` cookie, for a tab with no chat of its own. */
   resumeId?: string | null;
 };
 
 const FOCUSABLE =
   'a[href],button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
-/** How a top-up is watched: from the moment the customer is back (window
- *  focus), every few seconds, for a few minutes — then a "Check again" tap. The
- *  IPN and the reconciliation sweep settle the payment whether anyone watches
- *  or not; this only decides when the chat finds out. */
 const POLL_EVERY_MS = 5_000;
 const POLL_FOR_MS = 3 * 60_000;
 
@@ -87,16 +76,10 @@ const AssistantPanel = ({
   const headingId = useId();
   const isMobile = !useMediaQuery("(min-width: 768px)");
   const reduceMotion = useReducedMotion();
-  const dragControls = useDragControls();
 
   const panelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  // Whether the transcript is parked at the bottom. A ref, not state, so the
-  // scroll effect does not re-run every time it flips.
   const atBottomRef = useRef(true);
-  // A smooth scroll fires scroll events all the way down, every one of them
-  // reading as "not at the bottom" until it lands. Without this the widget
-  // announces a new message the customer is already looking at.
   const autoScrollUntil = useRef(0);
   const [unseen, setUnseen] = useState(false);
   const [draft, setDraft] = useState("");
@@ -275,26 +258,24 @@ const AssistantPanel = ({
     sendText(query);
   };
 
-  const handleDragEnd = (_: unknown, info: PanInfo) => {
-    if (info.offset.y > 120 || info.velocity.y > 600) close();
-  };
-
   /* ------------------------------------------------------------- render */
 
   const body = (
     <>
       <header
         className={cn(
-          "flex shrink-0 items-center gap-3 border-b border-border px-4",
-          isOverlay && isMobile ? "pb-3 pt-1" : "py-3",
+          "flex shrink-0 items-center gap-3 border-b border-border px-4 py-3 bg-surface z-10",
         )}
       >
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-gold text-white shadow-gold">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary-soft text-primary-hover">
           <Sparkles className="h-4.5 w-4.5" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 id={headingId} className="truncate text-sm font-bold text-foreground">
-            Book with AI
+          <h2
+            id={headingId}
+            className="truncate font-display text-base font-semibold text-foreground"
+          >
+            Salon Assistant
           </h2>
           <p className="truncate text-xs text-muted-foreground">
             Tap an option or type what you need
@@ -318,9 +299,9 @@ const AssistantPanel = ({
           disabled={pending}
           title="Start a new chat"
           aria-label="Start a new chat"
-          className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
         >
-          <RotateCcw className="h-4 w-4" aria-hidden />
+          <PlusCircleIcon className="h-4 w-4" aria-hidden />
         </button>
 
         {isOverlay && (
@@ -328,7 +309,7 @@ const AssistantPanel = ({
             type="button"
             onClick={close}
             aria-label="Close the assistant"
-            className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
           >
             <X className="h-4.5 w-4.5" aria-hidden />
           </button>
@@ -364,7 +345,7 @@ const AssistantPanel = ({
               <button
                 type="button"
                 onClick={error.retry}
-                className="mt-2 inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                className="mt-2 inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
               >
                 <RotateCcw className="h-4 w-4" aria-hidden />
                 Try again
@@ -377,7 +358,7 @@ const AssistantPanel = ({
           <button
             type="button"
             onClick={() => scrollToBottom(true)}
-            className="absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 cursor-pointer items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-xs font-semibold text-background shadow-lg"
+            className="absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 cursor-pointer items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-xs font-semibold text-background shadow-card"
           >
             New message
             <ArrowDown className="h-3.5 w-3.5" aria-hidden />
@@ -388,15 +369,15 @@ const AssistantPanel = ({
       {pendingTopup && (
         <div
           role="status"
-          className="flex shrink-0 items-center gap-3 border-t border-gold/30 bg-gold/5 px-4 py-2.5"
+          className="flex shrink-0 items-center gap-3 border-t border-primary/30 bg-primary-soft px-4 py-2.5"
         >
           {checkingPayment || (!gaveUp && !pending) ? (
             <Loader2
-              className="h-4 w-4 shrink-0 animate-spin text-gold"
+              className="h-4 w-4 shrink-0 animate-spin text-primary-hover"
               aria-hidden
             />
           ) : (
-            <Wallet className="h-4 w-4 shrink-0 text-gold" aria-hidden />
+            <Wallet className="h-4 w-4 shrink-0 text-primary-hover" aria-hidden />
           )}
           <p className="min-w-0 flex-1 text-xs leading-snug text-foreground">
             <span className="font-semibold">
@@ -431,13 +412,13 @@ const AssistantPanel = ({
             lang={BANGLA.test(draft) ? "bn" : undefined}
             aria-label="Message the booking assistant"
             placeholder="Try “haircut in Dhanmondi tomorrow”"
-            className="min-h-11 min-w-0 flex-1 rounded-full border border-border bg-background px-4 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+            className="min-h-11 min-w-0 flex-1 rounded-full border border-input bg-surface px-4 text-base sm:text-sm text-foreground outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-ring disabled:opacity-50"
           />
           <button
             type="submit"
             disabled={pending || !draft.trim()}
             aria-label="Send"
-            className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-40 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
           >
             <Send className="h-4 w-4" aria-hidden />
           </button>
@@ -454,7 +435,7 @@ const AssistantPanel = ({
 
   if (!isOverlay) {
     return (
-      <div className="flex h-[min(760px,78svh)] w-full flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-xl">
+      <div className="flex h-[min(760px,78svh)] w-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
         {body}
       </div>
     );
@@ -463,9 +444,9 @@ const AssistantPanel = ({
   const enter = reduceMotion
     ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
     : {
-        initial: { opacity: 0, y: isMobile ? 24 : 12, scale: isMobile ? 1 : 0.98 },
-        animate: { opacity: 1, y: 0, scale: 1 },
-        exit: { opacity: 0, y: isMobile ? 24 : 12, scale: isMobile ? 1 : 0.98 },
+        initial: { x: "100%" },
+        animate: { x: 0 },
+        exit: { x: "100%" },
       };
 
   return createPortal(
@@ -476,7 +457,7 @@ const AssistantPanel = ({
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         onClick={close}
-        className="absolute inset-0 bg-black/40 md:bg-black/20"
+        className="absolute inset-0 bg-black/30 sm:bg-transparent"
       />
 
       <motion.div
@@ -487,28 +468,14 @@ const AssistantPanel = ({
         tabIndex={-1}
         {...enter}
         transition={{ duration: 0.2 }}
-        drag={isMobile ? "y" : false}
-        dragControls={dragControls}
-        dragListener={false}
-        dragConstraints={{ top: 0, bottom: 0 }}
-        dragElastic={{ top: 0, bottom: 0.4 }}
-        onDragEnd={handleDragEnd}
+        drag={false}
         className={cn(
-          "absolute flex flex-col overflow-hidden border border-border bg-background shadow-2xl outline-none",
-          // `svh`, not `vh`: iOS Safari's toolbar makes `vh` taller than the
-          // screen, which buries the composer.
-          "inset-x-0 bottom-0 h-[88svh] rounded-t-2xl",
-          "md:inset-x-auto md:bottom-5 md:right-5 md:h-[min(680px,80vh)] md:w-[420px] md:rounded-2xl",
+          // Full screen on phones; a right-side sheet from `sm`. The safe-area
+          // padding keeps the header and composer clear of notches and the
+          // home indicator.
+          "fixed inset-y-0 right-0 z-[100] flex h-dvh w-full flex-col bg-surface pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] outline-none sm:w-[420px] sm:border-l sm:border-border sm:shadow-card",
         )}
       >
-        {isMobile && (
-          <div
-            onPointerDown={(event) => dragControls.start(event)}
-            className="flex shrink-0 cursor-grab touch-none justify-center py-2.5 active:cursor-grabbing"
-          >
-            <span className="h-1 w-10 rounded-full bg-border" aria-hidden />
-          </div>
-        )}
         {body}
       </motion.div>
     </div>,

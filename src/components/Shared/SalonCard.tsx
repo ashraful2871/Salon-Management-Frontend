@@ -99,7 +99,7 @@ const SalonCard = ({
               aria-hidden="true"
               className={cn(
                 "h-2 w-2 rounded-full",
-                salon.openNow ? "bg-emerald-500" : "bg-slate-400",
+                salon.openNow ? "bg-success" : "bg-muted",
               )}
             />
             {salon.openNow ? "Open now" : "Closed"}

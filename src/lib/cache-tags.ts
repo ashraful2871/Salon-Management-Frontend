@@ -23,4 +23,5 @@ export const TAGS = {
   assistantStatus: "assistant-status",
   authProviders: "auth-providers",
   reviews: "reviews",
+  hairstyles: "hairstyles",
 } as const;

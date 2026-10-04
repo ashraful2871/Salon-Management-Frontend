@@ -27,7 +27,7 @@ const LoginRequired = ({ block }: { block: LoginRequiredBlock }) => {
         </Link>
         <Link
           href={`/register?redirect=${encodeURIComponent(returnTo)}`}
-          className="inline-flex min-h-11 items-center rounded-full border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          className="inline-flex min-h-11 items-center rounded-full border border-border bg-surface px-4 text-sm font-medium text-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
         >
           Create an account
         </Link>

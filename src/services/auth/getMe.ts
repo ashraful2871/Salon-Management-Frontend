@@ -20,7 +20,8 @@ export type AuthMe = {
 export const getMe = async (): Promise<ApiResponse<AuthMe>> => {
   try {
     const response = await serverFetch.get("/auth/me", { cache: "no-store" });
-    return await response.json();
+    const data = await response.json();
+    return data as ApiResponse<AuthMe>;
   } catch (error) {
     console.error("getMe error:", error);
     return {

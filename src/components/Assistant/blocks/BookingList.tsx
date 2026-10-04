@@ -47,7 +47,7 @@ const BookingList = ({
       {bookings.map((booking) => (
         <li
           key={booking.id}
-          className="rounded-xl border border-border bg-background p-3.5"
+          className="rounded-xl border border-border bg-surface p-3.5"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
