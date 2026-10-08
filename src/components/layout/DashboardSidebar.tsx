@@ -39,6 +39,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ROLE_HOME } from "@/lib/route-access";
+import { AdminTopBar, type AdminShellData } from "@/components/Admin/AdminTopBar";
 import LogoutButton from "./LogoutButton";
 import { BottomTabBar } from "./BottomTabBar";
 import {
@@ -234,10 +236,13 @@ const Logo = ({ collapsed }: { collapsed: boolean }) => (
 export const DashboardShell = ({
   user,
   initialCollapsed = false,
+  admin,
   children,
 }: {
   user: ShellUser;
   initialCollapsed?: boolean;
+  /** ADMIN and AGENT only: permissions for the nav, plus the top-bar extras. */
+  admin?: AdminShellData;
   children: ReactNode;
 }) => {
   const pathname = usePathname();
@@ -246,11 +251,12 @@ export const DashboardShell = ({
   const closeRef = useRef<HTMLButtonElement>(null);
   const moreRef = useRef<HTMLButtonElement>(null);
 
-  const groups = navGroupsFor(user.role);
+  const groups = navGroupsFor(user.role, admin?.permissions);
   const items = groups.flatMap((g) => g.items);
   const active = activeItem(pathname, items)?.path;
   const { trail, title } = pageTrail(pathname, items, user.role);
-  const tabs = tabsFor(user.role);
+  const tabs = tabsFor(user.role, admin?.permissions);
+  const home = ROLE_HOME[user.role];
 
   const toggleCollapsed = () => {
     const next = !collapsed;
@@ -418,7 +424,7 @@ export const DashboardShell = ({
                   <BreadcrumbPage className="font-medium">Dashboard</BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink asChild>
-                    <Link href="/dashboard">Dashboard</Link>
+                    <Link href={home}>Dashboard</Link>
                   </BreadcrumbLink>
                 )}
               </BreadcrumbItem>
@@ -444,6 +450,17 @@ export const DashboardShell = ({
           <p className="min-w-0 flex-1 truncate text-base font-semibold text-foreground lg:hidden">
             {title}
           </p>
+
+          {admin && (
+            <AdminTopBar
+              data={admin}
+              pages={items.map((item) => ({
+                href: item.path,
+                label: labelFor(item, user.role),
+                icon: item.icon,
+              }))}
+            />
+          )}
 
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>

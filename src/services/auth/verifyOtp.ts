@@ -7,6 +7,7 @@ import type { AuthResult } from "@/lib/auth-types";
 import { applySession, extractTokens } from "@/lib/auth-session";
 import { clientIpHeaders } from "@/lib/client-ip-headers";
 import { clearVerifyCookie, readVerifyCookie } from "@/lib/verify-cookie";
+import { setTwoFactorCookie } from "@/lib/two-factor-cookie";
 
 const SESSION_EXPIRED = "Your verification session expired.";
 
@@ -28,6 +29,7 @@ export const verifyOtpAction = async (
     };
   }
 
+  let twoFactor = false;
   try {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/auth/verify-otp`,
@@ -63,11 +65,18 @@ export const verifyOtpAction = async (
       };
     }
 
-    const tokens = extractTokens(res, result);
-    if (!tokens) throw new Error("Tokens not found in response");
+    // An admin or agent with 2FA on: the authenticator step is still owed.
+    if (result.data?.status === "TWO_FACTOR_REQUIRED") {
+      await setTwoFactorCookie(result.data, state.n);
+      await clearVerifyCookie();
+      twoFactor = true;
+    } else {
+      const tokens = extractTokens(res, result);
+      if (!tokens) throw new Error("Tokens not found in response");
 
-    await applySession(tokens);
-    await clearVerifyCookie();
+      await applySession(tokens);
+      await clearVerifyCookie();
+    }
   } catch (error) {
     console.error("verifyOtpAction error:", error);
     return {
@@ -78,6 +87,8 @@ export const verifyOtpAction = async (
           : "We couldn't check that code right now. Please try again.",
     };
   }
+
+  if (twoFactor) redirect("/login/2fa");
 
   revalidatePath("/", "layout");
   redirect(

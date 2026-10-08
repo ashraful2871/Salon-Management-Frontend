@@ -7,6 +7,7 @@ import type { AuthResult } from "@/lib/auth-types";
 import { applySession, extractTokens } from "@/lib/auth-session";
 import { clientIpHeaders } from "@/lib/client-ip-headers";
 import { setVerifyCookie } from "@/lib/verify-cookie";
+import { setTwoFactorCookie } from "@/lib/two-factor-cookie";
 
 /**
  * A server action: the verification ticket and the visitor's IP must never
@@ -14,11 +15,13 @@ import { setVerifyCookie } from "@/lib/verify-cookie";
  * `VERIFICATION_REQUIRED` (an unverified account while the backend's flag is
  * on) parks the ticket in `sm_verify` and goes to the code screen, carrying
  * `redirect` along so the code lands them where they were headed.
+ * `TWO_FACTOR_REQUIRED` (an admin or agent with 2FA on) parks the ticket in
+ * `sm_2fa` and answers `twoFactor: true`, and the form shows the code step.
  */
 export const loginUser = async (
-  _currentState: ApiResponse<{ message: string }> | null,
+  _currentState: ApiResponse<{ message: string; twoFactor?: boolean }> | null,
   formData: FormData,
-): Promise<ApiResponse<{ message: string }>> => {
+): Promise<ApiResponse<{ message: string; twoFactor?: boolean }>> => {
   try {
     const redirectTo = formData.get("redirect");
 
@@ -47,6 +50,15 @@ export const loginUser = async (
       redirect("/verify-email");
     }
 
+    if (result.data?.status === "TWO_FACTOR_REQUIRED") {
+      await setTwoFactorCookie(result.data, redirectTo);
+      return {
+        success: true,
+        message: "Enter the code from your authenticator app",
+        data: { message: "Enter the code from your authenticator app", twoFactor: true },
+      };
+    }
+
     const tokens = extractTokens(res, result);
     if (!tokens) throw new Error("Tokens not found in response");
 
@@ -54,8 +66,13 @@ export const loginUser = async (
 
     revalidatePath("/", "layout");
 
+    // Admins and agents go to the dashboard, which sends a not-yet-enrolled
+    // account to the 2FA setup page.
+    const role = result.data?.status === "SIGNED_IN" ? result.data.user?.role : undefined;
     if (redirectTo) {
       redirect(redirectTo as string);
+    } else if (role === "ADMIN" || role === "AGENT") {
+      redirect("/dashboard");
     } else {
       redirect("/?loggedIn=true");
     }

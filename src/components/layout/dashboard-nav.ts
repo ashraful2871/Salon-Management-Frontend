@@ -9,6 +9,8 @@ import {
   ReceiptText,
   Scissors,
   Settings,
+  Shield,
+  ShieldCheck,
   Store,
   UserCog,
   Users,
@@ -17,6 +19,7 @@ import {
 } from "lucide-react";
 import type { UserRole } from "@/services/auth/auth-utils";
 import { rolesForPath, type ProtectedRoute } from "@/lib/route-access";
+import { can, type Permission } from "@/lib/admin-permissions";
 
 /**
  * The dashboard navigation: sidebar, drawer, bottom tabs and breadcrumb all
@@ -31,16 +34,34 @@ export type NavItem = {
   /** Bottom-tab label, when `label` is too long for a fifth of a phone. */
   short?: string;
   labelByRole?: Partial<Record<UserRole, string>>;
+  /** The admin permission the page checks; the link is hidden without it. */
+  permission?: Permission;
+  /** Roles the route admits but that should not get this link. */
+  hiddenFor?: UserRole[];
 };
 
 export type NavGroup = { title?: string; items: NavItem[] };
 
-// `/dashboard/admin` has no page of its own, so it gets no link; its
-// ROUTE_ROLES entry still guards the subtree.
+// Admin items carry the permission their page checks, so an admin role that
+// lacks it never sees the link. Each later admin phase adds its own items
+// here when its page exists.
 export const NAV_GROUPS: NavGroup[] = [
   {
     items: [
-      { path: "/dashboard", icon: LayoutDashboard, label: "Dashboard", short: "Home" },
+      {
+        path: "/dashboard",
+        icon: LayoutDashboard,
+        label: "Dashboard",
+        short: "Home",
+        // They have their own home below; `/dashboard` redirects them there.
+        hiddenFor: ["ADMIN", "AGENT"],
+      },
+    ],
+  },
+  {
+    title: "Overview",
+    items: [
+      { path: "/dashboard/admin", icon: LayoutDashboard, label: "Home" },
     ],
   },
   {
@@ -55,13 +76,38 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       { path: "/dashboard/slots", icon: CalendarClock, label: "Slots" },
       { path: "/dashboard/services", icon: Package, label: "Services" },
-      {
-        path: "/dashboard/customers",
-        icon: Users,
-        label: "Customers",
-        labelByRole: { ADMIN: "Users", AGENT: "Users" },
-      },
+      { path: "/dashboard/customers", icon: Users, label: "Customers" },
       { path: "/dashboard/store", icon: Store, label: "My salon" },
+    ],
+  },
+  {
+    title: "Operations",
+    items: [
+      {
+        path: "/dashboard/admin/salons",
+        icon: ClipboardCheck,
+        label: "Salons",
+        permission: "salons.view",
+      },
+      {
+        path: "/dashboard/admin/applications",
+        icon: Scissors,
+        label: "Owner applications",
+        short: "Applications",
+        permission: "salons.review",
+      },
+      {
+        path: "/dashboard/admin/users",
+        icon: Users,
+        label: "Users",
+        permission: "users.view",
+      },
+      {
+        path: "/dashboard/admin/agents",
+        icon: UserCog,
+        label: "Agents",
+        permission: "agents.manage",
+      },
     ],
   },
   {
@@ -70,28 +116,23 @@ export const NAV_GROUPS: NavGroup[] = [
       { path: "/dashboard/wallet", icon: Wallet, label: "Wallet" },
       { path: "/dashboard/earnings", icon: DollarSign, label: "Earnings" },
       {
-        path: "/dashboard/admin/topups",
+        path: "/dashboard/admin/finance/topups",
         icon: ReceiptText,
         label: "Top-ups & refunds",
         short: "Top-ups",
+        permission: "finance.view",
       },
     ],
   },
   {
-    title: "Admin",
+    title: "Platform",
     items: [
       {
-        path: "/dashboard/approval-salon",
-        icon: ClipboardCheck,
-        label: "Salon approvals",
-        short: "Approvals",
+        path: "/dashboard/admin/team",
+        icon: Shield,
+        label: "Team",
+        permission: "team.manage",
       },
-      {
-        path: "/dashboard/become-a-salon-owner-request",
-        icon: Scissors,
-        label: "Owner requests",
-      },
-      { path: "/dashboard/admin/agents", icon: UserCog, label: "Agents" },
     ],
   },
   {
@@ -102,6 +143,7 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: FileClock,
         label: "Application status",
       },
+      { path: "/dashboard/admin/security", icon: ShieldCheck, label: "My security" },
       { path: "/dashboard/settings", icon: Settings, label: "Settings" },
     ],
   },
@@ -112,30 +154,45 @@ export const TABS_BY_ROLE: Record<UserRole, ProtectedRoute[]> = {
   CUSTOMER: ["/dashboard", "/dashboard/appointments", "/dashboard/wallet"],
   SALON_OWNER: ["/dashboard", "/dashboard/appointments", "/dashboard/slots", "/dashboard/services"],
   STAFF: ["/dashboard", "/dashboard/appointments", "/dashboard/customers"],
-  ADMIN: ["/dashboard", "/dashboard/approval-salon", "/dashboard/admin/topups", "/dashboard/customers"],
-  AGENT: ["/dashboard", "/dashboard/approval-salon", "/dashboard/customers"],
+  ADMIN: [
+    "/dashboard/admin",
+    "/dashboard/admin/salons",
+    "/dashboard/admin/users",
+    "/dashboard/admin/finance/topups",
+  ],
+  AGENT: ["/dashboard/admin", "/dashboard/admin/salons"],
   GUEST: [],
 };
 
 export const labelFor = (item: NavItem, role: UserRole) =>
   item.labelByRole?.[role] ?? item.label;
 
-const canSee = (item: NavItem, role: UserRole) =>
-  !!rolesForPath(item.path)?.includes(role);
+/**
+ * Role from the route table, then the admin permission when the item names
+ * one. `permissions` is `GET /admin/me`'s list; without it (not an admin, or
+ * the call failed) permissioned items stay hidden.
+ */
+const canSee = (item: NavItem, role: UserRole, permissions?: readonly string[]) =>
+  !!rolesForPath(item.path)?.includes(role) &&
+  !item.hiddenFor?.includes(role) &&
+  (!item.permission || can(permissions, item.permission));
 
-/** The groups this role may see, with empty groups dropped. */
-export const navGroupsFor = (role: UserRole): NavGroup[] =>
+/** The groups this role (and admin permission set) may see, with empty groups dropped. */
+export const navGroupsFor = (
+  role: UserRole,
+  permissions?: readonly string[],
+): NavGroup[] =>
   NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => canSee(item, role)),
+    items: group.items.filter((item) => canSee(item, role, permissions)),
   })).filter((group) => group.items.length > 0);
 
 const ALL_ITEMS = NAV_GROUPS.flatMap((group) => group.items);
 
-export const tabsFor = (role: UserRole): NavItem[] =>
+export const tabsFor = (role: UserRole, permissions?: readonly string[]): NavItem[] =>
   TABS_BY_ROLE[role]
     .map((path) => ALL_ITEMS.find((item) => item.path === path))
-    .filter((item): item is NavItem => !!item && canSee(item, role));
+    .filter((item): item is NavItem => !!item && canSee(item, role, permissions));
 
 /** The item whose path is the longest prefix of the current one. */
 export const activeItem = (pathname: string, items: NavItem[]) =>
@@ -147,7 +204,12 @@ export const activeItem = (pathname: string, items: NavItem[]) =>
 const SUB_PAGES: Record<string, { crumb: string; title: string }> = {
   "/dashboard/store": { crumb: "Manage", title: "Manage salon" },
   "/dashboard/wallet": { crumb: "Payment", title: "Payment" },
+  "/dashboard/admin/users": { crumb: "User", title: "User" },
+  "/dashboard/admin/salons": { crumb: "Salon", title: "Salon" },
 };
+
+/** The nav items that are a role's home: the breadcrumb starts at them. */
+const HOME_PATHS = new Set<string>(["/dashboard", "/dashboard/admin"]);
 
 /** Pages in the dashboard frame that have no nav item. */
 const OTHER_PAGES: Record<string, string> = { "/my-profile": "My profile" };
@@ -167,7 +229,7 @@ export const pageTrail = (
   if (other) return { trail: [{ label: other }], title: other };
 
   const item = activeItem(pathname, items);
-  if (!item || item.path === "/dashboard") return { trail: [], title: "Dashboard" };
+  if (!item || HOME_PATHS.has(item.path)) return { trail: [], title: "Dashboard" };
 
   const label = labelFor(item, role);
   const sub = pathname !== item.path ? SUB_PAGES[item.path] : undefined;

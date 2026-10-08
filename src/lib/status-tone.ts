@@ -37,6 +37,13 @@ const STATUS_TONE: Record<string, Tone> = {
   UNPAID: "warning",
   PARTIALLY_PAID: "warning",
   BUSY: "warning",
+  // Back office: reviews, tickets, approvals, payouts.
+  HIDDEN: "neutral",
+  OPEN: "warning",
+  RESOLVED: "success",
+  PROCESSING: "info",
+  EXECUTED: "success",
+  EXPIRED: "neutral",
 };
 
 export const toneOf = (status?: string | null): Tone =>

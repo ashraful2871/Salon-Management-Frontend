@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode } from "react";
+import Link from "next/link";
 import {
   Table,
   TableBody,
@@ -9,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { SortHeader } from "@/components/Shared/SortHeader";
 
 /**
  * Where a column goes on a phone card:
@@ -41,6 +43,8 @@ export type Column<T> = {
    * `hidden @5xl:table-cell` drops a column when the list itself is narrow.
    */
   className?: string;
+  /** The header sorts the list through `?sort=<key>:asc|desc`; the page reads it. */
+  sortable?: boolean;
 };
 
 export type DataListLayout = "table" | "card";
@@ -73,7 +77,21 @@ export type DataListProps<T> = {
    */
   groupOf?: (row: T) => string;
   groupHeader?: (key: string, rows: T[]) => ReactNode;
+  /**
+   * A checkbox per row (and select-all in the table header), for bulk
+   * actions. Controlled by `rowKey` values; pair with `BulkActionBar`. The
+   * parent must be a client component to pass `onSelectedChange`.
+   */
+  selectable?: boolean;
+  selected?: readonly string[];
+  onSelectedChange?: (keys: string[]) => void;
+  /** `compact` tightens rows (`py-2 text-sm`) for dense back-office lists. */
+  density?: "comfortable" | "compact";
+  /** Links the first column (table) and the card title to the row's page. */
+  rowHref?: (row: T) => string;
 };
+
+const CHECKBOX = "size-4 shrink-0 cursor-pointer rounded accent-primary";
 
 const isEmpty = (node: ReactNode) =>
   node === null || node === undefined || node === false || node === "";
@@ -104,8 +122,50 @@ export function DataList<T>({
   tableFrom = "2xl",
   groupOf,
   groupHeader,
+  selectable = false,
+  selected = [],
+  onSelectedChange,
+  density = "comfortable",
+  rowHref,
 }: DataListProps<T>) {
   if (items.length === 0) return <>{empty}</>;
+
+  const compact = density === "compact";
+  const chosen = new Set(selected);
+  const allKeys = items.map(rowKey);
+  const allChosen = allKeys.every((k) => chosen.has(k));
+  const someChosen = !allChosen && allKeys.some((k) => chosen.has(k));
+  const toggle = (key: string) =>
+    onSelectedChange?.(
+      chosen.has(key) ? selected.filter((k) => k !== key) : [...selected, key],
+    );
+  const toggleAll = () =>
+    onSelectedChange?.(
+      allChosen
+        ? selected.filter((k) => !allKeys.includes(k))
+        : [...new Set([...selected, ...allKeys])],
+    );
+  const rowCheckbox = (row: T, label: string) => (
+    <input
+      type="checkbox"
+      className={CHECKBOX}
+      checked={chosen.has(rowKey(row))}
+      onChange={() => toggle(rowKey(row))}
+      aria-label={label}
+    />
+  );
+  // The first column (table) and the title (card) open the row when linked.
+  const linked = (row: T, node: ReactNode) =>
+    rowHref ? (
+      <Link
+        href={rowHref(row)}
+        className="rounded hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {node}
+      </Link>
+    ) : (
+      node
+    );
 
   const slot = (name: MobileSlot) =>
     columns.filter((c) => (c.mobile ?? "meta") === name);
@@ -133,27 +193,38 @@ export function DataList<T>({
     group.key !== null && groupHeader ? groupHeader(group.key, group.rows) : null;
 
   const layout = TABLE_FROM[tableFrom];
-  const span = columns.length + (rowActions ? 1 : 0);
+  const span = columns.length + (rowActions ? 1 : 0) + (selectable ? 1 : 0);
 
   const tableRow = (row: T) => (
     <TableRow
       key={rowKey(row)}
-      className={cn("h-14 hover:bg-surface-subtle/60", rowClassName?.(row))}
+      className={cn(
+        compact ? "h-10 text-sm" : "h-14",
+        "hover:bg-surface-subtle/60",
+        selectable && chosen.has(rowKey(row)) && "bg-primary-soft/40",
+        rowClassName?.(row),
+      )}
     >
-      {columns.map((c) => (
+      {selectable && (
+        <TableCell className={cn("w-10 pr-0 pl-4", compact ? "py-2" : "py-3")}>
+          {rowCheckbox(row, "Select row")}
+        </TableCell>
+      )}
+      {columns.map((c, i) => (
         <TableCell
           key={c.key}
           className={cn(
-            "px-4 py-3 whitespace-normal",
+            "px-4 whitespace-normal",
+            compact ? "py-2" : "py-3",
             c.align === "right" && "text-right tabular-nums",
             c.className,
           )}
         >
-          {c.cell(row)}
+          {i === 0 ? linked(row, c.cell(row)) : c.cell(row)}
         </TableCell>
       ))}
       {rowActions && (
-        <TableCell className="px-4 py-3">
+        <TableCell className={cn("px-4", compact ? "py-2" : "py-3")}>
           <div className="flex items-center justify-end gap-2">
             {rowActions(row, "table")}
           </div>
@@ -171,8 +242,16 @@ export function DataList<T>({
     const actions = rowActions?.(row, "card");
 
     return (
-      <li key={rowKey(row)} className={cn("p-4", rowClassName?.(row))}>
+      <li
+        key={rowKey(row)}
+        className={cn(
+          compact ? "p-3 text-sm" : "p-4",
+          selectable && chosen.has(rowKey(row)) && "bg-primary-soft/40",
+          rowClassName?.(row),
+        )}
+      >
         <div className="flex items-start justify-between gap-3">
+          {selectable && <div className="pt-0.5">{rowCheckbox(row, "Select")}</div>}
           <div className="min-w-0 flex-1 space-y-1">
             {eyebrow.length > 0 && (
               <p className="flex flex-wrap items-center gap-x-1.5 text-xs font-medium text-muted-foreground tabular-nums">
@@ -181,7 +260,7 @@ export function DataList<T>({
             )}
             {primary.map(([key, node]) => (
               <div key={key} className="break-words font-semibold text-foreground">
-                {node}
+                {linked(row, node)}
               </div>
             ))}
             {secondary.length > 0 && (
@@ -222,6 +301,20 @@ export function DataList<T>({
           {caption && <TableCaption className="sr-only">{caption}</TableCaption>}
           <TableHeader className="bg-surface-subtle">
             <TableRow className="hover:bg-transparent">
+              {selectable && (
+                <TableHead className="h-11 w-10 pr-0 pl-4">
+                  <input
+                    type="checkbox"
+                    className={CHECKBOX}
+                    checked={allChosen}
+                    ref={(el) => {
+                      if (el) el.indeterminate = someChosen;
+                    }}
+                    onChange={toggleAll}
+                    aria-label="Select all rows"
+                  />
+                </TableHead>
+              )}
               {columns.map((c) => (
                 <TableHead
                   key={c.key}
@@ -231,7 +324,11 @@ export function DataList<T>({
                     c.className,
                   )}
                 >
-                  {c.header}
+                  {c.sortable ? (
+                    <SortHeader sortKey={c.key} label={c.header} align={c.align} />
+                  ) : (
+                    c.header
+                  )}
                 </TableHead>
               ))}
               {rowActions && (

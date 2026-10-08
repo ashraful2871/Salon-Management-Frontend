@@ -64,20 +64,35 @@ export const ROUTE_ROLES = {
   "/dashboard": SIGNED_IN_ROLES,
   "/dashboard/appointments": ["SALON_OWNER", "STAFF", "CUSTOMER"],
   "/dashboard/slots": ["SALON_OWNER"],
-  "/dashboard/customers": ["SALON_OWNER", "STAFF", "ADMIN", "AGENT"],
-  "/dashboard/services": ["SALON_OWNER", "ADMIN"],
+  "/dashboard/customers": ["SALON_OWNER", "STAFF"],
+  "/dashboard/services": ["SALON_OWNER"],
   "/dashboard/store": ["SALON_OWNER"],
   "/dashboard/earnings": ["SALON_OWNER"],
-  "/dashboard/admin": ["ADMIN"],
+  // The back office. Agents get Home, Salons and their security page; the
+  // rest is ADMIN only. The admin layout checks each child against its own
+  // entry, and each page also checks its permission (`guardPermission`),
+  // since an ADMIN's admin role narrows it further.
+  "/dashboard/admin": ["ADMIN", "AGENT"],
+  "/dashboard/admin/security": ["ADMIN", "AGENT"],
+  "/dashboard/admin/salons": ["ADMIN", "AGENT"],
+  "/dashboard/admin/users": ["ADMIN"],
   "/dashboard/admin/agents": ["ADMIN"],
-  "/dashboard/admin/topups": ["ADMIN"],
-  "/dashboard/become-a-salon-owner-request": ["ADMIN"],
-  "/dashboard/approval-salon": ["ADMIN", "AGENT"],
+  "/dashboard/admin/applications": ["ADMIN"],
+  "/dashboard/admin/finance": ["ADMIN"],
+  "/dashboard/admin/finance/topups": ["ADMIN"],
+  "/dashboard/admin/team": ["ADMIN"],
+  // Old admin URLs: the proxy sends admins on (`ADMIN_MOVED`), and nobody
+  // else has a page here.
+  "/dashboard/become-a-salon-owner-request": [],
+  "/dashboard/approval-salon": [],
   "/dashboard/applications-status": ["SALON_OWNER", "CUSTOMER"],
   "/dashboard/settings": SIGNED_IN_ROLES,
   "/dashboard/wallet": ["CUSTOMER"],
   "/my-profile": SIGNED_IN_ROLES,
 } as const satisfies Record<string, readonly UserRole[]>;
+
+/** Where an ADMIN or AGENT without 2FA is sent; the API refuses the rest. */
+export const ADMIN_SECURITY_PATH = "/dashboard/admin/security";
 
 /** The paths a segment guard may name - a typo is a build error, not a hole. */
 export type ProtectedRoute = keyof typeof ROUTE_ROLES;
@@ -85,18 +100,37 @@ export type ProtectedRoute = keyof typeof ROUTE_ROLES;
 /**
  * Where a role is sent when it asks for something it may not have.
  *
- * They all land on `/dashboard` today because that page renders per role, but
- * the indirection is the point: giving a role its own landing page later is an
- * edit here and nowhere else.
+ * Admins and agents have their own home in the back office; everyone else
+ * lands on `/dashboard`, which renders per role.
  */
 export const ROLE_HOME: Record<UserRole, string> = {
-  ADMIN: "/dashboard",
-  AGENT: "/dashboard",
+  ADMIN: "/dashboard/admin",
+  AGENT: "/dashboard/admin",
   SALON_OWNER: "/dashboard",
   STAFF: "/dashboard",
   CUSTOMER: "/dashboard",
   GUEST: "/login",
 };
+
+/**
+ * Admin pages that moved under `/dashboard/admin`, and where they went. The
+ * proxy redirects ADMIN and AGENT before the role check, so old bookmarks
+ * still open; for everyone else these paths are closed by `ROUTE_ROLES`.
+ */
+const ADMIN_MOVED: Record<string, string> = {
+  "/dashboard": "/dashboard/admin",
+  "/dashboard/customers": "/dashboard/admin/users",
+  "/dashboard/approval-salon": "/dashboard/admin/salons?status=PENDING_APPROVAL",
+  "/dashboard/become-a-salon-owner-request": "/dashboard/admin/applications",
+  "/dashboard/admin/topups": "/dashboard/admin/finance/topups",
+};
+
+/** Where an admin or agent asking for an old admin URL goes, or `null`. */
+export const adminMovedTo = (
+  role: UserRole | undefined | null,
+  pathname: string,
+): string | null =>
+  role === "ADMIN" || role === "AGENT" ? (ADMIN_MOVED[pathname] ?? null) : null;
 
 /** True when `pathname` is `base` itself or something beneath it. */
 const isUnder = (pathname: string, base: string): boolean =>

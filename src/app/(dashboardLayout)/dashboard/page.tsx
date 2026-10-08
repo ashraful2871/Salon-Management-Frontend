@@ -1,37 +1,20 @@
+import { redirect } from "next/navigation";
 import Dashboard from "@/components/Dashboard/Dashboard";
 import { getUserRoles } from "@/services/get-roles/getUserRoles";
 import { getDisplayUser } from "@/services/auth/displayUser";
 import {
-  getAdminDashboardStats,
   getSalonOwnerDashboardStats,
   getCustomerDashboardStats,
 } from "@/services/dashboard/getDashboardStats";
-import { dhakaToday, formatDay } from "@/components/Dashboard/appointments/format";
+import { dashboardGreeting } from "@/lib/greeting";
+import { ROLE_HOME } from "@/lib/route-access";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const STATS_FOR: Record<string, typeof getAdminDashboardStats> = {
-  ADMIN: getAdminDashboardStats,
+const STATS_FOR: Record<string, typeof getCustomerDashboardStats> = {
   SALON_OWNER: getSalonOwnerDashboardStats,
   CUSTOMER: getCustomerDashboardStats,
-};
-
-// "Now" in Dhaka, worked out here so the server and the browser render the
-// same greeting and the same "upcoming" booking.
-const dhakaNow = () =>
-  new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Asia/Dhaka",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).format(new Date());
-
-const greetingAt = (hhmm: string) => {
-  const hour = Number(hhmm.slice(0, 2));
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
 };
 
 export default async function DashboardPage() {
@@ -41,15 +24,15 @@ export default async function DashboardPage() {
   ]);
   const role = userRole ?? "GUEST";
 
+  // The proxy already sends them on; this covers a request it did not see.
+  if (role === "ADMIN" || role === "AGENT") redirect(ROLE_HOME[role]);
+
   const load = STATS_FOR[role];
   // The services return the whole envelope; the stats are under `data`.
   const result = load ? await load() : null;
   const stats = result?.success ? (result.data ?? null) : null;
 
-  const ymd = dhakaToday();
-  const hhmm = dhakaNow();
-  const firstName = display?.hasName ? display.name.trim().split(/\s+/)[0] : "";
-  const greeting = `${greetingAt(hhmm)}${firstName ? `, ${firstName}` : ""} · ${formatDay(ymd)}`;
+  const { greeting, now } = dashboardGreeting(display);
 
   return (
     <Dashboard
@@ -57,7 +40,7 @@ export default async function DashboardPage() {
       loadError={result && !result.success ? result.message : null}
       userRole={role}
       greeting={greeting}
-      now={{ ymd, hhmm }}
+      now={now}
     />
   );
 }

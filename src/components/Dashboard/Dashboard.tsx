@@ -16,7 +16,6 @@ import {
   PiggyBank,
   Receipt,
   Search,
-  ShieldCheck,
   Users,
   Wallet,
 } from "lucide-react";
@@ -54,9 +53,9 @@ type Stat = {
  * itself, so the taka twin `addTakaFields` adds alongside it must never be the
  * thing that reaches this component — that renders every amount 100x too small.
  */
-const money = (minor: unknown) => formatBDT(typeof minor === "number" ? minor : 0);
+export const money = (minor: unknown) => formatBDT(typeof minor === "number" ? minor : 0);
 
-const count = (value: unknown) =>
+export const count = (value: unknown) =>
   typeof value === "number" ? value.toLocaleString() : "0";
 
 const dayOf = (a: Appointment) => a.appointmentDate?.slice(0, 10) ?? "";
@@ -114,7 +113,6 @@ const Dashboard = ({
   const hasData = dashboardData !== null;
   const isOwner = userRole === "SALON_OWNER";
   const isCustomer = userRole === "CUSTOMER";
-  const isAdmin = userRole === "ADMIN";
   const stats = hasData ? buildStats(data, userRole) : [];
   const recent = data.recentAppointments ?? [];
   const payouts = data.recentPayouts ?? [];
@@ -190,13 +188,6 @@ const Dashboard = ({
         </div>
       )}
 
-      {isAdmin && hasData && (
-        <div className="grid gap-4 lg:grid-cols-3 lg:gap-6">
-          <EarningsCard months={data.monthlyEarnings ?? []} />
-          <PlatformLedger data={data} />
-        </div>
-      )}
-
       {hasData && (
         <div className="grid gap-4 lg:grid-cols-3 lg:gap-6">
           <RecentAppointments
@@ -210,13 +201,12 @@ const Dashboard = ({
             }
           />
           <div className="space-y-4 lg:space-y-6">
-            {isAdmin && <ApprovalsCard pending={data.pendingSalons} />}
             {isOwner && <MoneyInMotion data={data} />}
             <StatusBreakdown
               title={isCustomer ? "Your bookings by status" : "Bookings by status"}
               rows={data.appointmentsByStatus ?? []}
             />
-            {(isOwner || isAdmin) && payouts.length > 0 && (
+            {isOwner && payouts.length > 0 && (
               <RecentPayouts payouts={payouts} />
             )}
           </div>
@@ -224,11 +214,6 @@ const Dashboard = ({
       )}
 
       {/* No stats endpoint for these roles: point them at their work instead. */}
-      {!hasData && !loadError && userRole === "AGENT" && (
-        <div className="grid gap-4 lg:grid-cols-3 lg:gap-6">
-          <ApprovalsCard />
-        </div>
-      )}
       {!hasData && !loadError && userRole === "STAFF" && (
         <EmptyState
           icon={Calendar}
@@ -285,7 +270,7 @@ const HeaderActions = ({ role }: { role: string }) => {
   return null;
 };
 
-const CardLink = ({ href, children }: { href: string; children: string }) => (
+export const CardLink = ({ href, children }: { href: string; children: string }) => (
   <Button variant="ghost" size="sm" className="-my-1 shrink-0" asChild>
     <Link href={href}>
       {children}
@@ -425,7 +410,7 @@ const UpcomingBooking = ({
   );
 };
 
-const EarningsCard = ({
+export const EarningsCard = ({
   months,
   detailsHref,
 }: {
@@ -443,7 +428,7 @@ const EarningsCard = ({
   </Card>
 );
 
-const LedgerRow = ({
+export const LedgerRow = ({
   label,
   value,
   tone,
@@ -465,7 +450,7 @@ const LedgerRow = ({
   </div>
 );
 
-const LedgerNotes = ({ children }: { children: ReactNode }) => (
+export const LedgerNotes = ({ children }: { children: ReactNode }) => (
   <div className="mt-2 space-y-1 border-t border-border pt-3 text-xs text-muted-foreground">
     {children}
   </div>
@@ -503,70 +488,7 @@ const MoneyInMotion = ({ data }: { data: DashboardStats }) => (
   </Card>
 );
 
-const PlatformLedger = ({ data }: { data: DashboardStats }) => (
-  <Card className="gap-3">
-    <CardHeader className="px-4 sm:px-6">
-      <CardTitle>Platform ledger</CardTitle>
-    </CardHeader>
-    <CardContent className="px-4 text-sm sm:px-6">
-      <dl className="divide-y divide-border">
-        <LedgerRow label="Booked through the platform" value={money(data.grossBookingsMinor)} />
-        <LedgerRow label="Commission earned" value={money(data.totalRevenueMinor)} tone="success" />
-        <LedgerRow label="Earned by salons" value={money(data.salonEarningsMinor)} />
-        <LedgerRow label="Owed to salons" value={money(data.salonPayableMinor)} tone="warning" />
-        <LedgerRow label="Paid out" value={money(data.paidOutMinor)} />
-        <LedgerRow label="Customer wallet float" value={money(data.walletFloatMinor)} />
-        <LedgerRow label="Deposits held" value={money(data.depositsHeldMinor)} />
-      </dl>
-      <LedgerNotes>
-        <p>This month: {money(data.monthRevenueMinor)} commission</p>
-        <p>Today: {money(data.todayRevenueMinor)} commission</p>
-        <p>Average ticket: {money(data.averageTicketMinor)}</p>
-        <p>
-          {count(data.pendingPayoutCount)} payout(s) pending ·{" "}
-          {money(data.pendingPayoutMinor)}
-        </p>
-        <p>
-          Commission rate: {data.standardCommissionPercent ?? 10}% on every booking
-        </p>
-      </LedgerNotes>
-    </CardContent>
-  </Card>
-);
-
-const ApprovalsCard = ({ pending }: { pending?: number }) => (
-  <Card className="py-4 sm:py-5">
-    <CardContent className="flex items-center gap-4 px-4 sm:px-5">
-      <span
-        className={cn(
-          "grid size-11 shrink-0 place-items-center rounded-xl",
-          TONE_CLASSES.warning.soft,
-          TONE_CLASSES.warning.text,
-        )}
-      >
-        <ShieldCheck aria-hidden="true" className="size-5" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-muted-foreground">Pending approvals</p>
-        {typeof pending === "number" ? (
-          <p className="font-display text-2xl font-semibold tabular-nums">
-            {count(pending)}
-          </p>
-        ) : (
-          <p className="text-sm">Salons waiting for review</p>
-        )}
-      </div>
-      <Button variant="outline" size="sm" className="shrink-0" asChild>
-        <Link href="/dashboard/approval-salon">
-          Review
-          <ArrowUpRight aria-hidden="true" />
-        </Link>
-      </Button>
-    </CardContent>
-  </Card>
-);
-
-const RecentAppointments = ({
+export const RecentAppointments = ({
   items,
   isCustomer,
   now,
@@ -625,7 +547,7 @@ const RecentAppointments = ({
   </Card>
 );
 
-const StatusBreakdown = ({
+export const StatusBreakdown = ({
   title,
   rows,
 }: {
@@ -672,7 +594,7 @@ const StatusBreakdown = ({
   );
 };
 
-const RecentPayouts = ({
+export const RecentPayouts = ({
   payouts,
 }: {
   payouts: NonNullable<DashboardStats["recentPayouts"]>;
@@ -707,70 +629,6 @@ const RecentPayouts = ({
 // Tones: money coming in → success, owed or pending → warning, counts →
 // neutral, platform-wide figures → primary.
 function buildStats(data: DashboardStats, role: string): Stat[] {
-  if (role === "ADMIN") {
-    return [
-      {
-        label: "Commission revenue",
-        value: money(data.totalRevenueMinor),
-        icon: Banknote,
-        tone: "success",
-        hint: `${money(data.monthRevenueMinor)} this month`,
-      },
-      {
-        label: "Booked through the platform",
-        value: money(data.grossBookingsMinor),
-        icon: Receipt,
-        tone: "primary",
-        hint: `${data.effectiveCommissionPercent ?? 0}% effective commission`,
-      },
-      {
-        label: "Owed to salons",
-        value: money(data.salonPayableMinor),
-        icon: PiggyBank,
-        tone: "warning",
-        hint: `${count(data.pendingPayoutCount)} payout(s) pending`,
-      },
-      {
-        label: "Total users",
-        value: count(data.totalUsers),
-        icon: Users,
-        tone: "neutral",
-        hint: `${count(data.totalSalons)} salons · ${count(data.activeSalons)} active`,
-      },
-      {
-        label: "Total appointments",
-        value: count(data.totalAppointments),
-        icon: Calendar,
-        tone: "neutral",
-        hint: `${count(data.todayAppointments)} today`,
-      },
-      {
-        label: "Wallet float",
-        value: money(data.walletFloatMinor),
-        icon: Wallet,
-        tone: "primary",
-        hint: `${money(data.walletHeldMinor)} held against bookings`,
-      },
-      {
-        label: "Paid out",
-        value: money(data.paidOutMinor),
-        icon: CheckCircle2,
-        tone: "primary",
-        hint:
-          (data.failedPayoutMinor ?? 0) > 0
-            ? `${money(data.failedPayoutMinor)} failed`
-            : "All transfers settled",
-      },
-      {
-        label: "Commission rate",
-        value: `${data.standardCommissionPercent ?? 10}%`,
-        icon: Percent,
-        tone: "primary",
-        hint: "Flat rate on every completed booking",
-      },
-    ];
-  }
-
   if (role === "SALON_OWNER") {
     return [
       {
