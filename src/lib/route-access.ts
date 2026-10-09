@@ -82,6 +82,10 @@ export const ROUTE_ROLES = {
   "/dashboard/admin/applications": ["ADMIN"],
   "/dashboard/admin/finance": ["ADMIN"],
   "/dashboard/admin/finance/topups": ["ADMIN"],
+  "/dashboard/admin/finance/payouts": ["ADMIN"],
+  "/dashboard/admin/finance/wallets": ["ADMIN"],
+  "/dashboard/admin/finance/ledger": ["ADMIN"],
+  "/dashboard/admin/finance/approvals": ["ADMIN"],
   "/dashboard/admin/team": ["ADMIN"],
   "/dashboard/admin/settings": ["ADMIN"],
   // Old admin URLs: the proxy sends admins on (`ADMIN_MOVED`), and nobody

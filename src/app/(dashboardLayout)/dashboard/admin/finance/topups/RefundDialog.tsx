@@ -115,7 +115,12 @@ export function RefundDialog({
 
     setSending(false);
 
-    if (result.success && result.data?.status === "COMPLETED") {
+    if (result.success && result.data?.status === "APPROVAL_REQUIRED") {
+      toast.success("Sent for approval", {
+        description: "Another admin has to approve this refund before it goes out.",
+      });
+      onClose();
+    } else if (result.success && result.data?.status === "COMPLETED") {
       toast.success("Refund sent", {
         description: result.data.refundRef
           ? `${refLabel} ${result.data.refundRef}`

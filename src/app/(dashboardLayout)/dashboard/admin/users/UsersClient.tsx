@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { Download, UserX, Users } from "lucide-react";
+import { UserX, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,7 @@ import {
   useFilterNavigation,
 } from "@/hooks/useFilterNavigation";
 import { can } from "@/lib/admin-permissions";
+import { ExportButton } from "@/components/Admin/finance/ExportButton";
 import type { ApiResponse } from "@/lib/api-types";
 import { formatBDT } from "@/lib/money";
 import type {
@@ -232,14 +233,9 @@ function UsersList({ response, filters, permissions }: Props) {
         title="Users"
         description="Every account on SalonKhuji. Contact details are masked here; open a user to see more."
         actions={
-          <Button
-            variant="outline"
-            disabled
-            title="CSV export arrives with the finance console"
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
+          can(permissions, "finance.export") ? (
+            <ExportButton kind="users" includeTest={filters.includeTest === "true"} label="Export" />
+          ) : undefined
         }
       />
 

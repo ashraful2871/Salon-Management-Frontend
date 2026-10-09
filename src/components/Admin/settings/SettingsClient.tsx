@@ -16,6 +16,7 @@ import { ToneBadge } from "@/components/Shared/ToneBadge";
 import { showResultToast } from "@/components/Shared/showResultToast";
 import type { ApiResponse } from "@/lib/api-types";
 import { updateSetting, type SavedSetting } from "@/services/admin/settings/updateSetting";
+import { isApprovalRequired } from "@/services/admin/finance/types";
 import type { AdminSetting, AdminSettings, SettingGroup } from "@/services/admin/settings/types";
 import type { Announcement } from "@/services/settings/getPublicSettings";
 import { AnnouncementEditor, checkAnnouncement, tidyAnnouncement } from "./AnnouncementEditor";
@@ -111,15 +112,26 @@ function SettingsSection({
     // Tier 3 first: a step-up prompt then comes before anything is written.
     const ordered = [...dirty].sort((a, b) => b.setting.tier - a.setting.tier);
     let last: ApiResponse<SavedSetting> = { success: false, message: "Nothing to save" };
+    // Money settings answer APPROVAL_REQUIRED while four-eyes is on.
+    let queued = 0;
     for (const [i, { setting, parsed }] of ordered.entries()) {
       last = await updateSetting(setting.key, (parsed as { value: unknown }).value, reason);
       if (!last.success) {
         return i === 0 ? last : { ...last, message: `Saved ${i} of ${ordered.length}. ${last.message}` };
       }
+      if (isApprovalRequired(last.data)) queued += 1;
     }
+    const saved = ordered.length - queued;
     return {
       ...last,
-      message: ordered.length === 1 ? `${ordered[0].setting.label} saved` : `${ordered.length} settings saved`,
+      message:
+        queued === 0
+          ? ordered.length === 1
+            ? `${ordered[0].setting.label} saved`
+            : `${ordered.length} settings saved`
+          : saved === 0
+            ? "Sent for approval"
+            : `${saved} saved, ${queued} sent for approval`,
     };
   };
 

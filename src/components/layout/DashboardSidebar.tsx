@@ -251,7 +251,7 @@ export const DashboardShell = ({
   const closeRef = useRef<HTMLButtonElement>(null);
   const moreRef = useRef<HTMLButtonElement>(null);
 
-  const groups = navGroupsFor(user.role, admin?.permissions);
+  const groups = navGroupsFor(user.role, admin?.permissions, { approvals: admin?.approvals });
   const items = groups.flatMap((g) => g.items);
   const active = activeItem(pathname, items)?.path;
   const { trail, title } = pageTrail(pathname, items, user.role);

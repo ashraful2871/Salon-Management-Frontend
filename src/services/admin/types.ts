@@ -18,6 +18,8 @@ export type AdminMe = {
   permissions: string[];
   area: string | null;
   mfa: AdminMfaState;
+  /** Four-eyes state: the Approvals link shows when enabled or requests wait. */
+  approvals?: { enabled: boolean; pending: number };
 };
 
 export type MfaSetup = { otpauthUrl: string; qrDataUrl: string; manualKey: string };

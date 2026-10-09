@@ -39,6 +39,7 @@ import {
 } from "@/hooks/useFilterNavigation";
 import type { ApiResponse } from "@/lib/api-types";
 import { formatBDT } from "@/lib/money";
+import { ExportButton } from "@/components/Admin/finance/ExportButton";
 import type {
   AdminBookingFilters,
   AdminBookingListMeta,
@@ -51,6 +52,7 @@ const ANY = "ANY";
 type Props = {
   response: ApiResponse<AdminBookingRow[]>;
   filters: AdminBookingFilters;
+  canExport?: boolean;
 };
 
 type SelectKey = "channel" | "source" | "depositStatus" | "appealStatus";
@@ -71,7 +73,7 @@ export function BookingsClient(props: Props) {
   );
 }
 
-function BookingsList({ response, filters }: Props) {
+function BookingsList({ response, filters, canExport }: Props) {
   const pathname = usePathname();
   const { navigate, isPending } = useFilterNavigation();
   const [q, setQ] = useState(filters.q ?? "");
@@ -227,6 +229,17 @@ function BookingsList({ response, filters }: Props) {
       <PageHeader
         title="Bookings"
         description="Every booking on SalonKhuji. Search by TKN- token, customer email or phone; open one for its timeline and money."
+        actions={
+          canExport ? (
+            <ExportButton
+              kind="bookings"
+              from={filters.from}
+              to={filters.to}
+              includeTest={filters.includeTest === "true"}
+              label="Export"
+            />
+          ) : undefined
+        }
       />
 
       <FilterBar

@@ -35,6 +35,8 @@ export const TAGS = {
   adminBooking: (id: string) => `admin-booking-${id}`,
   adminAppeals: "admin-appeals",
   adminPayouts: "admin-payouts",
+  adminFinance: "admin-finance",
+  adminApprovals: "admin-approvals",
   adminWallets: "admin-wallets",
   adminLedger: "admin-ledger",
   adminReviews: "admin-reviews",

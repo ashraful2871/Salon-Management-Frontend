@@ -48,6 +48,7 @@ const CommonDashboardLayout = async ({
       permissions: me.success ? (me.data?.permissions ?? []) : [],
       stepUpUntil: me.success ? (me.data?.mfa.stepUpUntil ?? null) : null,
       inbox: inbox.success ? (inbox.data ?? []) : null,
+      approvals: me.success && !!(me.data?.approvals?.enabled || me.data?.approvals?.pending),
     };
   }
   // Same session, with the real name filled in for the top bar.

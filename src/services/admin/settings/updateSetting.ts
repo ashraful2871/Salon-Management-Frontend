@@ -24,6 +24,7 @@ export const updateSetting = async (
   );
   if (result.success) {
     updateTag(TAGS.adminSettings);
+    updateTag(TAGS.adminApprovals);
     revalidateTag(TAGS.publicSettings, "max");
   }
   return result;

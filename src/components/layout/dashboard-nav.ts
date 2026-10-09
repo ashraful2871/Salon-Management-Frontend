@@ -12,6 +12,11 @@ import {
   Settings,
   Shield,
   ShieldCheck,
+  Landmark,
+  Banknote,
+  WalletCards,
+  BookOpenCheck,
+  UserCheck,
   SlidersHorizontal,
   Store,
   UserCog,
@@ -40,11 +45,16 @@ export type NavItem = {
   labelByRole?: Partial<Record<UserRole, string>>;
   /** The admin permission the page checks; the link is hidden without it. */
   permission?: Permission;
+  /** Shown only while this shell flag is on (e.g. four-eyes approvals). */
+  onlyWhen?: keyof NavFlags;
   /** Roles the route admits but that should not get this link. */
   hiddenFor?: UserRole[];
 };
 
 export type NavGroup = { title?: string; items: NavItem[] };
+
+/** Shell state some links depend on, from `GET /admin/me`. */
+export type NavFlags = { approvals?: boolean };
 
 // Admin items carry the permission their page checks, so an admin role that
 // lacks it never sees the link. Each later admin phase adds its own items
@@ -134,11 +144,42 @@ export const NAV_GROUPS: NavGroup[] = [
       { path: "/dashboard/wallet", icon: Wallet, label: "Wallet" },
       { path: "/dashboard/earnings", icon: DollarSign, label: "Earnings" },
       {
+        path: "/dashboard/admin/finance",
+        icon: Landmark,
+        label: "Finance",
+        permission: "finance.view",
+      },
+      {
+        path: "/dashboard/admin/finance/payouts",
+        icon: Banknote,
+        label: "Payouts",
+        permission: "finance.view",
+      },
+      {
+        path: "/dashboard/admin/finance/wallets",
+        icon: WalletCards,
+        label: "Wallets",
+        permission: "finance.view",
+      },
+      {
+        path: "/dashboard/admin/finance/ledger",
+        icon: BookOpenCheck,
+        label: "Ledger",
+        permission: "finance.view",
+      },
+      {
         path: "/dashboard/admin/finance/topups",
         icon: ReceiptText,
         label: "Top-ups & refunds",
         short: "Top-ups",
         permission: "finance.view",
+      },
+      {
+        path: "/dashboard/admin/finance/approvals",
+        icon: UserCheck,
+        label: "Approvals",
+        permission: "finance.view",
+        onlyWhen: "approvals",
       },
     ],
   },
@@ -197,19 +238,26 @@ export const labelFor = (item: NavItem, role: UserRole) =>
  * one. `permissions` is `GET /admin/me`'s list; without it (not an admin, or
  * the call failed) permissioned items stay hidden.
  */
-const canSee = (item: NavItem, role: UserRole, permissions?: readonly string[]) =>
+const canSee = (
+  item: NavItem,
+  role: UserRole,
+  permissions?: readonly string[],
+  flags: NavFlags = {},
+) =>
   !!rolesForPath(item.path)?.includes(role) &&
   !item.hiddenFor?.includes(role) &&
-  (!item.permission || can(permissions, item.permission));
+  (!item.permission || can(permissions, item.permission)) &&
+  (!item.onlyWhen || !!flags[item.onlyWhen]);
 
 /** The groups this role (and admin permission set) may see, with empty groups dropped. */
 export const navGroupsFor = (
   role: UserRole,
   permissions?: readonly string[],
+  flags?: NavFlags,
 ): NavGroup[] =>
   NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => canSee(item, role, permissions)),
+    items: group.items.filter((item) => canSee(item, role, permissions, flags)),
   })).filter((group) => group.items.length > 0);
 
 const ALL_ITEMS = NAV_GROUPS.flatMap((group) => group.items);

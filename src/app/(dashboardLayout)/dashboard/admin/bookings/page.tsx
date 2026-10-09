@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { getAdminBookings } from "@/services/admin/bookings/getAdminBookings";
 import type { AdminBookingFilters } from "@/services/admin/bookings/types";
+import { getAdminMe } from "@/services/admin/getAdminMe";
+import { can } from "@/lib/admin-permissions";
 import { BookingsClient } from "./BookingsClient";
 
 export const metadata: Metadata = {
@@ -32,7 +34,8 @@ export default async function AdminBookingsPage({ searchParams }: { searchParams
     page: Math.max(1, Number(one(sp.page)) || 1),
   };
 
-  const response = await getAdminBookings(filters);
+  const [response, me] = await Promise.all([getAdminBookings(filters), getAdminMe()]);
+  const canExport = me.success && can(me.data?.permissions, "finance.export");
 
-  return <BookingsClient response={response} filters={filters} />;
+  return <BookingsClient response={response} filters={filters} canExport={canExport} />;
 }

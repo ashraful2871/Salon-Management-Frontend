@@ -1,4 +1,6 @@
 import { getAdminTopups } from "@/services/payments/getAdminTopups";
+import { getAdminMe } from "@/services/admin/getAdminMe";
+import { can } from "@/lib/admin-permissions";
 import { TopupsClient } from "./TopupsClient";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -20,13 +22,19 @@ export default async function TopupsPage({
     q: (first(params.q) || "").trim(),
   };
 
-  const response = await getAdminTopups({
+  const [response, me] = await Promise.all([getAdminTopups({
     page: filters.page,
     limit: 20,
     status: filters.status,
     provider: filters.provider || undefined,
     searchTerm: filters.q || undefined,
-  });
+  }), getAdminMe()]);
 
-  return <TopupsClient response={response} filters={filters} />;
+  return (
+    <TopupsClient
+      response={response}
+      filters={filters}
+      canExport={me.success && can(me.data?.permissions, "finance.export")}
+    />
+  );
 }

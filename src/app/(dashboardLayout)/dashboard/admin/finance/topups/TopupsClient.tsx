@@ -37,6 +37,7 @@ import {
 } from "@/services/payments/refundTopup";
 import { RefundDialog } from "./RefundDialog";
 import { PageHeader } from "@/components/Shared/PageHeader";
+import { ExportButton } from "@/components/Admin/finance/ExportButton";
 
 export type TopupFilters = {
   page: number;
@@ -162,9 +163,11 @@ const RefundHistory = ({ topup }: { topup: AdminTopup }) => (
 export function TopupsClient({
   response,
   filters,
+  canExport = false,
 }: {
   response: ApiResponse<AdminTopup[]>;
   filters: TopupFilters;
+  canExport?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -226,6 +229,7 @@ export function TopupsClient({
       <PageHeader
         title="Top-ups & refunds"
         description="Refunds send money back to the customer's bKash or card and take it out of their wallet."
+        actions={canExport ? <ExportButton kind="topups" label="Export" /> : undefined}
       />
 
       <Card className="min-w-0">

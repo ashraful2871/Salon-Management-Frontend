@@ -10,6 +10,9 @@ const INBOX_LABELS: Record<string, string> = {
   "intents.stuck_pending": "Top-ups stuck in pending",
   "payouts.failed": "Failed payouts",
   "payouts.stale_pending": "Payouts pending too long",
+  "ledger.unbalanced": "Bookings whose ledger does not balance",
+  "wallets.drift": "Wallets out of step with their ledger",
+  "approvals.pending": "Money moves waiting for your approval",
 };
 
 export const inboxLabel = (key: string) =>

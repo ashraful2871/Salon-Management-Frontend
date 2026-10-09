@@ -17,6 +17,8 @@ export type AdminShellData = {
   permissions: string[];
   stepUpUntil: string | null;
   inbox: AdminInboxItem[] | null;
+  /** Show the Approvals nav link (four-eyes on, or requests still waiting). */
+  approvals?: boolean;
 };
 
 const FOCUS_RING =
