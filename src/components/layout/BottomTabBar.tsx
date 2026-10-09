@@ -59,7 +59,7 @@ export function BottomTabBar({
           return (
             <li key={tab.path} className="min-w-0">
               <Link
-                href={tab.path}
+                href={tab.tabHref ?? tab.path}
                 aria-current={isActive ? "page" : undefined}
                 className={TAB}
               >

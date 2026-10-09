@@ -1,17 +1,39 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Metadata } from "next";
-import OwnerRequest from "@/components/OwnerRequest/OwnerRequest";
-import { salonApplications } from "@/services/become-a-salone-woner/salon-applications";
+import { getAdminMe } from "@/services/admin/getAdminMe";
+import { getAdminApplications } from "@/services/admin/applications/getAdminApplications";
+import type { AdminApplicationFilters } from "@/services/admin/applications/types";
+import { ApplicationsClient } from "./ApplicationsClient";
 
 export const metadata: Metadata = { title: "Owner applications | Admin" };
 
-// TODO(admin Phase 5): rebuilt; the old owner-requests screen, moved as is.
-export default async function AdminApplicationsPage() {
-  const allApplications = await salonApplications();
+type Search = Record<string, string | string[] | undefined>;
+
+const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) || undefined;
+
+/** Same queue rules as salons: Pending first when anything waits; the All chip writes `status=ALL`. */
+export default async function AdminApplicationsPage({ searchParams }: { searchParams: Promise<Search> }) {
+  const sp = await searchParams;
+  const status = one(sp.status);
+  const filters: AdminApplicationFilters = {
+    search: one(sp.search),
+    status: status === "ALL" ? undefined : status,
+    page: Math.max(1, Number(one(sp.page)) || 1),
+  };
+
+  const mePromise = getAdminMe();
+  let response = await getAdminApplications(status ? filters : { ...filters, status: "PENDING" });
+  let shownStatus = status ?? "PENDING";
+  if (!status && response.success && (response.meta?.total ?? 0) === 0) {
+    response = await getAdminApplications(filters);
+    shownStatus = "ALL";
+  }
+  const me = await mePromise;
 
   return (
-    <div className="p-4 md:p-6">
-      <OwnerRequest applicationsResponse={allApplications as any} />
-    </div>
+    <ApplicationsClient
+      response={response}
+      filters={{ ...filters, status: shownStatus }}
+      permissions={me.data?.permissions ?? []}
+    />
   );
 }

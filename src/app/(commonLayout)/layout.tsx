@@ -2,6 +2,7 @@ import React from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import SessionKeeper from "@/components/Shared/SessionKeeper";
+import { AnnouncementBar } from "@/components/Shared/AnnouncementBar";
 import AssistantProvider from "@/components/Assistant/AssistantProvider";
 import { getAssistantAccess } from "@/services/assistant/getAssistantAccess";
 
@@ -25,6 +26,9 @@ const CommonLayout = async ({ children }: { children: React.ReactNode }) => {
         <SessionKeeper />
         <Navbar />
         <main id="main" tabIndex={-1} className="flex-1 pt-16 outline-none">
+          {/* The navbar is fixed, so the announcement sits directly under it,
+              at the top of the page flow. */}
+          <AnnouncementBar />
           {children}
         </main>
         <Footer />

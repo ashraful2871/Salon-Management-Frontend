@@ -1,11 +1,13 @@
 import type { NextConfig } from "next";
 
 // Signed-in pages: never framed (clickjacking), never indexed, and no full
-// URL sent to other sites in the Referer.
+// URL sent to other sites in the Referer. Not `same-origin`: OpenStreetMap's
+// tile servers answer 403 "Access blocked" to tile requests with no Referer,
+// and the policy sticks to the tab after client-side navigation to public pages.
 const PRIVATE_HEADERS = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
-  { key: "Referrer-Policy", value: "same-origin" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Robots-Tag", value: "noindex, nofollow" },
 ];
 

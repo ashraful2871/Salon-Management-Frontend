@@ -6,11 +6,13 @@ import {
   FileClock,
   LayoutDashboard,
   Package,
+  Scale,
   ReceiptText,
   Scissors,
   Settings,
   Shield,
   ShieldCheck,
+  SlidersHorizontal,
   Store,
   UserCog,
   Users,
@@ -31,6 +33,8 @@ export type NavItem = {
   path: ProtectedRoute;
   icon: LucideIcon;
   label: string;
+  /** Where the bottom tab goes, when it should open a filtered view. */
+  tabHref?: string;
   /** Bottom-tab label, when `label` is too long for a fifth of a phone. */
   short?: string;
   labelByRole?: Partial<Record<UserRole, string>>;
@@ -88,6 +92,20 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: ClipboardCheck,
         label: "Salons",
         permission: "salons.view",
+        tabHref: "/dashboard/admin/salons?status=PENDING_APPROVAL",
+      },
+      {
+        path: "/dashboard/admin/bookings",
+        icon: CalendarClock,
+        label: "Bookings",
+        permission: "bookings.view",
+      },
+      {
+        path: "/dashboard/admin/appeals",
+        icon: Scale,
+        label: "No-show appeals",
+        short: "Appeals",
+        permission: "appeals.resolve",
       },
       {
         path: "/dashboard/admin/applications",
@@ -133,6 +151,13 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "Team",
         permission: "team.manage",
       },
+      {
+        path: "/dashboard/admin/settings",
+        icon: SlidersHorizontal,
+        label: "Platform settings",
+        short: "Settings",
+        permission: "settings.view",
+      },
     ],
   },
   {
@@ -156,9 +181,9 @@ export const TABS_BY_ROLE: Record<UserRole, ProtectedRoute[]> = {
   STAFF: ["/dashboard", "/dashboard/appointments", "/dashboard/customers"],
   ADMIN: [
     "/dashboard/admin",
+    "/dashboard/admin/bookings",
     "/dashboard/admin/salons",
     "/dashboard/admin/users",
-    "/dashboard/admin/finance/topups",
   ],
   AGENT: ["/dashboard/admin", "/dashboard/admin/salons"],
   GUEST: [],
@@ -206,6 +231,7 @@ const SUB_PAGES: Record<string, { crumb: string; title: string }> = {
   "/dashboard/wallet": { crumb: "Payment", title: "Payment" },
   "/dashboard/admin/users": { crumb: "User", title: "User" },
   "/dashboard/admin/salons": { crumb: "Salon", title: "Salon" },
+  "/dashboard/admin/bookings": { crumb: "Booking", title: "Booking" },
 };
 
 /** The nav items that are a role's home: the breadcrumb starts at them. */
