@@ -7,7 +7,7 @@ import type { ApiResponse } from "@/lib/api-types";
 const FIELDS = ["name", "email", "subject", "message", "company"] as const;
 
 /** `values` is what the visitor typed, so the form can show it again. */
-export type ContactState = ApiResponse<null> & {
+export type ContactState = ApiResponse<{ ticketNumber: number } | null> & {
   values?: Record<string, string>;
 };
 
@@ -34,7 +34,7 @@ export const sendContactMessage = async (
       },
     });
 
-    const result: ApiResponse<null> = await response.json();
+    const result: ApiResponse<{ ticketNumber: number } | null> = await response.json();
 
     if (!result.success) {
       return {
@@ -50,7 +50,7 @@ export const sendContactMessage = async (
     }
 
     // The success card thanks the visitor by name and email.
-    return { success: true, message: result.message, values };
+    return { success: true, message: result.message, data: result.data ?? null, values };
   } catch (error) {
     console.error("sendContactMessage error:", error);
     return {

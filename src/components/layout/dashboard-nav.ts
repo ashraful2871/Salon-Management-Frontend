@@ -22,6 +22,8 @@ import {
   UserCog,
   Users,
   Wallet,
+  MessageSquareWarning,
+  LifeBuoy,
   type LucideIcon,
 } from "lucide-react";
 import type { UserRole } from "@/services/auth/auth-utils";
@@ -184,6 +186,23 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    title: "Trust & support",
+    items: [
+      {
+        path: "/dashboard/admin/reviews",
+        icon: MessageSquareWarning,
+        label: "Reviews",
+        permission: "reviews.moderate",
+      },
+      {
+        path: "/dashboard/admin/support",
+        icon: LifeBuoy,
+        label: "Support",
+        permission: "support.view",
+      },
+    ],
+  },
+  {
     title: "Platform",
     items: [
       {
@@ -224,7 +243,7 @@ export const TABS_BY_ROLE: Record<UserRole, ProtectedRoute[]> = {
     "/dashboard/admin",
     "/dashboard/admin/bookings",
     "/dashboard/admin/salons",
-    "/dashboard/admin/users",
+    "/dashboard/admin/support",
   ],
   AGENT: ["/dashboard/admin", "/dashboard/admin/salons"],
   GUEST: [],
@@ -280,6 +299,7 @@ const SUB_PAGES: Record<string, { crumb: string; title: string }> = {
   "/dashboard/admin/users": { crumb: "User", title: "User" },
   "/dashboard/admin/salons": { crumb: "Salon", title: "Salon" },
   "/dashboard/admin/bookings": { crumb: "Booking", title: "Booking" },
+  "/dashboard/admin/support": { crumb: "Ticket", title: "Ticket" },
 };
 
 /** The nav items that are a role's home: the breadcrumb starts at them. */

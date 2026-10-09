@@ -13,6 +13,8 @@ const INBOX_LABELS: Record<string, string> = {
   "ledger.unbalanced": "Bookings whose ledger does not balance",
   "wallets.drift": "Wallets out of step with their ledger",
   "approvals.pending": "Money moves waiting for your approval",
+  "support.unanswered": "Tickets with no reply after 24 h",
+  "reviews.reported": "Reported reviews to check",
 };
 
 export const inboxLabel = (key: string) =>

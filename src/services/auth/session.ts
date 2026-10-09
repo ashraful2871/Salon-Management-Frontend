@@ -26,6 +26,8 @@ import type { UserRole } from "./auth-utils";
  */
 
 export type SessionUser = {
+  /** The account id from the token, for "is this mine?" checks in the UI. */
+  userId?: string;
   role: UserRole;
   email: string;
   name: string;
@@ -35,6 +37,7 @@ export type SessionUser = {
 };
 
 type DecodedToken = JwtPayload & {
+  userId?: string;
   role: UserRole;
   email: string;
   name?: string;
@@ -137,6 +140,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     ) as DecodedToken;
 
     return {
+      userId: decoded.userId,
       role: decoded.role,
       email: decoded.email,
       name: decoded.name || decoded.email.split("@")[0],
