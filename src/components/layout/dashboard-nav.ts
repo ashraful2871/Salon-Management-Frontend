@@ -5,6 +5,7 @@ import {
   DollarSign,
   FileClock,
   LayoutDashboard,
+  ChartLine,
   Package,
   Scale,
   ReceiptText,
@@ -78,6 +79,12 @@ export const NAV_GROUPS: NavGroup[] = [
     title: "Overview",
     items: [
       { path: "/dashboard/admin", icon: LayoutDashboard, label: "Home" },
+      {
+        path: "/dashboard/admin/analytics",
+        icon: ChartLine,
+        label: "Analytics",
+        permission: "analytics.view",
+      },
     ],
   },
   {

@@ -166,9 +166,9 @@
   --ring: oklch(0.55 0.12 78 / 0.5);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  --chart-3: oklch(0.52 0.17 260);
+  --chart-4: oklch(0.62 0.2 0);
+  --chart-5: oklch(0.48 0.2 300);
 
   --sidebar: var(--surface);
   --sidebar-foreground: var(--foreground);

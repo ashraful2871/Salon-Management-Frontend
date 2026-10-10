@@ -4,9 +4,12 @@ import { serverFetch } from "@/lib/server-fetch";
 /**
  * Streams an admin CSV export from the API with the visitor's access token
  * (`serverFetch` attaches it), so the browser downloads from our own origin.
- * The API checks finance.export and audits the export; this only relays.
+ * The API checks finance.export (analytics.export for analytics) and audits
+ * the export; this only relays.
  */
 const FILE = /^(bookings|ledger|payouts|topups|users)\.csv$/;
+/** `analytics/<report>.csv` → `/admin/analytics/<report>/export.csv` (analytics.export). */
+const ANALYTICS = /^analytics\/(overview|bookings|customers|salons|geo|funnel|search|assistant|tryon)\.csv$/;
 
 export const dynamic = "force-dynamic";
 
@@ -15,12 +18,15 @@ export async function GET(
   { params }: { params: Promise<{ path: string[] }> },
 ) {
   const file = (await params).path.join("/");
-  if (!FILE.test(file)) {
+  const report = ANALYTICS.exec(file)?.[1];
+  if (!report && !FILE.test(file)) {
     return new Response("Unknown export", { status: 404 });
   }
 
   const upstream = await serverFetch.get(
-    `/admin/finance/export/${file}${request.nextUrl.search}`,
+    report
+      ? `/admin/analytics/${report}/export.csv${request.nextUrl.search}`
+      : `/admin/finance/export/${file}${request.nextUrl.search}`,
     { cache: "no-store" },
   );
 
@@ -38,7 +44,7 @@ export async function GET(
     headers: {
       "Content-Type": upstream.headers.get("content-type") ?? "text/csv; charset=utf-8",
       "Content-Disposition":
-        upstream.headers.get("content-disposition") ?? `attachment; filename="${file}"`,
+        upstream.headers.get("content-disposition") ?? `attachment; filename="${file.replace("/", "-")}"`,
       "Cache-Control": "no-store",
     },
   });
