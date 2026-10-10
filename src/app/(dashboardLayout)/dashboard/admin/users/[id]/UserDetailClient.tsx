@@ -2,9 +2,11 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ChevronDown, Star } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ChevronDown, Eye, ShieldAlert, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   DropdownMenu,
@@ -24,11 +26,14 @@ import { EntityHeader, EntityTabs } from "@/components/Admin/EntityHeader";
 import { CopyId } from "@/components/Admin/MaskedValue";
 import { NotesPanel } from "@/components/Admin/NotesPanel";
 import { ReasonDialog } from "@/components/Admin/ReasonDialog";
+import { useStepUp } from "@/components/Admin/StepUpDialog";
 import { Timeline } from "@/components/Admin/Timeline";
 import { StatusDialog, type StatusAction } from "@/components/Admin/users/StatusDialog";
 import {
   ACCESS_REASONS,
+  PRIVACY_REASONS,
   ROLE_LABELS,
+  VIEW_AS_REASONS,
   formatDay,
   reasonText,
   timeAgo,
@@ -40,6 +45,8 @@ import { showResultToast } from "@/components/Shared/showResultToast";
 import { can } from "@/lib/admin-permissions";
 import type { ApiResponse } from "@/lib/api-types";
 import { formatBDT } from "@/lib/money";
+import { startImpersonation } from "@/services/admin/impersonation/startImpersonation";
+import { anonymizeUser } from "@/services/admin/users/anonymizeUser";
 import { revokeUserSessions } from "@/services/admin/users/revokeUserSessions";
 import { updateUserRole, type ChangeableRole } from "@/services/admin/users/updateUserRole";
 import { verifyUserEmail } from "@/services/admin/users/verifyUserEmail";
@@ -52,7 +59,13 @@ import type {
   AdminWalletTransaction,
 } from "@/services/admin/users/types";
 
-type Dialog = { kind: "status"; action: StatusAction } | { kind: "signout" | "verify" | "role" } | null;
+type Dialog =
+  | { kind: "status"; action: StatusAction }
+  | { kind: "signout" | "verify" | "role" | "viewas" | "anonymize" }
+  | null;
+
+/** "View as" never opens an admin or agent account (the API refuses too). */
+const VIEWABLE = ["CUSTOMER", "STAFF", "SALON_OWNER"];
 
 const CHANGEABLE: ChangeableRole[] = ["CUSTOMER", "SALON_OWNER", "STAFF"];
 
@@ -96,11 +109,46 @@ export function UserDetailClient({
 }) {
   const [dialog, setDialog] = useState<Dialog>(null);
   const [newRole, setNewRole] = useState<ChangeableRole>("CUSTOMER");
+  const [confirmEmail, setConfirmEmail] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const router = useRouter();
+  const { run: withStepUp, dialog: stepUpDialog } = useStepUp();
 
   // Admin accounts are managed on the team page; nobody acts on themselves.
   const actionable = user.role !== "ADMIN" && user.id !== viewerId;
   const canManage = actionable && can(permissions, "users.manage");
   const canRole = actionable && can(permissions, "users.role") && user.role !== "AGENT";
+  const canViewAs =
+    user.id !== viewerId &&
+    can(permissions, "users.impersonate") &&
+    VIEWABLE.includes(user.role) &&
+    user.status === "ACTIVE";
+  const canPrivacy = actionable && can(permissions, "users.delete") && user.role !== "AGENT";
+
+  // A download through the export route; a closed step-up window answers
+  // STEP_UP_REQUIRED (X-Error-Code), and useStepUp asks for a code and retries.
+  const exportData = async () => {
+    setExporting(true);
+    const result = await withStepUp<never>(async () => {
+      const response = await fetch(`/api/admin/export/users/${user.id}.json`, { cache: "no-store" });
+      if (!response.ok) {
+        return {
+          success: false,
+          message: (await response.text()) || "The export failed. Please try again.",
+          errorCode: response.headers.get("x-error-code") ?? undefined,
+        };
+      }
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `user-${user.id}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      return { success: true, message: "Data export downloaded" };
+    });
+    setExporting(false);
+    showResultToast(result);
+  };
 
   const close = (open: boolean) => {
     if (!open) setDialog(null);
@@ -109,12 +157,21 @@ export function UserDetailClient({
   const actions = (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" disabled={!canManage && !canRole}>
+        <Button variant="outline" disabled={!canManage && !canRole && !canViewAs}>
           Actions
           <ChevronDown className="ml-1.5 h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
+        {canViewAs && (
+          <>
+            <DropdownMenuItem onSelect={() => setDialog({ kind: "viewas" })}>
+              <Eye className="mr-2 h-4 w-4" />
+              View as…
+            </DropdownMenuItem>
+            {(canManage || canRole) && <DropdownMenuSeparator />}
+          </>
+        )}
         {canManage && user.status === "ACTIVE" && (
           <DropdownMenuItem onSelect={() => setDialog({ kind: "status", action: "SUSPENDED" })}>
             Suspend…
@@ -156,6 +213,31 @@ export function UserDetailClient({
             Change account type…
           </DropdownMenuItem>
         )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  const privacy = canPrivacy && (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" disabled={exporting}>
+          <ShieldAlert className="mr-1.5 h-4 w-4" />
+          Privacy
+          <ChevronDown className="ml-1.5 h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem onSelect={() => void exportData()}>Export data (JSON)</DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="text-danger"
+          onSelect={() => {
+            setConfirmEmail("");
+            setDialog({ kind: "anonymize" });
+          }}
+        >
+          Anonymize account…
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -408,7 +490,12 @@ export function UserDetailClient({
         imageUrl={user.profilePhoto}
         status={user.status}
         facts={facts}
-        actions={actions}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {privacy}
+            {actions}
+          </div>
+        }
       />
       <EntityTabs tabs={tabs} />
 
@@ -420,6 +507,55 @@ export function UserDetailClient({
           users={[{ id: user.id, name: user.name }]}
         />
       )}
+
+      {stepUpDialog}
+
+      <ReasonDialog
+        open={dialog?.kind === "viewas"}
+        onOpenChange={close}
+        title={`View as ${user.name}`}
+        description="You see their dashboard and the site as they do, read-only, for 15 minutes. Every page you open is recorded."
+        reasonCodes={VIEW_AS_REASONS}
+        showNotify={false}
+        stepUp
+        confirmLabel="Start viewing"
+        onConfirm={(input) => startImpersonation(user.id, reasonText(VIEW_AS_REASONS, input))}
+        onDone={(result) => showResultToast(result)}
+      />
+
+      <ReasonDialog
+        open={dialog?.kind === "anonymize"}
+        onOpenChange={close}
+        tone="danger"
+        title={`Anonymize ${user.name}`}
+        description="Their name, email, phone, address, birthday and photo are erased, sign-in methods and chats are deleted, and review text is removed. Bookings, wallet and payment records stay. This cannot be undone."
+        impact={
+          <div className="space-y-1.5">
+            <Label htmlFor="confirm-email">Type {user.email} to confirm</Label>
+            <Input
+              id="confirm-email"
+              value={confirmEmail}
+              onChange={(e) => setConfirmEmail(e.target.value)}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </div>
+        }
+        reasonCodes={PRIVACY_REASONS}
+        showNotify={false}
+        stepUp
+        confirmLabel="Anonymize"
+        onConfirm={async (input) =>
+          confirmEmail.trim().toLowerCase() === user.email.toLowerCase()
+            ? anonymizeUser(user.id, reasonText(PRIVACY_REASONS, input), confirmEmail)
+            : { success: false, message: "Type the account's email exactly to confirm." }
+        }
+        onDone={(result) => {
+          showResultToast(result);
+          // The account no longer opens in the 360 once it is anonymized.
+          if (result.success) router.push("/dashboard/admin/users");
+        }}
+      />
 
       <ReasonDialog
         open={dialog?.kind === "signout"}

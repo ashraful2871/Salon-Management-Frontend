@@ -2,6 +2,7 @@ import {
   getValidAccessToken,
   refreshAccessToken,
 } from "@/services/auth/session";
+import { impersonationOf } from "@/lib/jwt";
 
 const BACKEND_API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
@@ -52,6 +53,9 @@ const serverFetchHelper = async (
   const response = await send(accessToken);
 
   if (response.status !== 401) return response;
+
+  // A "View as" token has no refresh: when it is refused, the view is over.
+  if (impersonationOf(accessToken)) return response;
 
   const renewed = await refreshAccessToken();
 

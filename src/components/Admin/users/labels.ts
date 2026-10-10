@@ -34,6 +34,22 @@ export const ACCESS_REASONS: ReasonCode[] = [
   { value: "OTHER", label: "Other" },
 ];
 
+/** Why support opens a read-only "View as" (free-text `reason` on the API). */
+export const VIEW_AS_REASONS: ReasonCode[] = [
+  { value: "Investigating a support ticket", label: "Investigating a support ticket" },
+  { value: "Reproducing a reported problem", label: "Reproducing a reported problem" },
+  { value: "At the account holder's request", label: "At the account holder's request" },
+  { value: "OTHER", label: "Other" },
+];
+
+/** Privacy requests: anonymizing an account. */
+export const PRIVACY_REASONS: ReasonCode[] = [
+  { value: "Deletion requested by the account holder", label: "Deletion requested by the account holder" },
+  { value: "Deletion requested through support", label: "Deletion requested through support" },
+  { value: "Legal or regulatory request", label: "Legal or regulatory request" },
+  { value: "OTHER", label: "Other" },
+];
+
 /** The reason text an API with a free-text `reason` gets from a ReasonDialog. */
 export const reasonText = (codes: ReasonCode[], input: { reasonCode: string; note: string }) => {
   const label = codes.find((c) => c.value === input.reasonCode)?.label ?? input.reasonCode;

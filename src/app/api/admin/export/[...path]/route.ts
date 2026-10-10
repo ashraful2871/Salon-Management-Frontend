@@ -8,6 +8,8 @@ import { serverFetch } from "@/lib/server-fetch";
  * the export; this only relays.
  */
 const FILE = /^(bookings|ledger|payouts|topups|users)\.csv$/;
+/** `users/<id>.json` → `/admin/users/<id>/export` (users.delete, step-up): a privacy export. */
+const USER_EXPORT = /^users\/([0-9a-f-]{36})\.json$/i;
 /** `analytics/<report>.csv` → `/admin/analytics/<report>/export.csv` (analytics.export). */
 const ANALYTICS = /^analytics\/(overview|bookings|customers|salons|geo|funnel|search|assistant|tryon)\.csv$/;
 
@@ -19,24 +21,31 @@ export async function GET(
 ) {
   const file = (await params).path.join("/");
   const report = ANALYTICS.exec(file)?.[1];
-  if (!report && !FILE.test(file)) {
+  const userId = USER_EXPORT.exec(file)?.[1];
+  if (!report && !userId && !FILE.test(file)) {
     return new Response("Unknown export", { status: 404 });
   }
 
   const upstream = await serverFetch.get(
-    report
-      ? `/admin/analytics/${report}/export.csv${request.nextUrl.search}`
-      : `/admin/finance/export/${file}${request.nextUrl.search}`,
+    userId
+      ? `/admin/users/${userId}/export`
+      : report
+        ? `/admin/analytics/${report}/export.csv${request.nextUrl.search}`
+        : `/admin/finance/export/${file}${request.nextUrl.search}`,
     { cache: "no-store" },
   );
 
   if (!upstream.ok || !upstream.body) {
     // The API answers errors in its JSON envelope; show the message as text,
     // since this URL was opened as a download.
-    const body = (await upstream.json().catch(() => null)) as { message?: string } | null;
+    // `X-Error-Code` lets a fetch() caller answer STEP_UP_REQUIRED.
+    const body = (await upstream.json().catch(() => null)) as { message?: string; errorCode?: string } | null;
     return new Response(body?.message ?? "The export failed. Please try again.", {
       status: upstream.status || 502,
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        ...(body?.errorCode ? { "X-Error-Code": body.errorCode } : {}),
+      },
     });
   }
 

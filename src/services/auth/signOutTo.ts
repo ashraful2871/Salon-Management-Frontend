@@ -1,7 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from "@/lib/auth-cookies";
+import {
+  ACCESS_TOKEN_COOKIE,
+  ADMIN_ACCESS_COOKIE,
+  ADMIN_REFRESH_COOKIE,
+  REFRESH_TOKEN_COOKIE,
+} from "@/lib/auth-cookies";
 import { safeInAppPath } from "@/lib/safe-path";
 import { deleteCookie } from "./cookiesHandler";
 
@@ -14,5 +19,8 @@ export const signOutTo = async (formData: FormData): Promise<void> => {
   const returnTo = safeInAppPath(formData.get("returnTo")) ?? "/";
   await deleteCookie(REFRESH_TOKEN_COOKIE);
   await deleteCookie(ACCESS_TOKEN_COOKIE);
+  // A sign-out during "View as" ends the admin's stashed session too.
+  await deleteCookie(ADMIN_REFRESH_COOKIE);
+  await deleteCookie(ADMIN_ACCESS_COOKIE);
   redirect(`/login?redirect=${encodeURIComponent(returnTo)}`);
 };

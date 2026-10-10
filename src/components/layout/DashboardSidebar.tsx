@@ -298,11 +298,11 @@ export const DashboardShell = ({
   const roleLabel = ROLE_LABELS[user.role] ?? user.role;
 
   return (
-    <div className="min-h-screen bg-surface-subtle">
+    <div className="min-h-screen bg-surface-subtle pt-[var(--imp-offset,0px)]">
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-border bg-surface transition-[width] duration-300 lg:flex",
+          "fixed bottom-0 left-0 top-[var(--imp-offset,0px)] z-40 hidden flex-col border-r border-border bg-surface transition-[width] duration-300 lg:flex",
           collapsed ? "w-20" : "w-64",
         )}
       >
@@ -400,7 +400,7 @@ export const DashboardShell = ({
         )}
       >
         {/* Top bar */}
-        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface/95 px-4 sm:px-6 md:backdrop-blur-sm lg:h-16 lg:px-8">
+        <header className="sticky top-[var(--imp-offset,0px)] z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface/95 px-4 sm:px-6 md:backdrop-blur-sm lg:h-16 lg:px-8">
           <button
             type="button"
             onClick={toggleCollapsed}

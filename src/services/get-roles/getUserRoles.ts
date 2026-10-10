@@ -15,3 +15,13 @@ export const getUserRoles = async () => {
 
   return user?.role;
 };
+
+/**
+ * The read-only "View as" an admin is running on this session - who started
+ * it and when it ends (epoch ms) - from the verified token, or `null`.
+ */
+export const getImpersonation = async () => {
+  const user = await getSessionUser();
+
+  return user?.impersonating ?? null;
+};

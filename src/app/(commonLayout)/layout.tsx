@@ -1,9 +1,10 @@
-import React from "react";
+import React, { Suspense } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import SessionKeeper from "@/components/Shared/SessionKeeper";
 import PageViewTracker from "@/components/Shared/PageViewTracker";
 import { AnnouncementBar } from "@/components/Shared/AnnouncementBar";
+import { ImpersonationBanner } from "@/components/Shared/ImpersonationBanner";
 import AssistantProvider from "@/components/Assistant/AssistantProvider";
 import { getAssistantAccess } from "@/services/assistant/getAssistantAccess";
 
@@ -27,8 +28,12 @@ const CommonLayout = async ({ children }: { children: React.ReactNode }) => {
         <SessionKeeper />
         {/* Cookieless, aggregated page counts (lib/track.ts). */}
         <PageViewTracker />
+        {/* Read-only "View as" bar; the navbar and main move down under it. */}
+        <Suspense fallback={null}>
+          <ImpersonationBanner />
+        </Suspense>
         <Navbar />
-        <main id="main" tabIndex={-1} className="flex-1 pt-16 outline-none">
+        <main id="main" tabIndex={-1} className="flex-1 pt-[calc(4rem+var(--imp-offset,0px))] outline-none">
           {/* The navbar is fixed, so the announcement sits directly under it,
               at the top of the page flow. */}
           <AnnouncementBar />

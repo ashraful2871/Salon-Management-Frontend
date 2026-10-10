@@ -230,7 +230,7 @@ const NavbarClient = ({
         className={cn(
           // Only colours and the shadow change on scroll; the blur keeps one
           // radius and is desktop-only, so phones never re-rasterise it.
-          "fixed inset-x-0 top-0 z-50 border-b transition-[background-color,border-color,box-shadow] duration-200",
+          "fixed inset-x-0 top-[var(--imp-offset,0px)] z-50 border-b transition-[background-color,border-color,box-shadow] duration-200",
           isScrolled
             ? "border-border bg-surface/95 shadow-xs md:bg-surface/85 md:backdrop-blur-sm"
             : "border-transparent bg-surface/90 md:bg-surface/75 md:backdrop-blur-sm",

@@ -1,5 +1,6 @@
 import { DashboardShell } from "@/components/layout/DashboardSidebar";
 import SessionKeeper from "@/components/Shared/SessionKeeper";
+import { ImpersonationBanner } from "@/components/Shared/ImpersonationBanner";
 import { requireUser } from "@/lib/auth-guard";
 import { getDisplayUser } from "@/services/auth/displayUser";
 import { ADMIN_SECURITY_PATH, PATHNAME_HEADER } from "@/lib/route-access";
@@ -63,6 +64,7 @@ const CommonDashboardLayout = async ({
       admin={admin}
     >
       <SessionKeeper />
+      <ImpersonationBanner />
       {children}
     </DashboardShell>
   );
