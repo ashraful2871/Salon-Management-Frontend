@@ -1,5 +1,6 @@
 "use client";
 
+import { track } from "@/lib/track";
 import { Lock, Mail, User, Phone, EyeOff, Eye } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
@@ -33,12 +34,19 @@ const RegisterForm = ({ googleEnabled = false }: { googleEnabled?: boolean }) =>
 
           {googleEnabled && (
             <>
-              <GoogleButton />
+              {/* Capture: the button is a plain link that leaves the page. */}
+              <div onClickCapture={() => track("signup_started", "method:google")}>
+                <GoogleButton />
+              </div>
               <OrDivider />
             </>
           )}
 
-          <form action={formAction} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <form
+            action={formAction}
+            onSubmit={() => track("signup_started", "method:email")}
+            className="grid grid-cols-1 md:grid-cols-2 gap-5"
+          >
             
             {/* Full Name */}
             <div className="md:col-span-2">

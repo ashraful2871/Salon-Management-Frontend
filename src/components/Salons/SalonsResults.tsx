@@ -1,8 +1,9 @@
 "use client";
+import { track } from "@/lib/track";
 import { useRouter } from "next/navigation";
 
 import { List, Map as MapIcon, MapPin, Navigation, SearchX, Store, X } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
 import {
@@ -73,6 +74,10 @@ export default function SalonsResults({
   const [activeId, setActiveId] = useState<string | null>(null);
   const showMap = nearby !== null && (isDesktop || mobileView === "map");
   const mapOnly = showMap && !isDesktop;
+
+  useEffect(() => {
+    track("salon_list_viewed", showMap ? "mode:map" : "mode:list");
+  }, [showMap]);
 
   const scrollToResults = () => {
     const reduceMotion = window.matchMedia(

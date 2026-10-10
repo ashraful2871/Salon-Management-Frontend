@@ -1,5 +1,6 @@
 "use client";
 
+import { track } from "@/lib/track";
 import { useState, useTransition, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -24,6 +25,7 @@ export default function HeroSearch() {
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const q = term.trim();
+    if (q) track("search_submitted", "source:hero");
     startTransition(() =>
       router.push(q ? `/salons?searchTerm=${encodeURIComponent(q)}` : "/salons"),
     );

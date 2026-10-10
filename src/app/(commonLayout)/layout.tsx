@@ -2,6 +2,7 @@ import React from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import SessionKeeper from "@/components/Shared/SessionKeeper";
+import PageViewTracker from "@/components/Shared/PageViewTracker";
 import { AnnouncementBar } from "@/components/Shared/AnnouncementBar";
 import AssistantProvider from "@/components/Assistant/AssistantProvider";
 import { getAssistantAccess } from "@/services/assistant/getAssistantAccess";
@@ -24,6 +25,8 @@ const CommonLayout = async ({ children }: { children: React.ReactNode }) => {
         {/* Renews the token in the background so a page left open - a booking
             half filled in, say - does not expire underneath the user. */}
         <SessionKeeper />
+        {/* Cookieless, aggregated page counts (lib/track.ts). */}
+        <PageViewTracker />
         <Navbar />
         <main id="main" tabIndex={-1} className="flex-1 pt-16 outline-none">
           {/* The navbar is fixed, so the announcement sits directly under it,

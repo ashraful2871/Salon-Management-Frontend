@@ -165,6 +165,13 @@ export default function About() {
             <FeatureCard key={value.title} {...value} />
           ))}
         </div>
+        <p id="privacy-analytics" className="mt-8 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+          How we count visits: our site statistics use no cookies and no tracking
+          ids. We only keep daily totals - how many pages were viewed, which kind
+          of page, and roughly where visits came from - never your name, email,
+          phone, IP address or the pages you personally visited. If your browser
+          sends Do Not Track or Global Privacy Control, nothing is counted at all.
+        </p>
       </Section>
 
       <Section tone="subtle" labelledBy="team-heading">
