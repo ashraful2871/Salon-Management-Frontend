@@ -19,8 +19,8 @@ async function NavbarAccount() {
   // happens once the token has verified. A failed read degrades to `null` — the
   // header still renders, it just shows no figure.
   let wallet: Wallet | null = null;
-  let ownerRevenueMinor: number | null = null;
-  let adminRevenueMinor: number | null = null;
+  const ownerRevenueMinor: number | null = null;
+  const adminRevenueMinor: number | null = null;
 
   if (user) {
     if (user.role === "CUSTOMER") {

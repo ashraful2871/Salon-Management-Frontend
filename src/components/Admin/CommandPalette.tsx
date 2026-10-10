@@ -59,12 +59,21 @@ export function CommandPalette({
   // Only the latest request may write its answer.
   const latest = useRef(0);
 
-  // Ctrl/⌘K toggles from anywhere in the dashboard.
+  // Ctrl/⌘K toggles from anywhere in the dashboard; "/" opens it when the
+  // focus is not in a text field.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         onOpenChange(!open);
+        return;
+      }
+      const el = event.target as HTMLElement | null;
+      const typing =
+        !!el && (el.isContentEditable || el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT");
+      if (event.key === "/" && !open && !typing && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        event.preventDefault();
+        onOpenChange(true);
       }
     };
     window.addEventListener("keydown", onKey);
