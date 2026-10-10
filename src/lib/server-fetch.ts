@@ -31,11 +31,17 @@ const serverFetchHelper = async (
   options: RequestInit & FetchCacheStrategy,
 ): Promise<Response> => {
   const { headers, ...restOptions } = options;
+  // Matched to audit rows and to the backend's `[req <id>]` error line. Not on
+  // cached reads: Next keys its data cache on the headers, so a fresh id would
+  // make every cached fetch a miss.
+  const requestId =
+    options.next || options.cache === "force-cache" ? undefined : crypto.randomUUID();
 
   const send = (token: string | null) =>
     fetch(`${BACKEND_API_URL}${endPoint}`, {
       headers: {
         Cookie: token ? `accessToken=${token}` : "",
+        ...(requestId ? { "X-Request-Id": requestId } : {}),
         ...headers,
       },
       ...restOptions,

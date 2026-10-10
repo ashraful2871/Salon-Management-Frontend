@@ -15,6 +15,9 @@ const INBOX_LABELS: Record<string, string> = {
   "approvals.pending": "Money moves waiting for your approval",
   "support.unanswered": "Tickets with no reply after 24 h",
   "reviews.reported": "Reported reviews to check",
+  "jobs.failed": "Background jobs failing or not running",
+  "storage.cap": "Database storage near its cap",
+  "ai.coverage": "AI search index below 95% coverage",
 };
 
 export const inboxLabel = (key: string) =>

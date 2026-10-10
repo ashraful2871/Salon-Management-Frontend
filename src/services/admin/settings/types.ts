@@ -8,7 +8,7 @@ export type SettingGroup =
   | "system"
   | "content";
 
-export type SettingKind = "int" | "number" | "boolean" | "announcement";
+export type SettingKind = "int" | "number" | "boolean" | "announcement" | "list";
 
 export type SettingSource = "db" | "env" | "default";
 

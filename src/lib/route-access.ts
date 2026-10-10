@@ -88,6 +88,8 @@ export const ROUTE_ROLES = {
   "/dashboard/admin/finance/approvals": ["ADMIN"],
   "/dashboard/admin/team": ["ADMIN"],
   "/dashboard/admin/settings": ["ADMIN"],
+  "/dashboard/admin/system": ["ADMIN"],
+  "/dashboard/admin/content": ["ADMIN"],
   "/dashboard/admin/reviews": ["ADMIN"],
   "/dashboard/admin/support": ["ADMIN"],
   "/dashboard/admin/analytics": ["ADMIN"],

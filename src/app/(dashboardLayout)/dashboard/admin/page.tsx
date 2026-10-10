@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { requireUser } from "@/lib/auth-guard";
@@ -6,6 +7,7 @@ import { dashboardGreeting } from "@/lib/greeting";
 import { can } from "@/lib/admin-permissions";
 import { PageHeader } from "@/components/Shared/PageHeader";
 import { NeedsAttention } from "@/components/Admin/home/NeedsAttention";
+import { SystemStrip, SystemStripSkeleton } from "@/components/Admin/system/SystemStrip";
 import { DateRangeFilter } from "@/components/Admin/analytics/DateRangeFilter";
 import { parseAnalyticsFilters } from "@/components/Admin/analytics/filters";
 import { formatRange, kpiById } from "@/components/Admin/analytics/format";
@@ -46,6 +48,7 @@ export default async function AdminHomePage({ searchParams }: { searchParams: Se
   const items = inbox.success ? (inbox.data ?? []) : [];
   const permissions = me?.success ? (me.data?.permissions ?? []) : [];
   const showFigures = isAdmin && can(permissions, "analytics.view");
+  const showSystem = isAdmin && can(permissions, "system.view");
 
   return (
     <div className="min-w-0 space-y-6">
@@ -56,6 +59,12 @@ export default async function AdminHomePage({ searchParams }: { searchParams: Se
         error={inbox.success ? null : inbox.message}
         nowMs={nowMs()}
       />
+
+      {showSystem && (
+        <Suspense fallback={<SystemStripSkeleton />}>
+          <SystemStrip />
+        </Suspense>
+      )}
 
       {showFigures && <HomeFigures params={await searchParams} />}
     </div>
@@ -122,13 +131,6 @@ async function HomeFigures({ params }: { params: Record<string, string | string[
           </>
         )}
 
-        {/* Phase 12 fills this strip with job, integration and storage health. */}
-        <div
-          role="status"
-          className="rounded-2xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground"
-        >
-          System health isn&apos;t monitored here yet.
-        </div>
       </section>
     </FilterNavigationProvider>
   );

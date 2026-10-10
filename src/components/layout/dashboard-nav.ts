@@ -1,4 +1,5 @@
 import {
+  Activity,
   Calendar,
   CalendarClock,
   ClipboardCheck,
@@ -25,6 +26,7 @@ import {
   Wallet,
   MessageSquareWarning,
   LifeBuoy,
+  Newspaper,
   type LucideIcon,
 } from "lucide-react";
 import type { UserRole } from "@/services/auth/auth-utils";
@@ -224,6 +226,19 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "Platform settings",
         short: "Settings",
         permission: "settings.view",
+      },
+      {
+        path: "/dashboard/admin/content",
+        icon: Newspaper,
+        label: "Content",
+        permission: "content.manage",
+      },
+      {
+        path: "/dashboard/admin/system",
+        icon: Activity,
+        label: "System health",
+        short: "System",
+        permission: "system.view",
       },
     ],
   },

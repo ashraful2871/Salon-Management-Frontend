@@ -18,8 +18,6 @@ import type { ApiResponse } from "@/lib/api-types";
 import { updateSetting, type SavedSetting } from "@/services/admin/settings/updateSetting";
 import { isApprovalRequired } from "@/services/admin/finance/types";
 import type { AdminSetting, AdminSettings, SettingGroup } from "@/services/admin/settings/types";
-import type { Announcement } from "@/services/settings/getPublicSettings";
-import { AnnouncementEditor, checkAnnouncement, tidyAnnouncement } from "./AnnouncementEditor";
 import {
   boundsText,
   formatSettingValue,
@@ -30,7 +28,7 @@ import {
 } from "./format";
 import { SettingHistory } from "./SettingHistory";
 
-/** Numbers are drafted as the text typed; booleans and the announcement as is. */
+/** Numbers are drafted as the text typed; booleans as is. */
 type Draft = Record<string, unknown>;
 
 const toDraft = (setting: AdminSetting, value: unknown): unknown =>
@@ -39,11 +37,6 @@ const toDraft = (setting: AdminSetting, value: unknown): unknown =>
 const fromDraft = (setting: AdminSetting, draft: unknown): { value: unknown } | { error: string } => {
   if (setting.kind === "int" || setting.kind === "number") {
     return parseNumberDraft(setting, String(draft));
-  }
-  if (setting.kind === "announcement") {
-    const a = tidyAnnouncement(draft as Announcement | null);
-    const error = checkAnnouncement(a);
-    return error ? { error } : { value: a };
   }
   return { value: draft };
 };
@@ -69,7 +62,8 @@ export function SettingsClient({
         <ErrorState title="Couldn't load the settings" message={response.message} />
       ) : (
         <>
-          {data.groups.map(({ group, settings }) => (
+          {/* content.* is edited on the Content page (/dashboard/admin/content). */}
+          {data.groups.filter(({ group }) => group !== "content").map(({ group, settings }) => (
             <SettingsSection
               // Remount after a save: the server's new versions replace the draft.
               key={`${group}:${settings.map((s) => s.version).join(",")}`}
@@ -230,7 +224,7 @@ function SettingField({
   ].filter(Boolean);
 
   const input =
-    setting.kind === "announcement" ? null : setting.kind === "boolean" ? (
+    setting.kind === "boolean" ? (
       <Switch
         id={id}
         checked={Boolean(draft)}
@@ -260,7 +254,7 @@ function SettingField({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <Label htmlFor={setting.kind === "announcement" ? undefined : id} className="text-sm font-semibold">
+            <Label htmlFor={id} className="text-sm font-semibold">
               {setting.label}
             </Label>
             <ToneBadge status={setting.source} tone={source.tone}>
@@ -296,13 +290,6 @@ function SettingField({
         </div>
       </div>
       {error && <p className="text-sm text-danger">{error}</p>}
-      {setting.kind === "announcement" && (
-        <AnnouncementEditor
-          value={draft as Announcement | null}
-          onChange={onChange}
-          disabled={!canEdit}
-        />
-      )}
     </div>
   );
 }

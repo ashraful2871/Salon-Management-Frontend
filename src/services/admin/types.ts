@@ -20,6 +20,8 @@ export type AdminMe = {
   mfa: AdminMfaState;
   /** Four-eyes state: the Approvals link shows when enabled or requests wait. */
   approvals?: { enabled: boolean; pending: number };
+  /** System alert emails + the daily digest (ADMIN only). */
+  alertEmails?: boolean;
 };
 
 export type MfaSetup = { otpauthUrl: string; qrDataUrl: string; manualKey: string };
@@ -59,6 +61,8 @@ export type AdminSearchHit = {
   title: string;
   subtitle: string | null;
   href: string;
+  /** Salon hits only: the salon status. */
+  status?: string;
 };
 
 export type AdminNoteEntity = "user" | "salon" | "booking" | "payout" | "intent" | "wallet";

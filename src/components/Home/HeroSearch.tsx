@@ -8,16 +8,29 @@ import { Search } from "lucide-react";
 
 import { Button } from "../ui/button";
 import { SERVICE_CATEGORIES } from "@/constants/service-categories";
+import type { HomeChip } from "@/services/settings/getPublicSettings";
 
+// Shown when `content.homeChips` is empty or unreachable (what shipped before it).
 const POPULAR = ["HAIRCUT", "FACIAL", "MAKEUP", "MANICURE", "MASSAGE"];
-const popular = SERVICE_CATEGORIES.filter((c) => POPULAR.includes(c.value));
+const FALLBACK_CHIPS: HomeChip[] = SERVICE_CATEGORIES.filter((c) =>
+  POPULAR.includes(c.value),
+).map((c) => ({ label: c.label, category: c.value }));
+
+const chipLink = (chip: HomeChip) => ({
+  href: chip.category
+    ? `/salons?category=${encodeURIComponent(chip.category)}`
+    : `/salons?searchTerm=${encodeURIComponent(chip.query ?? chip.label)}`,
+  icon: SERVICE_CATEGORIES.find((c) => c.value === chip.category)?.icon ?? Search,
+});
 
 const CHIP =
   "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-border bg-surface px-4 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-primary-soft pointer-coarse:h-11";
 
 // Home hero search. Free text goes to /salons?searchTerm= (the API matches
-// salon and service names); the chips filter by service category.
-export default function HeroSearch() {
+// salon and service names); the chips (`content.homeChips`) filter by service
+// category or run a search.
+export default function HeroSearch({ chips }: { chips?: HomeChip[] }) {
+  const popular = chips?.length ? chips : FALLBACK_CHIPS;
   const router = useRouter();
   const [term, setTerm] = useState("");
   const [pending, startTransition] = useTransition();
@@ -67,12 +80,15 @@ export default function HeroSearch() {
         <span className="hidden text-sm text-muted-foreground sm:inline">
           Popular:
         </span>
-        {popular.map(({ value, label, icon: Icon }) => (
-          <Link key={value} href={`/salons?category=${value}`} className={CHIP}>
-            <Icon className="size-4 text-primary-hover" aria-hidden />
-            {label}
-          </Link>
-        ))}
+        {popular.map((chip, i) => {
+          const { href, icon: Icon } = chipLink(chip);
+          return (
+            <Link key={`${i}:${href}`} href={href} className={CHIP}>
+              <Icon className="size-4 text-primary-hover" aria-hidden />
+              {chip.label}
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

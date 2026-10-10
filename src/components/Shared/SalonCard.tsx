@@ -27,6 +27,8 @@ interface SalonCardProps {
   distance?: string;
   /** Above-the-fold cards load their photo eagerly. */
   preload?: boolean;
+  /** A label pinned to the photo's top-left (e.g. "Featured"); a distance takes the spot. */
+  badge?: string;
   className?: string;
 }
 
@@ -42,6 +44,7 @@ const SalonCard = ({
   index,
   distance,
   preload = false,
+  badge,
   className,
 }: SalonCardProps) => {
   const approximate = distance?.startsWith("~") ?? false;
@@ -90,6 +93,12 @@ const SalonCard = ({
             {approximate && (
               <span className="sr-only"> (approximate location)</span>
             )}
+          </span>
+        )}
+
+        {badge && !distance && (
+          <span className="absolute left-3 top-3 inline-flex items-center rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground shadow-sm">
+            {badge}
           </span>
         )}
 

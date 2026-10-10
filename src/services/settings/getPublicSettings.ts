@@ -13,6 +13,29 @@ export type Announcement = {
   dismissible: boolean;
 };
 
+/** A home search chip: a free-text search or a category filter (one of them). */
+export type HomeChip = { label: string; query?: string; category?: string };
+
+/** A home "Browse by service" tile. `icon` is a name from `lib/content-icons.ts`. */
+export type CategoryTile = {
+  category: string;
+  labelEn: string;
+  labelBn: string;
+  icon: string;
+  order: number;
+  visible: boolean;
+};
+
+/** `content.featuredSalonIds` resolved by the API: ACTIVE, non-test salons only, in order. */
+export type FeaturedSalon = {
+  id: string;
+  name: string;
+  area: string;
+  rating: number;
+  totalReviews: number;
+  cover: string | null;
+};
+
 /** `GET /settings/public`: the platform settings marked public. */
 export type PublicSettings = {
   "assistant.enabled": boolean;
@@ -20,6 +43,9 @@ export type PublicSettings = {
   "signup.enabled": boolean;
   "applications.enabled": boolean;
   "content.announcement": Announcement | null;
+  "content.homeChips"?: HomeChip[];
+  "content.categoryTiles"?: CategoryTile[];
+  featuredSalons?: FeaturedSalon[];
 };
 
 /**
