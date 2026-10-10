@@ -1,0 +1,6 @@
+$ next build
+▲ Next.js 16.1.1 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+error: script "build" exited with code 5
