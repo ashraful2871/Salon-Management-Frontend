@@ -66,7 +66,7 @@ export function RunPayoutBatchDialog({
         open={open}
         onOpenChange={(next) => !running && onOpenChange(next)}
         title="Run payout batch"
-        description="Each salon's unpaid balance becomes one pending payout. Nothing is sent until you mark it paid."
+        description="Each business's available balance (past the hold, all branches netted) becomes one pending payout. Nothing is sent until you mark it paid."
         footer={
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={running}>
@@ -84,7 +84,7 @@ export function RunPayoutBatchDialog({
             {error}
           </p>
         )}
-        {empty && <p className="text-sm text-muted-foreground">No salon is owed anything right now.</p>}
+        {empty && <p className="text-sm text-muted-foreground">No business is owed a payout right now.</p>}
         {preview && !empty && (
           <div className="space-y-4">
             <div className="max-h-72 overflow-y-auto rounded-xl border border-border">
@@ -97,10 +97,13 @@ export function RunPayoutBatchDialog({
                 </thead>
                 <tbody className="divide-y divide-border">
                   {preview.rows.map((row) => (
-                    <tr key={row.salonId}>
+                    <tr key={row.ownerId}>
                       <td className="px-3 py-2">
-                        <span className="font-medium">{row.salonName}</span>
-                        {row.area && <span className="block text-xs text-muted-foreground">{row.area}{row.isTest ? " · test" : ""}</span>}
+                        <span className="font-medium">{row.businessName}</span>
+                        <span className="block text-xs text-muted-foreground">
+                          {row.salons > 1 ? row.salonName : [row.salonName, row.area].filter(Boolean).join(" · ")}
+                          {row.isTest ? " · test" : ""}
+                        </span>
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums">{formatBDT(row.netMinor)}</td>
                     </tr>
@@ -108,12 +111,19 @@ export function RunPayoutBatchDialog({
                 </tbody>
                 <tfoot className="border-t border-border bg-surface-subtle font-semibold">
                   <tr>
-                    <td className="px-3 py-2">{preview.totals.salons} salon(s)</td>
+                    <td className="px-3 py-2">{preview.totals.salons} business(es)</td>
                     <td className="px-3 py-2 text-right tabular-nums">{formatBDT(preview.totals.netMinor)}</td>
                   </tr>
                 </tfoot>
               </table>
             </div>
+            {preview.skipped.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Carried to the next run: {preview.skipped.filter((s) => s.reason === "below minimum").length} below
+                the {formatBDT(preview.minMinor)} minimum, {preview.skipped.filter((s) => s.reason === "dues").length} owing
+                dues. Earnings younger than {preview.holdDays} day(s) are still on hold.
+              </p>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="batch-reason">Note for the audit log (optional)</Label>
               <Textarea

@@ -8,7 +8,9 @@ import type { AdminPayout, ApprovalRequired, PayoutStatus } from "./types";
 
 /**
  * `PATCH /settlements/payouts/:id` (finance.payouts, step-up). PAID needs a
- * reference and a method; with four-eyes on it answers APPROVAL_REQUIRED.
+ * reference and a method; with four-eyes on it answers APPROVAL_REQUIRED
+ * (unless another admin already approved it). CANCELLED needs cancelledReason.
+ * An illegal move (e.g. PAID -> FAILED) answers 409.
  */
 export const updatePayout = async (
   id: string,
@@ -18,6 +20,7 @@ export const updatePayout = async (
     reference?: string;
     proofUrl?: string;
     failureReason?: string;
+    cancelledReason?: string;
     reason?: string;
   },
 ): Promise<ApiResponse<AdminPayout | ApprovalRequired>> => {

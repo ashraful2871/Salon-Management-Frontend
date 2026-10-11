@@ -28,10 +28,22 @@ import type { AdminPayout, AdminPayouts, PayoutStatus } from "@/services/admin/f
 
 const TABS: { value: PayoutStatus; label: string }[] = [
   { value: "PENDING", label: "Pending" },
+  { value: "APPROVED", label: "Approved" },
   { value: "PROCESSING", label: "Processing" },
   { value: "PAID", label: "Paid" },
   { value: "FAILED", label: "Failed" },
+  { value: "CANCELLED", label: "Cancelled" },
 ];
+
+const CANCEL_CODES = [
+  { value: "DUPLICATE", label: "Raised twice" },
+  { value: "ON_HOLD", label: "Business under review" },
+  { value: "WRONG_AMOUNT", label: "Wrong amount" },
+  { value: "OTHER", label: "Other" },
+];
+
+/** Who a payout goes to: the salon, or the business when it spans branches. */
+const payeeName = (row: AdminPayout) => row.salon?.name ?? row.businessName ?? "Business";
 
 const FAILURE_CODES = [
   { value: "WRONG_DETAILS", label: "Wrong account details" },
@@ -66,6 +78,7 @@ export function PayoutsClient({
   const [batchOpen, setBatchOpen] = useState(false);
   const [paying, setPaying] = useState<AdminPayout | null>(null);
   const [failing, setFailing] = useState<AdminPayout | null>(null);
+  const [cancelling, setCancelling] = useState<AdminPayout | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const { run, dialog } = useStepUp();
@@ -80,12 +93,12 @@ export function PayoutsClient({
     return query ? `${pathname}?${query}` : pathname;
   };
 
-  const markProcessing = (payout: AdminPayout) =>
+  const move = (payout: AdminPayout, to: "APPROVED" | "PROCESSING", done: string) =>
     startTransition(async () => {
       setBusyId(payout.id);
-      const result = await run(() => updatePayout(payout.id, { status: "PROCESSING" }));
+      const result = await run(() => updatePayout(payout.id, { status: to }));
       setBusyId(null);
-      if (result.success) toast.success("Marked processing");
+      if (result.success) toast.success(done);
       else toast.error(result.message);
     });
 
@@ -96,12 +109,14 @@ export function PayoutsClient({
   const columns: Column<AdminPayout>[] = [
     {
       key: "salon",
-      header: "Salon",
+      header: "Payee",
       mobile: "primary",
       cell: (row) => (
         <div className="min-w-0">
-          <span className="font-medium">{row.salon.name}</span>
-          <span className="block text-xs text-muted-foreground">{row.salon.area}</span>
+          <span className="font-medium">{payeeName(row)}</span>
+          <span className="block text-xs text-muted-foreground">
+            {row.salon ? [row.businessName, row.salon.area].filter(Boolean).join(" · ") : "All branches"}
+          </span>
         </div>
       ),
     },
@@ -119,10 +134,21 @@ export function PayoutsClient({
     },
     {
       key: "detail",
-      header: status === "FAILED" ? "Reason" : status === "PAID" ? "Reference" : "Raised",
+      header:
+        status === "FAILED" || status === "CANCELLED"
+          ? "Reason"
+          : status === "PAID"
+            ? "Reference"
+            : status === "APPROVED"
+              ? "Approved"
+              : "Raised",
       cell: (row) =>
         status === "FAILED" ? (
           <span className="text-sm text-danger">{row.failureReason ?? "—"}</span>
+        ) : status === "CANCELLED" ? (
+          <span className="text-sm text-muted-foreground">{row.cancelledReason ?? "—"}</span>
+        ) : status === "APPROVED" ? (
+          <span className="text-sm text-muted-foreground">{row.approvedAt ? formatDhaka(row.approvedAt) : "—"}</span>
         ) : status === "PAID" ? (
           <div className="text-sm">
             <span className="font-mono">{row.reference}</span>
@@ -153,7 +179,7 @@ export function PayoutsClient({
     <div className="space-y-6">
       <PageHeader
         title="Payouts"
-        description="What each salon is owed, the transfers sent, and the ones that bounced."
+        description="One payout per business: what each is owed, the transfers sent, and the ones that bounced."
         actions={
           <div className="flex flex-wrap gap-2">
             {canExport && <ExportButton kind="payouts" includeTest={includeTest} />}
@@ -212,16 +238,28 @@ export function PayoutsClient({
               />
             }
             rowActions={
-              // FAILED is terminal: its money went back to the salon's balance.
-              canManage && (status === "PENDING" || status === "PROCESSING")
+              // PAID, FAILED and CANCELLED are terminal (the last two already put
+              // their money back in the business's balance). The moves offered
+              // mirror the backend's PAYOUT_TRANSITIONS.
+              canManage && (status === "PENDING" || status === "APPROVED" || status === "PROCESSING")
                 ? (row) => (
                     <div className="flex flex-wrap justify-end gap-1.5">
+                      {row.status === "PENDING" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={busyId === row.id}
+                          onClick={() => move(row, "APPROVED", "Payout approved")}
+                        >
+                          Approve
+                        </Button>
+                      )}
                       {row.status !== "PROCESSING" && (
                         <Button
                           variant="ghost"
                           size="sm"
                           disabled={busyId === row.id}
-                          onClick={() => markProcessing(row)}
+                          onClick={() => move(row, "PROCESSING", "Marked processing")}
                         >
                           Processing
                         </Button>
@@ -229,9 +267,15 @@ export function PayoutsClient({
                       <Button variant="secondary" size="sm" disabled={busyId === row.id} onClick={() => setPaying(row)}>
                         Mark paid
                       </Button>
-                      <Button variant="ghost" size="sm" disabled={busyId === row.id} onClick={() => setFailing(row)}>
-                        Failed
-                      </Button>
+                      {row.status === "PROCESSING" ? (
+                        <Button variant="ghost" size="sm" disabled={busyId === row.id} onClick={() => setFailing(row)}>
+                          Failed
+                        </Button>
+                      ) : (
+                        <Button variant="ghost" size="sm" disabled={busyId === row.id} onClick={() => setCancelling(row)}>
+                          Cancel
+                        </Button>
+                      )}
                     </div>
                   )
                 : undefined
@@ -258,7 +302,7 @@ export function PayoutsClient({
         open={!!failing}
         onOpenChange={(open) => !open && setFailing(null)}
         title="Mark payout failed"
-        description={failing ? `${formatBDT(failing.netMinor)} to ${failing.salon.name}. The owner gets an email.` : undefined}
+        description={failing ? `${formatBDT(failing.netMinor)} to ${payeeName(failing)}. The owner gets an email.` : undefined}
         reasonCodes={FAILURE_CODES}
         confirmLabel="Mark failed"
         tone="danger"
@@ -273,6 +317,27 @@ export function PayoutsClient({
           });
         }}
         onDone={() => toast.success("Payout marked failed")}
+      />
+      <ReasonDialog
+        open={!!cancelling}
+        onOpenChange={(open) => !open && setCancelling(null)}
+        title="Cancel payout"
+        description={
+          cancelling
+            ? `${formatBDT(cancelling.netMinor)} to ${payeeName(cancelling)}. The money goes back to the business's balance for the next run.`
+            : undefined
+        }
+        reasonCodes={CANCEL_CODES}
+        confirmLabel="Cancel payout"
+        tone="danger"
+        showNotify={false}
+        stepUp
+        onConfirm={({ reasonCode, note }) => {
+          const label = CANCEL_CODES.find((c) => c.value === reasonCode)?.label ?? reasonCode;
+          const text = note ? (reasonCode === "OTHER" ? note : `${label}: ${note}`) : label;
+          return updatePayout(cancelling!.id, { status: "CANCELLED", cancelledReason: text, reason: text });
+        }}
+        onDone={() => toast.success("Payout cancelled")}
       />
       {dialog}
     </div>

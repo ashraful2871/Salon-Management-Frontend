@@ -27,8 +27,10 @@ export type FinanceOverview = {
 };
 
 export type Reconciliation = ReconciliationCounts & {
+  /** One row per journal that does not sum to zero; appointmentId is null for non-booking journals. */
   unbalanced: {
-    appointmentId: string;
+    journalId: string;
+    appointmentId: string | null;
     token: string | null;
     salonName: string | null;
     appointmentDate: string | null;
@@ -46,11 +48,14 @@ export type Reconciliation = ReconciliationCounts & {
   }[];
 };
 
-export type PayoutStatus = "PENDING" | "PROCESSING" | "PAID" | "FAILED";
+export type PayoutStatus = "PENDING" | "APPROVED" | "PROCESSING" | "PAID" | "FAILED" | "CANCELLED";
 
+/** One payout per business; salonId/salon are null when it spans several branches. */
 export type AdminPayout = {
   id: string;
-  salonId: string;
+  ownerId: string;
+  businessName: string | null;
+  salonId: string | null;
   periodStart: string;
   periodEnd: string;
   grossMinor: number;
@@ -61,9 +66,12 @@ export type AdminPayout = {
   reference: string | null;
   proofUrl: string | null;
   failureReason: string | null;
+  cancelledReason: string | null;
+  approvedById: string | null;
+  approvedAt: string | null;
   paidAt: string | null;
   createdAt: string;
-  salon: { id: string; name: string; area: string; phone: string | null };
+  salon: { id: string; name: string; area: string; phone: string | null } | null;
   markedPaidBy: { id: string; name: string | null } | null;
 };
 
@@ -72,23 +80,34 @@ export type AdminPayouts = {
   items: AdminPayout[];
 };
 
+export type PayoutSkipReason = "below minimum" | "dues";
+
+/** One row per business (all its branches netted); salonId only when it has one. */
+export type PayoutPreviewRow = {
+  ownerId: string;
+  businessName: string;
+  salonId: string | null;
+  salonName: string;
+  salons: number;
+  area: string | null;
+  isTest: boolean;
+  netMinor: number;
+};
+
 export type PayoutPreview = {
   periodEnd: string;
-  rows: {
-    salonId: string;
-    salonName: string;
-    area: string | null;
-    isTest: boolean;
-    netMinor: number;
-  }[];
+  holdDays: number;
+  minMinor: number;
+  rows: PayoutPreviewRow[];
+  skipped: (PayoutPreviewRow & { reason: PayoutSkipReason })[];
   totals: { salons: number; netMinor: number };
 };
 
 export type PayoutRunResult = {
-  periodStart: string;
+  periodStart: string | null;
   periodEnd: string;
-  created: { payoutId: string; salonId: string; netMinor: number }[];
-  skipped: { salonId: string; netMinor: number }[];
+  created: { payoutId: string; ownerId: string; businessName: string; salonId: string | null; netMinor: number }[];
+  skipped: { ownerId: string; businessName: string; salonId: string | null; netMinor: number; reason: PayoutSkipReason }[];
 };
 
 export type WalletCard = {

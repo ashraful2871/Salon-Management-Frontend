@@ -83,7 +83,7 @@ export function MarkPaidDialog({
           onOpenChange(next);
         }}
         title="Mark payout paid"
-        description={payout ? `${formatBDT(payout.netMinor)} to ${payout.salon.name}` : undefined}
+        description={payout ? `${formatBDT(payout.netMinor)} to ${payout.salon?.name ?? payout.businessName ?? "the business"}` : undefined}
         footer={
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={pending}>

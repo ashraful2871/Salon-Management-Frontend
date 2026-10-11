@@ -34,8 +34,10 @@ import { DataList, type Column } from "@/components/Shared/DataList";
 const payoutTone: Record<PayoutStatus, Tone> = {
   PAID: "success",
   PENDING: "warning",
+  APPROVED: "info",
   PROCESSING: "info",
   FAILED: "danger",
+  CANCELLED: "neutral",
 };
 
 const csvEscape = (value: string | number) => {
@@ -83,7 +85,7 @@ const payoutColumns: Column<Payout>[] = [
     header: "Salon",
     mobile: "secondary",
     cell: (p) =>
-      [p.salon?.name, p.reference].filter(Boolean).join(" · ") || null,
+      [p.salon?.name ?? "All branches", p.reference].filter(Boolean).join(" · "),
   },
   {
     key: "gross",

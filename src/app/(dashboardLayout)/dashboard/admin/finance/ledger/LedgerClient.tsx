@@ -229,11 +229,15 @@ export function LedgerClient({
           ) : (
             <ul className="mt-3 divide-y divide-border">
               {recon?.unbalanced.map((row) => (
-                <li key={row.appointmentId} className="flex items-center justify-between gap-3 py-2 text-sm">
-                  <Link href={`/dashboard/admin/bookings/${row.appointmentId}`} className="min-w-0 truncate text-primary hover:underline">
-                    {row.token ?? row.appointmentId.slice(0, 8)}
-                    {row.salonName && <span className="text-muted-foreground"> · {row.salonName}</span>}
-                  </Link>
+                <li key={row.journalId} className="flex items-center justify-between gap-3 py-2 text-sm">
+                  {row.appointmentId ? (
+                    <Link href={`/dashboard/admin/bookings/${row.appointmentId}`} className="min-w-0 truncate text-primary hover:underline">
+                      {row.token ?? row.appointmentId.slice(0, 8)}
+                      {row.salonName && <span className="text-muted-foreground"> · {row.salonName}</span>}
+                    </Link>
+                  ) : (
+                    <span className="min-w-0 truncate font-mono">Journal {row.journalId.slice(0, 8)}</span>
+                  )}
                   <ToneBadge status="FAILED" tone="danger">
                     off by {signed(row.totalMinor)}
                   </ToneBadge>

@@ -7,7 +7,7 @@ import { PayoutsClient } from "./PayoutsClient";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-const STATUSES: PayoutStatus[] = ["PENDING", "PROCESSING", "PAID", "FAILED"];
+const STATUSES: PayoutStatus[] = ["PENDING", "APPROVED", "PROCESSING", "PAID", "FAILED", "CANCELLED"];
 
 const first = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value;
