@@ -216,31 +216,6 @@ export function LedgerClient({
         </div>
       </div>
 
-      {!ledger.success ? (
-        <ErrorState message={ledger.message} />
-      ) : (
-        <div className="space-y-3">
-          <DataList
-            items={items}
-            rowKey={(row) => row.id}
-            columns={columns}
-            caption="Ledger entries"
-            density="compact"
-            empty={<EmptyState icon={BookOpenCheck} title="No entries match" />}
-          />
-          {moreError && (
-            <p role="alert" className="text-sm text-danger">
-              {moreError}
-            </p>
-          )}
-          {cursor && (
-            <Button variant="secondary" onClick={loadMore} disabled={loadingMore}>
-              {loadingMore ? "Loading…" : "Load more"}
-            </Button>
-          )}
-        </div>
-      )}
-
       <div className="grid gap-4 lg:grid-cols-2">
         <section id="unbalanced" className="scroll-mt-24 rounded-2xl border border-border bg-surface p-4 sm:p-5">
           <h2 className="font-heading text-base font-semibold">Unbalanced bookings</h2>
@@ -270,7 +245,13 @@ export function LedgerClient({
 
         <section id="drift" className="scroll-mt-24 rounded-2xl border border-border bg-surface p-4 sm:p-5">
           <h2 className="font-heading text-base font-semibold">Wallet drift</h2>
-          <p className="text-sm text-muted-foreground">A wallet&rsquo;s balance must equal the sum of its transactions.</p>
+          <p className="text-sm text-muted-foreground">
+            A wallet&rsquo;s balance must equal the sum of its transactions. A gap means the balance
+            was changed outside the app (for example by editing the database), so the history no
+            longer explains it. Adjust wallet can&rsquo;t close a gap: it moves both sides. Use{" "}
+            <code className="text-xs">npm run wallet:fix-drift</code> on the server to record the
+            change in the history.
+          </p>
           {!reconciliation.success ? null : recon && recon.drift.length === 0 ? (
             <p className="mt-3 flex items-center gap-2 text-sm text-success">
               <CheckCircle2 className="size-4" aria-hidden /> No drift.
@@ -287,7 +268,12 @@ export function LedgerClient({
                     {row.email && <span className="text-muted-foreground"> · {row.email}</span>}
                   </Link>
                   <span className="shrink-0 text-right tabular-nums">
-                    {formatBDT(row.balanceMinor)} vs {formatBDT(row.ledgerBalanceMinor)}
+                    <span className="block">
+                      Balance {formatBDT(row.balanceMinor)} · history {formatBDT(row.ledgerBalanceMinor)}
+                    </span>
+                    <ToneBadge status="FAILED" tone="danger">
+                      off by {signed(row.balanceMinor - row.ledgerBalanceMinor)}
+                    </ToneBadge>
                   </span>
                 </li>
               ))}
@@ -295,6 +281,32 @@ export function LedgerClient({
           )}
         </section>
       </div>
+
+      {!ledger.success ? (
+        <ErrorState message={ledger.message} />
+      ) : (
+        <div className="space-y-3">
+          <DataList
+            items={items}
+            rowKey={(row) => row.id}
+            columns={columns}
+            caption="Ledger entries"
+            density="compact"
+            empty={<EmptyState icon={BookOpenCheck} title="No entries match" />}
+          />
+          {moreError && (
+            <p role="alert" className="text-sm text-danger">
+              {moreError}
+            </p>
+          )}
+          {cursor && (
+            <Button variant="secondary" onClick={loadMore} disabled={loadingMore}>
+              {loadingMore ? "Loading…" : "Load more"}
+            </Button>
+          )}
+        </div>
+      )}
+
     </div>
   );
 }

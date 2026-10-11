@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import CopyButton from "@/components/Wallet/CopyButton";
+import { useStepUp } from "@/components/Admin/StepUpDialog";
 import type { ApiResponse } from "@/lib/api-types";
 import { formatBDT, toMinor, toTaka } from "@/lib/money";
 import { providerLabel } from "@/lib/payment-providers";
@@ -73,6 +74,7 @@ export function RefundDialog({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { run, dialog } = useStepUp();
 
   const remaining = topup.remainingMinor;
   const method = providerLabel(topup.provider);
@@ -108,10 +110,14 @@ export function RefundDialog({
     setSending(true);
     setError(null);
 
-    const result = await onRefund(topup.id, {
-      amount: typed ? Number(typed) : undefined,
-      reason: reason.trim(),
-    });
+    // A refund is tier-3: without a fresh authenticator code the API answers
+    // STEP_UP_REQUIRED before touching anything, so the retry is safe.
+    const result = await run(() =>
+      onRefund(topup.id, {
+        amount: typed ? Number(typed) : undefined,
+        reason: reason.trim(),
+      }),
+    );
 
     setSending(false);
 
@@ -136,6 +142,7 @@ export function RefundDialog({
   };
 
   return (
+    <>
     <Dialog
       open
       onOpenChange={(open) => {
@@ -291,5 +298,7 @@ export function RefundDialog({
         </AlertDialog>
       </DialogContent>
     </Dialog>
+    {dialog}
+    </>
   );
 }

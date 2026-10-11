@@ -7,7 +7,7 @@ const INBOX_LABELS: Record<string, string> = {
   "applications.pending": "Owner applications to review",
   "appeals.pending": "Appeals awaiting a decision",
   "topups.unknown_refund": "Refunds with an unknown result",
-  "intents.stuck_pending": "Top-ups stuck in pending",
+  "intents.stuck_pending": "Top-ups with no gateway result yet (check status)",
   "payouts.failed": "Failed payouts",
   "payouts.stale_pending": "Payouts pending too long",
   "ledger.unbalanced": "Bookings whose ledger does not balance",

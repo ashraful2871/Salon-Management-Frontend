@@ -35,6 +35,7 @@ export default async function TopupsPage({
       response={response}
       filters={filters}
       canExport={me.success && can(me.data?.permissions, "finance.export")}
+      canReconcile={me.success && can(me.data?.permissions, "finance.reconcile")}
     />
   );
 }

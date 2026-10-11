@@ -2,7 +2,8 @@
 
 import { Fragment, useOptimistic, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { AlertTriangle, ChevronDown, ChevronRight, Loader2, Search } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronRight, Loader2, RefreshCw, Search } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -35,6 +36,7 @@ import {
   refundTopup,
   type RefundTopupResult,
 } from "@/services/payments/refundTopup";
+import { recheckTopup } from "@/services/payments/recheckTopup";
 import { RefundDialog } from "./RefundDialog";
 import { PageHeader } from "@/components/Shared/PageHeader";
 import { ExportButton } from "@/components/Admin/finance/ExportButton";
@@ -113,6 +115,54 @@ const RefundStatusBadge = ({
     <Badge variant="destructive">Failed</Badge>
   );
 
+const isOpenIntent = (status: string) => status === "PENDING" || status === "INITIATED";
+
+/**
+ * Asks the gateway about one pending top-up now. It is credited if it settled,
+ * closed if it failed or was abandoned over 24 h ago, left alone otherwise.
+ */
+const CheckStatusButton = ({ topupId }: { topupId: string }) => {
+  const [pending, startCheck] = useTransition();
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant="outline"
+      disabled={pending}
+      onClick={() =>
+        startCheck(async () => {
+          const result = await recheckTopup(topupId);
+          if (!result.success) {
+            toast.error(result.message);
+          } else if (result.data?.status === result.data?.previousStatus) {
+            toast.info("Still in progress at the gateway", {
+              description: "Nothing settled yet. It closes as expired 24 h after it started.",
+            });
+          } else if (result.data?.status === "SUCCESS") {
+            toast.success("Payment had settled — the wallet is now credited");
+          } else {
+            toast.success(`Closed as ${result.data?.status.toLowerCase()}`, {
+              description: result.data?.failureReason ?? undefined,
+            });
+          }
+        })
+      }
+    >
+      {pending ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+          Checking…
+        </>
+      ) : (
+        <>
+          <RefreshCw className="mr-2 h-4 w-4" aria-hidden />
+          Check status
+        </>
+      )}
+    </Button>
+  );
+};
+
 /** Why the Refund button is off, or null when it is on. */
 const refundBlockedReason = (topup: AdminTopup) => {
   if (topup.status !== "SUCCESS") return "Only a successful top-up can be refunded";
@@ -164,10 +214,12 @@ export function TopupsClient({
   response,
   filters,
   canExport = false,
+  canReconcile = false,
 }: {
   response: ApiResponse<AdminTopup[]>;
   filters: TopupFilters;
   canExport?: boolean;
+  canReconcile?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -392,7 +444,14 @@ export function TopupsClient({
                           </div>
                         </TableCell>
                         <TableCell className="align-top text-right">
-                          {/* A disabled button gets no pointer events, so the reason sits on a wrapper. */}
+                          {isOpenIntent(topup.status) ? (
+                            canReconcile ? (
+                              <CheckStatusButton topupId={topup.id} />
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Awaiting gateway</span>
+                            )
+                          ) : (
+                          /* A disabled button gets no pointer events, so the reason sits on a wrapper. */
                           <span className="inline-block" title={blocked ?? undefined}>
                             <Button
                               type="button"
@@ -411,6 +470,7 @@ export function TopupsClient({
                               )}
                             </Button>
                           </span>
+                          )}
                         </TableCell>
                       </TableRow>
                       {isOpen ? (
