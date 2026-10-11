@@ -212,7 +212,8 @@ export function PayoutsClient({
               />
             }
             rowActions={
-              canManage && (status === "PENDING" || status === "PROCESSING" || status === "FAILED")
+              // FAILED is terminal: its money went back to the salon's balance.
+              canManage && (status === "PENDING" || status === "PROCESSING")
                 ? (row) => (
                     <div className="flex flex-wrap justify-end gap-1.5">
                       {row.status !== "PROCESSING" && (
@@ -228,11 +229,9 @@ export function PayoutsClient({
                       <Button variant="secondary" size="sm" disabled={busyId === row.id} onClick={() => setPaying(row)}>
                         Mark paid
                       </Button>
-                      {row.status !== "FAILED" && (
-                        <Button variant="ghost" size="sm" disabled={busyId === row.id} onClick={() => setFailing(row)}>
-                          Failed
-                        </Button>
-                      )}
+                      <Button variant="ghost" size="sm" disabled={busyId === row.id} onClick={() => setFailing(row)}>
+                        Failed
+                      </Button>
                     </div>
                   )
                 : undefined
