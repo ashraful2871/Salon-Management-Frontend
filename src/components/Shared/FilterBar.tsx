@@ -78,11 +78,13 @@ export function FilterBar({
   return (
     <div className="relative">
       <div className="flex flex-col gap-3 md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-x-4">
-        <div className={cn("flex min-w-0 items-center gap-2", !aside && "md:col-span-2")}>
+        {/* From md the row wraps: a long set of extra filters drops under the
+            search instead of squeezing it or widening the page. */}
+        <div className={cn("flex min-w-0 items-center gap-2 md:flex-wrap", !aside && "md:col-span-2")}>
           {search && (
             <form
               role="search"
-              className="relative min-w-0 flex-1 md:max-w-md"
+              className="relative min-w-0 flex-1 md:max-w-md md:min-w-64"
               onSubmit={(e) => {
                 e.preventDefault();
                 search.onSubmit(search.value.trim());
@@ -119,7 +121,7 @@ export function FilterBar({
                   </span>
                 )}
               </Button>
-              <div className="hidden items-center gap-2 md:flex md:flex-wrap">{extra}</div>
+              <div className="hidden min-w-0 max-w-full items-center gap-2 md:flex md:flex-wrap">{extra}</div>
             </>
           )}
           {/* With pills, Clear sits after them from md; without, it stays here. */}

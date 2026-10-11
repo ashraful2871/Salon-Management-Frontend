@@ -10,6 +10,7 @@ import { decodeJwt, isTokenExpiring } from "@/lib/jwt";
 import {
   PATHNAME_HEADER,
   ROLE_HOME,
+  adminMovedTo,
   canAccessRoute,
   deniedUrl,
   isGuestOnlyRoute,
@@ -126,6 +127,11 @@ export async function proxy(request: NextRequest) {
 
   const redirectTo = (() => {
     if (!isNavigation) return null;
+
+    // Old admin URLs, ahead of the role check that would now refuse them.
+    // The query survives unless the new address brings its own.
+    const moved = adminMovedTo(role, pathname);
+    if (moved) return moved.includes("?") ? moved : `${moved}${request.nextUrl.search}`;
 
     if (isPrivateRoute(pathname)) {
       if (!role) return loginUrl(returnTarget(request.nextUrl));

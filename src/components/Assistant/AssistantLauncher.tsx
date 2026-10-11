@@ -1,5 +1,6 @@
 "use client";
 
+import { track } from "@/lib/track";
 import { useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { Sparkles } from "lucide-react";
@@ -42,6 +43,7 @@ const AssistantLauncher = () => {
   if (hidden) return null;
 
   const handleClick = () => {
+    track("assistant_opened", "entry:launcher");
     setDismissed(true);
     try {
       window.localStorage.setItem(SEEN_KEY, "1");

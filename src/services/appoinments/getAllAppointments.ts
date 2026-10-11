@@ -8,6 +8,7 @@ export type AppointmentListParams = {
   searchTerm?: string;
   page?: number;
   limit?: number;
+  salonId?: string;
 };
 
 export const getAllAppointments = async (

@@ -43,3 +43,17 @@ export const refreshCookieOptions = {
   ...base,
   maxAge: REFRESH_COOKIE_MAX_AGE,
 };
+
+/**
+ * "View as" (admin impersonation). While it runs, `accessToken` holds the
+ * read-only view-as token and there is no `refreshToken`; the admin's own pair
+ * waits in these two cookies until End puts it back. They live as long as the
+ * view (15 min) plus a minute, so an End at 0:00 still finds them.
+ */
+export const ADMIN_ACCESS_COOKIE = "sm_admin_access";
+export const ADMIN_REFRESH_COOKIE = "sm_admin_refresh";
+
+export const impersonationCookieOptions = (until: number) => ({
+  ...base,
+  maxAge: Math.max(60, Math.ceil((until - Date.now()) / 1000) + 60),
+});

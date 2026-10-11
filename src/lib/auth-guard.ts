@@ -9,6 +9,8 @@ import {
   loginUrl,
   type ProtectedRoute,
 } from "@/lib/route-access";
+import { can, type Permission } from "@/lib/admin-permissions";
+import { getAdminMe } from "@/services/admin/getAdminMe";
 import { getSessionUser, type SessionUser } from "@/services/auth/session";
 import type { UserRole } from "@/services/auth/auth-utils";
 
@@ -92,3 +94,19 @@ export const requireRole = async (
  */
 export const guardRoute = async (route: ProtectedRoute): Promise<SessionUser> =>
   requireRole(ROUTE_ROLES[route], route);
+
+/**
+ * The admin page gate below the role check: the caller's admin role (from
+ * `GET /admin/me`) must hold `permission`. Agents hold only `salons.view` and
+ * `salons.review`. A failed `/admin/me` reads as no permissions, so an API
+ * outage closes the page rather than opening it; the API refuses the data
+ * either way.
+ */
+export const guardPermission = async (permission: Permission): Promise<void> => {
+  const user = await requireUser();
+  const me = await getAdminMe();
+
+  if (!me.success || !can(me.data?.permissions, permission)) {
+    redirect(deniedUrl(user.role));
+  }
+};

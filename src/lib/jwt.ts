@@ -72,3 +72,16 @@ export const isTokenExpiring = (token: string, skewMs = 60_000): boolean => {
   if (expiresAt === null) return true;
   return expiresAt - Date.now() <= skewMs;
 };
+
+export type ImpersonationClaim = { adminId: string; until: number };
+
+/**
+ * The `imp` claim of a read-only "View as" token (`until` in epoch ms), or
+ * `null`. Decoded only: the API refuses writes on it whatever this says.
+ */
+export const impersonationOf = (token: string | null | undefined): ImpersonationClaim | null => {
+  if (!token) return null;
+  const imp = decodeJwt(token)?.imp as Partial<ImpersonationClaim> | undefined;
+  if (!imp || typeof imp !== "object" || typeof imp.adminId !== "string") return null;
+  return { adminId: imp.adminId, until: Number(imp.until) || 0 };
+};

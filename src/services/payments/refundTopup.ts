@@ -5,13 +5,16 @@ import { TAGS } from "@/lib/cache-tags";
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse } from "@/lib/api-types";
 
-export type RefundTopupResult = {
-  refundedMinor: number;
-  remainingMinor: number;
-  /** UNKNOWN: the wallet was debited but the gateway never confirmed. */
-  status: "COMPLETED" | "UNKNOWN";
-  refundRef: string | null;
-};
+export type RefundTopupResult =
+  | {
+      refundedMinor: number;
+      remainingMinor: number;
+      /** UNKNOWN: the wallet was debited but the gateway never confirmed. */
+      status: "COMPLETED" | "UNKNOWN";
+      refundRef: string | null;
+    }
+  /** Four-eyes is on and this refund is over the threshold: queued, not sent. */
+  | { status: "APPROVAL_REQUIRED"; approvalId: string };
 
 /**
  * Sends a top-up, or part of it, back to the customer's bKash or card.

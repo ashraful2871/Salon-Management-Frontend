@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { useSavedLocation } from "@/hooks/useSavedLocation";
 import { useAssistantLauncher } from "@/components/Assistant/AssistantContext";
 import SafeImage from "@/components/Shared/SafeImage";
+import { ReportReviewButton } from "./ReportReviewButton";
 
 type OperatingHour = { open: string; close: string };
 type OperatingHours = Partial<
@@ -137,7 +138,14 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
   <h2 className="font-display text-xl font-semibold mb-4">{children}</h2>
 );
 
-const SalonDetails = ({ salon }: { salon: any }) => {
+/** `viewer` is who is signed in (from the token), for the Report button. */
+const SalonDetails = ({
+  salon,
+  viewer,
+}: {
+  salon: any;
+  viewer?: { userId?: string; role?: string } | null;
+}) => {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>(undefined);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
@@ -211,6 +219,11 @@ const SalonDetails = ({ salon }: { salon: any }) => {
   const services = (salon?.services || []).filter((s: any) => s?.isActive);
   const staff = salon?.staff || [];
   const reviews = salon?.reviews || [];
+  // Signed-in customers, and this salon's own owner, can report a review.
+  const canReport =
+    !!viewer?.userId &&
+    (viewer.role === "CUSTOMER" ||
+      (viewer.role === "SALON_OWNER" && salon?.owner?.userId === viewer.userId));
 
   const handleBook = (serviceId?: string) => {
     setSelectedServiceId(serviceId);
@@ -569,7 +582,7 @@ const SalonDetails = ({ salon }: { salon: any }) => {
                       {reviews.map((r: any, idx: number) => (
                         <li key={r.id || idx} className="py-4">
                           <div className="flex items-center justify-between gap-3 mb-1.5">
-                            <p className="font-medium truncate">{r?.user?.name || "Customer"}</p>
+                            <p className="font-medium truncate">{r?.customer?.name || r?.user?.name || "Customer"}</p>
                             <span className="flex shrink-0 items-center gap-1 text-sm font-semibold">
                               <Star className="h-3.5 w-3.5 fill-gold text-gold" aria-hidden />
                               {r?.rating ?? 0}
@@ -577,6 +590,11 @@ const SalonDetails = ({ salon }: { salon: any }) => {
                           </div>
                           {r?.comment && (
                             <p className="text-sm text-muted-foreground leading-relaxed break-words">{r.comment}</p>
+                          )}
+                          {r?.id && canReport && r?.customer?.id !== viewer?.userId && (
+                            <div className="mt-1 -ml-2">
+                              <ReportReviewButton reviewId={r.id} />
+                            </div>
                           )}
                         </li>
                       ))}

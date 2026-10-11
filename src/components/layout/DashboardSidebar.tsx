@@ -39,6 +39,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ROLE_HOME } from "@/lib/route-access";
+import { AdminTopBar, type AdminShellData } from "@/components/Admin/AdminTopBar";
+import { BranchSwitcher, type BranchOption } from "@/components/Dashboard/BranchSwitcher";
 import LogoutButton from "./LogoutButton";
 import { BottomTabBar } from "./BottomTabBar";
 import {
@@ -234,10 +237,16 @@ const Logo = ({ collapsed }: { collapsed: boolean }) => (
 export const DashboardShell = ({
   user,
   initialCollapsed = false,
+  admin,
+  branches,
   children,
 }: {
   user: ShellUser;
   initialCollapsed?: boolean;
+  /** ADMIN and AGENT only: permissions for the nav, plus the top-bar extras. */
+  admin?: AdminShellData;
+  /** SALON_OWNER only: their branches and the one the pages are scoped to. */
+  branches?: { options: BranchOption[]; selected: string };
   children: ReactNode;
 }) => {
   const pathname = usePathname();
@@ -246,11 +255,12 @@ export const DashboardShell = ({
   const closeRef = useRef<HTMLButtonElement>(null);
   const moreRef = useRef<HTMLButtonElement>(null);
 
-  const groups = navGroupsFor(user.role);
+  const groups = navGroupsFor(user.role, admin?.permissions, { approvals: admin?.approvals });
   const items = groups.flatMap((g) => g.items);
   const active = activeItem(pathname, items)?.path;
   const { trail, title } = pageTrail(pathname, items, user.role);
-  const tabs = tabsFor(user.role);
+  const tabs = tabsFor(user.role, admin?.permissions);
+  const home = ROLE_HOME[user.role];
 
   const toggleCollapsed = () => {
     const next = !collapsed;
@@ -292,11 +302,11 @@ export const DashboardShell = ({
   const roleLabel = ROLE_LABELS[user.role] ?? user.role;
 
   return (
-    <div className="min-h-screen bg-surface-subtle">
+    <div className="min-h-screen bg-surface-subtle pt-[var(--imp-offset,0px)]">
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-border bg-surface transition-[width] duration-300 lg:flex",
+          "fixed bottom-0 left-0 top-[var(--imp-offset,0px)] z-40 hidden flex-col border-r border-border bg-surface transition-[width] duration-300 lg:flex",
           collapsed ? "w-20" : "w-64",
         )}
       >
@@ -394,7 +404,7 @@ export const DashboardShell = ({
         )}
       >
         {/* Top bar */}
-        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface/95 px-4 sm:px-6 md:backdrop-blur-sm lg:h-16 lg:px-8">
+        <header className="sticky top-[var(--imp-offset,0px)] z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface/95 px-4 sm:px-6 md:backdrop-blur-sm lg:h-16 lg:px-8">
           <button
             type="button"
             onClick={toggleCollapsed}
@@ -418,7 +428,7 @@ export const DashboardShell = ({
                   <BreadcrumbPage className="font-medium">Dashboard</BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink asChild>
-                    <Link href="/dashboard">Dashboard</Link>
+                    <Link href={home}>Dashboard</Link>
                   </BreadcrumbLink>
                 )}
               </BreadcrumbItem>
@@ -444,6 +454,21 @@ export const DashboardShell = ({
           <p className="min-w-0 flex-1 truncate text-base font-semibold text-foreground lg:hidden">
             {title}
           </p>
+
+          {branches && (
+            <BranchSwitcher branches={branches.options} selected={branches.selected} />
+          )}
+
+          {admin && (
+            <AdminTopBar
+              data={admin}
+              pages={items.map((item) => ({
+                href: item.path,
+                label: labelFor(item, user.role),
+                icon: item.icon,
+              }))}
+            />
+          )}
 
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>

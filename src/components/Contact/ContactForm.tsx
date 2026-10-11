@@ -34,7 +34,7 @@ function ContactFormInner({ onReset }: { onReset: () => void }) {
         <IconTile icon={CheckCircle2} className="bg-success-soft text-success" />
         <div>
           <h3 className="font-display text-lg font-semibold text-foreground">
-            Message sent
+            Message sent{state.data?.ticketNumber ? ` — ticket #${state.data.ticketNumber}` : ""}
           </h3>
           <p className="mt-1 text-base leading-relaxed text-muted-foreground">
             Thanks, {state.values?.name}. We&apos;ll reply to{" "}

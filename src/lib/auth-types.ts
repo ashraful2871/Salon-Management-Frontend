@@ -20,7 +20,15 @@ export type VerificationRequired = {
   resendIn: number;
 };
 
-export type AuthResult = SignedIn | VerificationRequired;
+/** ADMIN/AGENT with 2FA on: the password was right, the authenticator code
+ *  is still owed. `ticket` only ever lives in `sm_2fa`. */
+export type TwoFactorRequired = {
+  status: "TWO_FACTOR_REQUIRED";
+  ticket: string;
+  expiresIn: number;
+};
+
+export type AuthResult = SignedIn | VerificationRequired | TwoFactorRequired;
 
 /** `resend-otp` success: fresh timings for the code screen. */
 export type OtpTimings = {

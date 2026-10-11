@@ -30,7 +30,7 @@ function heroActions(role?: UserRole) {
     case "ADMIN":
       return (
         <Button variant="outline" size="lg" asChild className="w-full sm:w-auto">
-          <Link href="/dashboard/become-a-salon-owner-request">
+          <Link href="/dashboard/admin/applications">
             Review owner requests
           </Link>
         </Button>

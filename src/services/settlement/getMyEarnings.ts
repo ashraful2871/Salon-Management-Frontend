@@ -14,10 +14,12 @@ import { TAGS } from "@/lib/cache-tags";
  */
 export const getMyEarnings = async (
   limit = 20,
+  salonId?: string,
 ): Promise<ApiResponse<MyEarnings>> => {
   try {
+    const branch = salonId ? `&salonId=${encodeURIComponent(salonId)}` : "";
     const response = await serverFetch.get(
-      `/settlements/my-earnings?limit=${limit}`,
+      `/settlements/my-earnings?limit=${limit}${branch}`,
       {
         next: { revalidate: 30, tags: [TAGS.earnings, TAGS.dashboardStats] },
       },

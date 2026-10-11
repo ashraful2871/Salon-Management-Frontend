@@ -524,7 +524,7 @@ const Settings = ({
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="text-sm text-muted-foreground bg-muted p-4 rounded-lg">
-                Customers pay a deposit upfront to hold their slot. It comes off their bill when they arrive. If they don't show up, you keep a portion of it.
+                Customers pay a deposit upfront to hold their slot. It comes off their bill when they arrive. If they don&apos;t show up, you keep a portion of it.
               </div>
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">

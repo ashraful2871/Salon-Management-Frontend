@@ -8,6 +8,7 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import GoogleButton, { OrDivider } from "./GoogleButton";
 import AuthShell from "./AuthShell";
+import TwoFactorStep from "./TwoFactorStep";
 import { loginUser } from "@/services/auth/login";
 import { toast } from "sonner";
 
@@ -76,6 +77,20 @@ const LoginForm = ({
       toast.error(state.message || "Login failed");
     }
   }, [state]);
+
+  // An admin or agent with 2FA on: the password was right, the code step
+  // follows. "Back" dismisses this answer and shows the password form again.
+  const [dismissed, setDismissed] = useState<typeof state>(null);
+  if (state?.success && state.data?.twoFactor && state !== dismissed) {
+    return (
+      <AuthShell
+        title="Two-factor sign-in"
+        subtitle="One more step to keep the admin console safe"
+      >
+        <TwoFactorStep onBack={() => setDismissed(state)} />
+      </AuthShell>
+    );
+  }
 
   return (
     <AuthShell

@@ -1,5 +1,6 @@
 import { SlotManagement } from "@/components/Dashboard/SlotManagement";
 import { getMySalon } from "@/services/salon/getMySalon";
+import { getSelectedSalonId } from "@/lib/branch-cookie";
 
 export const metadata = {
   title: "Slot Management - Dashboard",
@@ -7,8 +8,15 @@ export const metadata = {
 };
 
 export default async function SlotsPage() {
-  const mySalonRes = await getMySalon();
-  const mySalons = mySalonRes?.data ?? [];
+  const [mySalonRes, salonId] = await Promise.all([
+    getMySalon(),
+    getSelectedSalonId(),
+  ]);
+  const allSalons = mySalonRes?.data ?? [];
+  // Slots belong to one salon: a selected branch is used directly, "All
+  // branches" keeps the salon picker.
+  const branch = salonId ? allSalons.filter((s) => s.id === salonId) : [];
+  const mySalons = branch.length ? branch : allSalons;
 
   if (mySalons.length === 0) {
     return (

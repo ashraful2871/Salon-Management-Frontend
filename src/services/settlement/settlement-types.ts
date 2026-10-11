@@ -16,7 +16,7 @@ export type MonthlyEarnings = {
   bookings: number;
 };
 
-export type PayoutStatus = "PENDING" | "PROCESSING" | "PAID" | "FAILED";
+export type PayoutStatus = "PENDING" | "APPROVED" | "PROCESSING" | "PAID" | "FAILED" | "CANCELLED";
 
 export type Payout = {
   id: string;

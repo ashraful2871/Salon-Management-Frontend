@@ -26,18 +26,24 @@ import type { UserRole } from "./auth-utils";
  */
 
 export type SessionUser = {
+  /** The account id from the token, for "is this mine?" checks in the UI. */
+  userId?: string;
   role: UserRole;
   email: string;
   name: string;
   /** False when the token predates the `name` claim and `name` is only the
    *  email prefix standing in for it. */
   hasName: boolean;
+  /** Set while an admin is in a read-only "View as" of this account. */
+  impersonating?: { adminId: string; until: number };
 };
 
 type DecodedToken = JwtPayload & {
+  userId?: string;
   role: UserRole;
   email: string;
   name?: string;
+  imp?: { adminId: string; until: number };
 };
 
 type CookieStore = Awaited<ReturnType<typeof cookies>>;
@@ -137,10 +143,14 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     ) as DecodedToken;
 
     return {
+      userId: decoded.userId,
       role: decoded.role,
       email: decoded.email,
       name: decoded.name || decoded.email.split("@")[0],
       hasName: Boolean(decoded.name),
+      ...(decoded.imp?.adminId
+        ? { impersonating: { adminId: decoded.imp.adminId, until: Number(decoded.imp.until) } }
+        : {}),
     };
   } catch (error) {
     console.error("Token verification failed:", error);

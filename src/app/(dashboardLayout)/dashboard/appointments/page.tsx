@@ -9,6 +9,7 @@ import { FilterNavigationProvider } from "@/hooks/useFilterNavigation";
 import { getAllAppointments } from "@/services/appoinments/getAllAppointments";
 import { getCashSummary } from "@/services/appoinments/getCashSummary";
 import { getUserRoles } from "@/services/get-roles/getUserRoles";
+import { getSelectedSalonId } from "@/lib/branch-cookie";
 import CashSection from "./CashSection";
 import QueueSection from "./QueueSection";
 
@@ -27,6 +28,9 @@ const AppointmentsPage = async ({
 }) => {
   const userRole = await getUserRoles();
   const params = await searchParams;
+  // The owner's branch switcher; undefined is "All branches".
+  const salonId =
+    userRole === "SALON_OWNER" ? await getSelectedSalonId() : undefined;
 
   // The salon side works one day at a time, so it opens on today in Dhaka.
   // `date=all` is how the "All Dates" button opts out of that default.
@@ -50,11 +54,17 @@ const AppointmentsPage = async ({
   // toolbar and counts need its meta); the other two stream in on their own.
   const cashDate = date ?? today;
   const queueRead = opensOnToday
-    ? getAllAppointments({ date: today, limit: 100 })
+    ? getAllAppointments({ date: today, limit: 100, salonId })
     : null;
   const cashRead =
-    userRole === "SALON_OWNER" ? getCashSummary({ date: cashDate }) : null;
-  const res = await getAllAppointments({ date, status, searchTerm, page });
+    userRole === "SALON_OWNER" ? getCashSummary({ date: cashDate, salonId }) : null;
+  const res = await getAllAppointments({
+    date,
+    status,
+    searchTerm,
+    page,
+    salonId,
+  });
 
   return (
     <FilterNavigationProvider>
@@ -62,6 +72,7 @@ const AppointmentsPage = async ({
         <Appointments
           appointments={(res?.data ?? []) as any}
           userRole={userRole ?? "GUEST"}
+          showBranch={userRole === "SALON_OWNER" && !salonId}
           meta={res?.meta}
           filters={{
             date: date ?? null,

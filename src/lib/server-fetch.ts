@@ -2,6 +2,7 @@ import {
   getValidAccessToken,
   refreshAccessToken,
 } from "@/services/auth/session";
+import { impersonationOf } from "@/lib/jwt";
 
 const BACKEND_API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
@@ -31,11 +32,17 @@ const serverFetchHelper = async (
   options: RequestInit & FetchCacheStrategy,
 ): Promise<Response> => {
   const { headers, ...restOptions } = options;
+  // Matched to audit rows and to the backend's `[req <id>]` error line. Not on
+  // cached reads: Next keys its data cache on the headers, so a fresh id would
+  // make every cached fetch a miss.
+  const requestId =
+    options.next || options.cache === "force-cache" ? undefined : crypto.randomUUID();
 
   const send = (token: string | null) =>
     fetch(`${BACKEND_API_URL}${endPoint}`, {
       headers: {
         Cookie: token ? `accessToken=${token}` : "",
+        ...(requestId ? { "X-Request-Id": requestId } : {}),
         ...headers,
       },
       ...restOptions,
@@ -46,6 +53,9 @@ const serverFetchHelper = async (
   const response = await send(accessToken);
 
   if (response.status !== 401) return response;
+
+  // A "View as" token has no refresh: when it is refused, the view is over.
+  if (impersonationOf(accessToken)) return response;
 
   const renewed = await refreshAccessToken();
 

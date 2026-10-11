@@ -132,12 +132,15 @@ export const TokenPill = ({ token }: { token: string }) => (
 const dayOf = (row: AppointmentRow, today: string) =>
   formatDay(row.date, row.date.slice(0, 4) !== today.slice(0, 4));
 
+/** `showBranch`: the owner is looking at "All branches", so each row names its salon. */
 export const salonColumns = ({
   showDate,
   today,
+  showBranch = false,
 }: {
   showDate: boolean;
   today: string;
+  showBranch?: boolean;
 }): Column<AppointmentRow>[] => [
   {
     key: "queue",
@@ -170,6 +173,19 @@ export const salonColumns = ({
     ),
     mobileCell: (r) => r.customer,
   },
+  ...(showBranch
+    ? [
+        {
+          key: "branch",
+          header: "Branch",
+          mobile: "secondary",
+          cell: (r) => (
+            <p className="break-words text-sm text-foreground">{r.salonName ?? "—"}</p>
+          ),
+          mobileCell: (r) => r.salonName ?? null,
+        } satisfies Column<AppointmentRow>,
+      ]
+    : []),
   {
     key: "service",
     header: "Service",
@@ -194,7 +210,9 @@ export const salonColumns = ({
     className: "hidden @5xl:table-cell",
     cell: (r) => (
       <div className="text-xs text-muted-foreground">
-        <p className="text-sm text-foreground">{r.salonName ?? "—"}</p>
+        {!showBranch && (
+          <p className="text-sm text-foreground">{r.salonName ?? "—"}</p>
+        )}
         {r.counterName && <p>{r.counterName}</p>}
         {r.staffName && (
           <p className="inline-flex items-center gap-1">

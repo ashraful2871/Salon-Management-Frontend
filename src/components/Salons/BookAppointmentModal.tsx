@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
+import { track } from "@/lib/track";
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -133,6 +134,7 @@ export default function BookAppointmentModal({
 
   useEffect(() => {
     if (open) {
+      track("booking_started");
       if (initialServiceId) {
         setForm((prev) => ({ ...prev, serviceId: initialServiceId }));
       }
@@ -553,7 +555,10 @@ export default function BookAppointmentModal({
                   key={slot.id}
                   type="button"
                   aria-pressed={selected}
-                  onClick={() => setField("slotId", slot.id)}
+                  onClick={() => {
+                    setField("slotId", slot.id);
+                    track("slot_selected");
+                  }}
                   className={cn(
                     "h-11 min-w-0 rounded-full border px-2 text-sm font-medium whitespace-nowrap tabular-nums transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
                     selected

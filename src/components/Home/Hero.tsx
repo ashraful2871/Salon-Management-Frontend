@@ -7,13 +7,18 @@ import { IconTile } from "../Shared/FeatureCard";
 import HeroSearch from "./HeroSearch";
 import NearMeButton from "./NearMeButton";
 import heroImg from "@/assets/hero-salon.jpg";
+import { getPublicSettings } from "@/services/settings/getPublicSettings";
 
 // Each one is true today: admin approves every salon, slots are live and
 // prices go through formatBDT. Don't add claims that aren't.
 const TRUST = ["Approved salons", "Real-time slots", "Prices in ৳"];
 
 // No entrance animation: the LCP element (the H1) is in here.
-const Hero = () => {
+// The chips come from the cookieless public settings (60 s), so / stays static.
+const Hero = async () => {
+  const settings = await getPublicSettings();
+  const chips = settings.success ? settings.data?.["content.homeChips"] : undefined;
+
   return (
     <section
       aria-labelledby="hero-title"
@@ -40,7 +45,7 @@ const Hero = () => {
             </p>
 
             <div className="mx-auto mt-8 max-w-xl lg:mx-0">
-              <HeroSearch />
+              <HeroSearch chips={chips} />
             </div>
 
             <div className="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:justify-center lg:justify-start">

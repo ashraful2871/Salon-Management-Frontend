@@ -12,6 +12,7 @@ import {
 } from "@/lib/google-oauth";
 import { safeInAppPath } from "@/lib/safe-path";
 import { setVerifyCookieOnResponse } from "@/lib/verify-cookie";
+import { setTwoFactorCookieOnResponse } from "@/lib/two-factor-cookie";
 
 /**
  * Google's redirect URI. Hands `code`, `state` and the `sm_oauth` flow token to
@@ -83,6 +84,15 @@ const handle = async (req: NextRequest): Promise<NextResponse> => {
       headers: NO_STORE,
     });
     setVerifyCookieOnResponse(res, data, data.redirect, "google");
+    return res;
+  }
+
+  // An admin or agent with 2FA on: the code step, ticket parked in sm_2fa.
+  if (data.status === "TWO_FACTOR_REQUIRED") {
+    const res = NextResponse.redirect(new URL("/login/2fa", req.url), {
+      headers: NO_STORE,
+    });
+    setTwoFactorCookieOnResponse(res, data, data.redirect);
     return res;
   }
 

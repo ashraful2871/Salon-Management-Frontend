@@ -1,4 +1,5 @@
 "use client";
+import { track } from "@/lib/track";
 import { MapPin, Search, SlidersHorizontal, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -131,6 +132,7 @@ export default function SalonsFilterBar() {
             className="flex items-center gap-1.5 rounded-full border border-border bg-surface p-1.5 transition-colors focus-within:border-primary/60"
             onSubmit={(e) => {
               e.preventDefault();
+              track("search_submitted", "source:salons_page");
               updateUrl(place.division, place.district, place.area);
             }}
           >

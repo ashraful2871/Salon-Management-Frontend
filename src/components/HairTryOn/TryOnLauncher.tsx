@@ -1,5 +1,6 @@
 "use client";
 
+import { track } from "@/lib/track";
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Sparkles } from "lucide-react";
@@ -41,6 +42,7 @@ export function TryOnLauncher({
         size="lg"
         className="w-full sm:w-auto"
         onClick={() => {
+          track("hair_tryon_opened");
           setOpened(true);
           setOpen(true);
         }}
