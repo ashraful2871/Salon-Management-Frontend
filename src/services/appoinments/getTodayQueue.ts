@@ -3,13 +3,16 @@
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse, Appointment } from "@/lib/api-types";
 import { dhakaToday } from "@/components/Dashboard/appointments/format";
+import { getSelectedSalonId } from "@/lib/branch-cookie";
 
 // The desk's live queue poll: the same request the appointments page makes for
 // today's queue, but never from the data cache, since the poll is there to see
-// bookings the cache hasn't.
+// bookings the cache hasn't. Scoped to the owner's selected branch, like the page.
 export const getTodayQueue = async (): Promise<ApiResponse<Appointment[]>> => {
   try {
     const query = new URLSearchParams({ date: dhakaToday(), limit: "100" });
+    const salonId = await getSelectedSalonId();
+    if (salonId) query.set("salonId", salonId);
     const response = await serverFetch.get(`/appointments?${query}`, {
       cache: "no-store",
     });

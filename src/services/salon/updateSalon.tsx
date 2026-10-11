@@ -48,6 +48,7 @@ export const updateSalon = async (
       revalidateTag(TAGS.salons, "max");
       updateTag(TAGS.salon(salonId));
       updateTag(TAGS.mySalons);
+      updateTag(TAGS.ownerAccess);
     }
 
     return result;

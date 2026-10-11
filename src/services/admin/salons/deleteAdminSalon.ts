@@ -23,6 +23,7 @@ export const deleteAdminSalon = async (
     revalidateTag(TAGS.salons, "max");
     revalidateTag(TAGS.salon(id), "max");
     revalidateTag(TAGS.mySalons, "max");
+    revalidateTag(TAGS.ownerAccess, "max");
   }
   return result;
 };

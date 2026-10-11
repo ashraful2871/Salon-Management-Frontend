@@ -24,6 +24,7 @@ export const TAGS = {
   authProviders: "auth-providers",
   reviews: "reviews",
   hairstyles: "hairstyles",
+  ownerAccess: "owner-access",
   // Back office (`/admin/*`).
   adminMe: "admin-me",
   adminInbox: "admin-inbox",

@@ -75,6 +75,7 @@ export const createSalon = async (
     if (result.success) {
       revalidateTag(TAGS.salons, "max");
       updateTag(TAGS.mySalons);
+      updateTag(TAGS.ownerAccess);
       if (result.data?.id) updateTag(TAGS.salon(result.data.id));
     }
 

@@ -7,6 +7,8 @@ import { ADMIN_SECURITY_PATH, PATHNAME_HEADER } from "@/lib/route-access";
 import { getAdminMe } from "@/services/admin/getAdminMe";
 import { getAdminInbox } from "@/services/admin/getAdminInbox";
 import type { AdminShellData } from "@/components/Admin/AdminTopBar";
+import { getMyAccess } from "@/services/owner/getMyAccess";
+import { getSelectedBranch } from "@/lib/branch-cookie";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import React from "react";
@@ -52,6 +54,15 @@ const CommonDashboardLayout = async ({
       approvals: me.success && !!(me.data?.approvals?.enabled || me.data?.approvals?.pending),
     };
   }
+  // The owner's branch switcher: every page below reads the same choice.
+  let branches: { options: { salonId: string; salonName: string }[]; selected: string } | undefined;
+  if (user.role === "SALON_OWNER") {
+    const [access, selected] = await Promise.all([getMyAccess(), getSelectedBranch()]);
+    branches = {
+      options: access.success ? (access.data ?? []) : [],
+      selected,
+    };
+  }
   // Same session, with the real name filled in for the top bar.
   const display = (await getDisplayUser()) ?? user;
   // The sidebar's collapse toggle writes this, so a reload renders it as left.
@@ -62,6 +73,7 @@ const CommonDashboardLayout = async ({
       user={{ role: user.role, name: display.name, email: user.email }}
       initialCollapsed={collapsed}
       admin={admin}
+      branches={branches}
     >
       <SessionKeeper />
       <ImpersonationBanner />

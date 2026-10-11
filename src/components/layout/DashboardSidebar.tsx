@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ROLE_HOME } from "@/lib/route-access";
 import { AdminTopBar, type AdminShellData } from "@/components/Admin/AdminTopBar";
+import { BranchSwitcher, type BranchOption } from "@/components/Dashboard/BranchSwitcher";
 import LogoutButton from "./LogoutButton";
 import { BottomTabBar } from "./BottomTabBar";
 import {
@@ -237,12 +238,15 @@ export const DashboardShell = ({
   user,
   initialCollapsed = false,
   admin,
+  branches,
   children,
 }: {
   user: ShellUser;
   initialCollapsed?: boolean;
   /** ADMIN and AGENT only: permissions for the nav, plus the top-bar extras. */
   admin?: AdminShellData;
+  /** SALON_OWNER only: their branches and the one the pages are scoped to. */
+  branches?: { options: BranchOption[]; selected: string };
   children: ReactNode;
 }) => {
   const pathname = usePathname();
@@ -450,6 +454,10 @@ export const DashboardShell = ({
           <p className="min-w-0 flex-1 truncate text-base font-semibold text-foreground lg:hidden">
             {title}
           </p>
+
+          {branches && (
+            <BranchSwitcher branches={branches.options} selected={branches.selected} />
+          )}
 
           {admin && (
             <AdminTopBar

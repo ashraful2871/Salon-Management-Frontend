@@ -472,7 +472,6 @@ const MoneyInMotion = ({ data }: { data: DashboardStats }) => (
         <LedgerRow label="Net earnings" value={money(data.netEarningsMinor)} tone="success" />
         <LedgerRow label="Next payout" value={money(data.payableMinor)} tone="warning" />
         <LedgerRow label="Paid out to date" value={money(data.paidOutMinor)} />
-        <LedgerRow label="Wallet balance" value={money(data.walletBalanceMinor)} />
       </dl>
       <LedgerNotes>
         <p>This month: {money(data.monthNetMinor)} net</p>
@@ -649,11 +648,11 @@ function buildStats(data: DashboardStats, role: string): Stat[] {
             : "Awaiting the next batch",
       },
       {
-        label: "Wallet balance",
-        value: money(data.walletBalanceMinor),
-        icon: Wallet,
-        tone: "success",
-        hint: `${money(data.walletAvailableMinor)} available`,
+        label: "Paid out",
+        value: money(data.paidOutMinor),
+        icon: Banknote,
+        tone: "neutral",
+        hint: "Transferred to you to date",
       },
       {
         label: "Platform commission",

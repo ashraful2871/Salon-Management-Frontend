@@ -50,6 +50,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const Appointments = ({
   appointments = [],
   userRole = "GUEST",
+  showBranch = false,
   meta,
   filters = { date: null, status: "ALL", searchTerm: "" },
   queueSlot = null,
@@ -57,6 +58,8 @@ const Appointments = ({
 }: {
   appointments: Appointment[];
   userRole?: string;
+  /** Owner on "All branches": add a Branch column. */
+  showBranch?: boolean;
   meta?: PaginationMeta;
   filters?: AppointmentFilters;
   /** Today's whole queue, streamed in on its own. Salon desk only. */
@@ -229,7 +232,7 @@ const Appointments = ({
             columns={
               isCustomer
                 ? customerColumns({ today })
-                : salonColumns({ showDate: !selectedDate, today })
+                : salonColumns({ showDate: !selectedDate, today, showBranch })
             }
             // The salon table has eight columns; below 56rem it reads better as cards.
             tableFrom={isCustomer ? "3xl" : "4xl"}

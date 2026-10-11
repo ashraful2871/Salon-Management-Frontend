@@ -6,12 +6,14 @@ export const getMyCustomers = async (query?: {
   page?: number;
   limit?: number;
   searchTerm?: string;
+  salonId?: string;
 }): Promise<ApiResponse<User[]>> => {
   try {
     const params = new URLSearchParams();
     if (query?.page) params.set("page", String(query.page));
     if (query?.limit) params.set("limit", String(query.limit));
     if (query?.searchTerm) params.set("searchTerm", query.searchTerm);
+    if (query?.salonId) params.set("salonId", query.salonId);
 
     const url = `/users/my-customers${params.toString() ? `?${params.toString()}` : ""}`;
     const response = await serverFetch.get(url, {

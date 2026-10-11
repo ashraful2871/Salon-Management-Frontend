@@ -8,12 +8,14 @@ import {
 } from "@/services/dashboard/getDashboardStats";
 import { dashboardGreeting } from "@/lib/greeting";
 import { ROLE_HOME } from "@/lib/route-access";
+import { getSelectedSalonId } from "@/lib/branch-cookie";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const STATS_FOR: Record<string, typeof getCustomerDashboardStats> = {
-  SALON_OWNER: getSalonOwnerDashboardStats,
+const STATS_FOR: Record<string, () => ReturnType<typeof getCustomerDashboardStats>> = {
+  // The branch switcher's choice; every branch when it is "All branches".
+  SALON_OWNER: async () => getSalonOwnerDashboardStats(await getSelectedSalonId()),
   CUSTOMER: getCustomerDashboardStats,
 };
 

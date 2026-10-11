@@ -23,10 +23,12 @@ export const getAdminDashboardStats =
     }
   };
 
+/** Every branch, or just `salonId` (the branch switcher's choice). */
 export const getSalonOwnerDashboardStats =
-  async (): Promise<ApiResponse<DashboardStats>> => {
+  async (salonId?: string): Promise<ApiResponse<DashboardStats>> => {
     try {
-      const response = await serverFetch.get("/dashboard-stats/salon-owner", {
+      const query = salonId ? `?salonId=${encodeURIComponent(salonId)}` : "";
+      const response = await serverFetch.get(`/dashboard-stats/salon-owner${query}`, {
         next: {
           revalidate: 30,
           tags: [TAGS.dashboardStats],
