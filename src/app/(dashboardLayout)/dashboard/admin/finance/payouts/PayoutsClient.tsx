@@ -3,28 +3,32 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Banknote, Play } from "lucide-react";
+import { Banknote, Download, Play } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { PageHeader } from "@/components/Shared/PageHeader";
 import { DataList, type Column } from "@/components/Shared/DataList";
 import { EmptyState } from "@/components/Shared/EmptyState";
 import { ErrorState } from "@/components/Shared/ErrorState";
 import Pagination from "@/components/Shared/Pagination";
 import { ToneBadge } from "@/components/Shared/ToneBadge";
+import { BulkActionBar } from "@/components/Admin/BulkActionBar";
 import { ReasonDialog } from "@/components/Admin/ReasonDialog";
 import { useStepUp } from "@/components/Admin/StepUpDialog";
 import { formatDhaka } from "@/components/Admin/Timeline";
 import { ExportButton } from "@/components/Admin/finance/ExportButton";
-import { MarkPaidDialog } from "@/components/Admin/finance/MarkPaidDialog";
+import { MarkPaidSheet } from "@/components/Admin/finance/MarkPaidSheet";
 import { RangeChips } from "@/components/Admin/finance/RangeChips";
 import { RunPayoutBatchDialog } from "@/components/Admin/finance/RunPayoutBatchDialog";
+import { destinationLabel } from "@/components/Admin/finance/payoutDestination";
 import { useFilterNavigation } from "@/hooks/useFilterNavigation";
 import { formatBDT } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import type { ApiResponse } from "@/lib/api-types";
-import { updatePayout } from "@/services/admin/finance/updatePayout";
-import type { AdminPayout, AdminPayouts, PayoutStatus } from "@/services/admin/finance/types";
+import { approvePayouts } from "@/services/admin/finance/approvePayouts";
+import { closePayout } from "@/services/admin/finance/closePayout";
+import { markPayoutProcessing } from "@/services/admin/finance/markPayoutProcessing";
+import type { AdminPayout, AdminPayouts, PayoutItemResult, PayoutStatus } from "@/services/admin/finance/types";
 
 const TABS: { value: PayoutStatus; label: string }[] = [
   { value: "PENDING", label: "Pending" },
@@ -57,6 +61,29 @@ const shortDate = (iso: string) =>
     new Date(iso),
   );
 
+const reasonText = (codes: { value: string; label: string }[], reasonCode: string, note?: string) => {
+  const label = codes.find((c) => c.value === reasonCode)?.label ?? reasonCode;
+  return note ? (reasonCode === "OTHER" ? note : `${label}: ${note}`) : label;
+};
+
+/** One toast for an approve: approved, sent to a second admin, refused. */
+const reportApprovals = (results: PayoutItemResult[]) => {
+  const approved = results.filter((r) => r.ok && r.status === "APPROVED").length;
+  const queued = results.filter((r) => r.ok && r.status === "APPROVAL_REQUIRED").length;
+  const failed = results.filter((r): r is Extract<PayoutItemResult, { ok: false }> => !r.ok);
+  const parts = [
+    approved && `${approved} approved`,
+    queued && `${queued} sent to a second admin`,
+    failed.length && `${failed.length} not approved`,
+  ].filter(Boolean);
+  const say = failed.length ? toast.error : toast.success;
+  say(parts.join(" · ") || "Nothing to approve", { description: failed[0]?.error });
+};
+
+/** The bKash / BEFTN transfer file for these payouts, through the export proxy. */
+const fileHref = (format: "bkash" | "beftn", status: PayoutStatus, ids: string[]) =>
+  `/api/admin/export/payout-files/${format}.csv?${new URLSearchParams({ status, ids: ids.join(",") })}`;
+
 export function PayoutsClient({
   response,
   status,
@@ -64,6 +91,7 @@ export function PayoutsClient({
   includeTest,
   canManage,
   canExport,
+  canExportFiles,
 }: {
   response: ApiResponse<AdminPayouts>;
   status: PayoutStatus;
@@ -71,15 +99,18 @@ export function PayoutsClient({
   includeTest: boolean;
   canManage: boolean;
   canExport: boolean;
+  /** finance.export + finance.payout_accounts: the transfer files carry full account numbers. */
+  canExportFiles: boolean;
 }) {
   const pathname = usePathname();
   const params = useSearchParams();
   const { navigate, isPending } = useFilterNavigation();
   const [batchOpen, setBatchOpen] = useState(false);
-  const [paying, setPaying] = useState<AdminPayout | null>(null);
+  const [paying, setPaying] = useState<AdminPayout[] | null>(null);
   const [failing, setFailing] = useState<AdminPayout | null>(null);
   const [cancelling, setCancelling] = useState<AdminPayout | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [busyIds, setBusyIds] = useState<string[]>([]);
+  const [selected, setSelected] = useState<string[]>([]);
   const [, startTransition] = useTransition();
   const { run, dialog } = useStepUp();
 
@@ -93,18 +124,49 @@ export function PayoutsClient({
     return query ? `${pathname}?${query}` : pathname;
   };
 
-  const move = (payout: AdminPayout, to: "APPROVED" | "PROCESSING", done: string) =>
-    startTransition(async () => {
-      setBusyId(payout.id);
-      const result = await run(() => updatePayout(payout.id, { status: to }));
-      setBusyId(null);
-      if (result.success) toast.success(done);
-      else toast.error(result.message);
-    });
+  const go = (target: string) => {
+    setSelected([]);
+    navigate(target);
+  };
 
   const data = response.success ? response.data : undefined;
+  const items = data?.items ?? [];
   const meta = response.meta;
   const totalPages = meta ? Math.max(1, Math.ceil(meta.total / meta.limit)) : 1;
+  // Only rows on this page count: a selected payout that moved on drops out.
+  const chosen = items.filter((row) => selected.includes(row.id));
+  const ids = chosen.map((row) => row.id);
+  const open = status === "PENDING" || status === "APPROVED" || status === "PROCESSING";
+  const exportable = status === "APPROVED" || status === "PROCESSING";
+  const busy = (id: string) => busyIds.includes(id);
+
+  const approve = (rows: AdminPayout[]) =>
+    startTransition(async () => {
+      const rowIds = rows.map((r) => r.id);
+      setBusyIds(rowIds);
+      const result = await run(() => approvePayouts(rowIds));
+      setBusyIds([]);
+      if (!result.success || !result.data) {
+        toast.error(result.message);
+        return;
+      }
+      reportApprovals(result.data);
+    });
+
+  const processing = (rows: AdminPayout[]) =>
+    startTransition(async () => {
+      let done = 0;
+      let firstError: string | undefined;
+      for (const row of rows) {
+        setBusyIds([row.id]);
+        const result = await markPayoutProcessing(row.id);
+        if (result.success) done += 1;
+        else firstError ??= result.message;
+      }
+      setBusyIds([]);
+      if (done) toast.success(`${done} payout(s) marked processing`);
+      if (firstError) toast.error(`${rows.length - done} not moved`, { description: firstError });
+    });
 
   const columns: Column<AdminPayout>[] = [
     {
@@ -119,6 +181,23 @@ export function PayoutsClient({
           </span>
         </div>
       ),
+    },
+    {
+      key: "destination",
+      header: "Destination",
+      cell: (row) => {
+        const label = destinationLabel(row.destinationSnapshot);
+        return label ? (
+          <div className="text-sm">
+            <span className="tabular-nums" title="Masked">
+              {label}
+            </span>
+            <span className="block text-xs text-muted-foreground">{row.destinationSnapshot?.accountName}</span>
+          </div>
+        ) : (
+          <span className="text-sm text-muted-foreground">—</span>
+        );
+      },
     },
     {
       key: "period",
@@ -179,7 +258,7 @@ export function PayoutsClient({
     <div className="space-y-6">
       <PageHeader
         title="Payouts"
-        description="One payout per business: what each is owed, the transfers sent, and the ones that bounced."
+        description="Raised every week: approve, send the bKash or bank file, then paste the references."
         actions={
           <div className="flex flex-wrap gap-2">
             {canExport && <ExportButton kind="payouts" includeTest={includeTest} />}
@@ -205,7 +284,7 @@ export function PayoutsClient({
                 aria-current={active ? "page" : undefined}
                 onClick={(e) => {
                   e.preventDefault();
-                  navigate(href({ status: tab.value, page: null }));
+                  go(href({ status: tab.value, page: null }));
                 }}
                 className={cn(
                   "shrink-0 rounded-full border px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -226,53 +305,46 @@ export function PayoutsClient({
       ) : (
         <div className={cn(isPending && "opacity-70")} aria-busy={isPending}>
           <DataList
-            items={data?.items ?? []}
+            items={items}
             rowKey={(row) => row.id}
             columns={columns}
             caption={`${status.toLowerCase()} payouts`}
+            selectable={open && (canManage || (exportable && canExportFiles))}
+            selected={selected}
+            onSelectedChange={setSelected}
             empty={
               <EmptyState
                 icon={Banknote}
                 title={`No ${status.toLowerCase()} payouts`}
-                description={status === "PENDING" ? "Run the payout batch to raise this week's." : undefined}
+                description={status === "PENDING" ? "They are raised on payout day at 09:00, or run the batch by hand." : undefined}
               />
             }
             rowActions={
               // PAID, FAILED and CANCELLED are terminal (the last two already put
               // their money back in the business's balance). The moves offered
               // mirror the backend's PAYOUT_TRANSITIONS.
-              canManage && (status === "PENDING" || status === "APPROVED" || status === "PROCESSING")
+              canManage && open
                 ? (row) => (
                     <div className="flex flex-wrap justify-end gap-1.5">
                       {row.status === "PENDING" && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={busyId === row.id}
-                          onClick={() => move(row, "APPROVED", "Payout approved")}
-                        >
+                        <Button variant="ghost" size="sm" disabled={busy(row.id)} onClick={() => approve([row])}>
                           Approve
                         </Button>
                       )}
                       {row.status !== "PROCESSING" && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={busyId === row.id}
-                          onClick={() => move(row, "PROCESSING", "Marked processing")}
-                        >
+                        <Button variant="ghost" size="sm" disabled={busy(row.id)} onClick={() => processing([row])}>
                           Processing
                         </Button>
                       )}
-                      <Button variant="secondary" size="sm" disabled={busyId === row.id} onClick={() => setPaying(row)}>
+                      <Button variant="secondary" size="sm" disabled={busy(row.id)} onClick={() => setPaying([row])}>
                         Mark paid
                       </Button>
                       {row.status === "PROCESSING" ? (
-                        <Button variant="ghost" size="sm" disabled={busyId === row.id} onClick={() => setFailing(row)}>
+                        <Button variant="ghost" size="sm" disabled={busy(row.id)} onClick={() => setFailing(row)}>
                           Failed
                         </Button>
                       ) : (
-                        <Button variant="ghost" size="sm" disabled={busyId === row.id} onClick={() => setCancelling(row)}>
+                        <Button variant="ghost" size="sm" disabled={busy(row.id)} onClick={() => setCancelling(row)}>
                           Cancel
                         </Button>
                       )}
@@ -281,6 +353,35 @@ export function PayoutsClient({
                 : undefined
             }
           />
+          <BulkActionBar count={chosen.length} onClear={() => setSelected([])} noun="payouts selected">
+            {canManage && status === "PENDING" && (
+              <Button size="sm" disabled={busyIds.length > 0} onClick={() => approve(chosen)}>
+                Approve selected
+              </Button>
+            )}
+            {exportable && canExportFiles && (
+              <>
+                <a href={fileHref("bkash", status, ids)} download className={buttonVariants({ variant: "secondary", size: "sm" })}>
+                  <Download className="size-4" aria-hidden />
+                  bKash file
+                </a>
+                <a href={fileHref("beftn", status, ids)} download className={buttonVariants({ variant: "secondary", size: "sm" })}>
+                  <Download className="size-4" aria-hidden />
+                  BEFTN file
+                </a>
+              </>
+            )}
+            {canManage && status !== "PROCESSING" && (
+              <Button size="sm" variant="secondary" disabled={busyIds.length > 0} onClick={() => processing(chosen)}>
+                Mark processing
+              </Button>
+            )}
+            {canManage && exportable && (
+              <Button size="sm" disabled={busyIds.length > 0} onClick={() => setPaying(chosen)}>
+                Mark paid
+              </Button>
+            )}
+          </BulkActionBar>
           {meta && (
             <Pagination
               className="mt-4"
@@ -290,37 +391,41 @@ export function PayoutsClient({
               pageSize={meta.limit}
               itemLabel="payouts"
               disabled={isPending}
-              onPageChange={(next) => navigate(href({ page: String(next) }))}
+              onPageChange={(next) => go(href({ page: String(next) }))}
             />
           )}
         </div>
       )}
 
       {batchOpen && <RunPayoutBatchDialog open onOpenChange={setBatchOpen} />}
-      <MarkPaidDialog payout={paying} onOpenChange={(open) => !open && setPaying(null)} />
+      {paying && (
+        <MarkPaidSheet
+          payouts={paying}
+          open
+          onOpenChange={(next) => !next && setPaying(null)}
+          onDone={(paidIds) => setSelected((current) => current.filter((id) => !paidIds.includes(id)))}
+        />
+      )}
       <ReasonDialog
         open={!!failing}
-        onOpenChange={(open) => !open && setFailing(null)}
+        onOpenChange={(next) => !next && setFailing(null)}
         title="Mark payout failed"
-        description={failing ? `${formatBDT(failing.netMinor)} to ${payeeName(failing)}. The owner gets an email.` : undefined}
+        description={
+          failing
+            ? `${formatBDT(failing.netMinor)} to ${payeeName(failing)}. The money goes back to the balance and the owner gets an email.`
+            : undefined
+        }
         reasonCodes={FAILURE_CODES}
         confirmLabel="Mark failed"
         tone="danger"
         showNotify={false}
         stepUp
-        onConfirm={({ reasonCode, note }) => {
-          const label = FAILURE_CODES.find((c) => c.value === reasonCode)?.label ?? reasonCode;
-          return updatePayout(failing!.id, {
-            status: "FAILED",
-            failureReason: note ? (reasonCode === "OTHER" ? note : `${label}: ${note}`) : label,
-            reason: note || label,
-          });
-        }}
+        onConfirm={({ reasonCode, note }) => closePayout(failing!.id, "fail", reasonText(FAILURE_CODES, reasonCode, note))}
         onDone={() => toast.success("Payout marked failed")}
       />
       <ReasonDialog
         open={!!cancelling}
-        onOpenChange={(open) => !open && setCancelling(null)}
+        onOpenChange={(next) => !next && setCancelling(null)}
         title="Cancel payout"
         description={
           cancelling
@@ -332,11 +437,9 @@ export function PayoutsClient({
         tone="danger"
         showNotify={false}
         stepUp
-        onConfirm={({ reasonCode, note }) => {
-          const label = CANCEL_CODES.find((c) => c.value === reasonCode)?.label ?? reasonCode;
-          const text = note ? (reasonCode === "OTHER" ? note : `${label}: ${note}`) : label;
-          return updatePayout(cancelling!.id, { status: "CANCELLED", cancelledReason: text, reason: text });
-        }}
+        onConfirm={({ reasonCode, note }) =>
+          closePayout(cancelling!.id, "cancel", reasonText(CANCEL_CODES, reasonCode, note))
+        }
         onDone={() => toast.success("Payout cancelled")}
       />
       {dialog}

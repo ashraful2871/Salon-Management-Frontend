@@ -17,6 +17,7 @@ const ACTION_LABELS: Record<AdminApproval["action"], string> = {
   "wallet.adjust": "Wallet adjustment",
   "topup.refund": "Top-up refund",
   "payout.mark_paid": "Payout marked paid",
+  "payout.approve": "Payout approved",
   "setting.update": "Money setting",
 };
 
