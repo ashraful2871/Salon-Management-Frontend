@@ -27,6 +27,7 @@ export type Permission =
   | "finance.wallet_freeze"
   | "finance.reconcile"
   | "finance.export"
+  | "finance.payout_accounts"
   | "reviews.moderate"
   | "support.view"
   | "support.reply"

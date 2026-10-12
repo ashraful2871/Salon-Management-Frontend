@@ -25,6 +25,7 @@ export const TAGS = {
   reviews: "reviews",
   hairstyles: "hairstyles",
   ownerAccess: "owner-access",
+  payoutAccounts: "payout-accounts",
   // Back office (`/admin/*`).
   adminMe: "admin-me",
   adminInbox: "admin-inbox",
@@ -37,6 +38,7 @@ export const TAGS = {
   adminAppeals: "admin-appeals",
   adminPayouts: "admin-payouts",
   adminFinance: "admin-finance",
+  adminPayoutAccounts: "admin-payout-accounts",
   adminApprovals: "admin-approvals",
   adminWallets: "admin-wallets",
   adminLedger: "admin-ledger",

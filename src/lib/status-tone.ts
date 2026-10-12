@@ -44,6 +44,11 @@ const STATUS_TONE: Record<string, Tone> = {
   PROCESSING: "info",
   EXECUTED: "success",
   EXPIRED: "neutral",
+  // Payout accounts and business KYC.
+  PENDING_VERIFICATION: "warning",
+  SUBMITTED: "warning",
+  VERIFIED: "success",
+  DISABLED: "neutral",
 };
 
 export const toneOf = (status?: string | null): Tone =>
