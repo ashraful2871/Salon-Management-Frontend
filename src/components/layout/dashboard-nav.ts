@@ -201,6 +201,13 @@ export const NAV_GROUPS: NavGroup[] = [
         short: "Accounts",
         permission: "finance.payout_accounts",
       },
+      {
+        path: "/dashboard/admin/finance/dues",
+        icon: Scale,
+        label: "Owner dues",
+        short: "Dues",
+        permission: "finance.view",
+      },
     ],
   },
   {

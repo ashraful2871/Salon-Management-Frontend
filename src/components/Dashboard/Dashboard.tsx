@@ -25,6 +25,7 @@ import { format } from "date-fns";
 import { formatBDT } from "@/lib/money";
 import type { Appointment, DashboardStats } from "@/lib/api-types";
 import type { OwnerMoneySummary } from "@/services/owner/money-types";
+import { OwnerDuesAlerts } from "@/components/Money/OwnerDuesAlerts";
 import { TONE_CLASSES, toneOf, type Tone } from "@/lib/status-tone";
 import { cn } from "@/lib/utils";
 import EarningsTrend from "@/components/Earnings/EarningsTrend";
@@ -138,6 +139,8 @@ const Dashboard = ({
           Your figures couldn&apos;t be loaded: {loadError}
         </p>
       )}
+
+      {isOwner && moneySummary?.dues && <OwnerDuesAlerts dues={moneySummary.dues} />}
 
       {isCustomer && hasData && (
         <div className="grid gap-4 lg:grid-cols-3 lg:gap-6">
@@ -488,8 +491,8 @@ const MoneyInMotion = ({
             />
             <LedgerRow label="On its way" value={money(summary.inPayoutMinor)} />
             <LedgerRow label="Paid this month" value={money(summary.paidThisMonthMinor)} tone="success" />
-            {summary.duesMinor > 0 && (
-              <LedgerRow label="You owe" value={money(summary.duesMinor)} tone="danger" />
+            {summary.dues.amountMinor > 0 && (
+              <LedgerRow label="You owe" value={money(summary.dues.amountMinor)} tone="danger" />
             )}
           </>
         ) : (

@@ -91,6 +91,7 @@ export const ROUTE_ROLES = {
   "/dashboard/admin/finance/ledger": ["ADMIN"],
   "/dashboard/admin/finance/approvals": ["ADMIN"],
   "/dashboard/admin/finance/payout-accounts": ["ADMIN"],
+  "/dashboard/admin/finance/dues": ["ADMIN"],
   "/dashboard/admin/team": ["ADMIN"],
   "/dashboard/admin/settings": ["ADMIN"],
   "/dashboard/admin/system": ["ADMIN"],

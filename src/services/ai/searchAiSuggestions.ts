@@ -36,6 +36,8 @@ export type AiSalonMatch = {
   images: string[];
   rating: number;
   totalReviews: number;
+  /** Not taking online bookings right now (still listed). */
+  bookingPaused?: boolean;
   phone: string;
   operatingHours?: OperatingHours | null;
   locationAccuracy?: "EXACT" | "APPROXIMATE" | null;

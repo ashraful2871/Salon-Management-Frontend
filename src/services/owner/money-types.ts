@@ -61,6 +61,8 @@ export type OwnerMoneySummary = {
     cooldownUntil: string | null;
   } | null;
   payoutsFrozen: boolean;
+  /** Business-wide, whatever branch the page is filtered to. */
+  dues: OwnerDues;
   commissionPercent: number;
   commissionOnDirect: boolean;
   monthly: MonthlyEarnings[];
@@ -124,4 +126,18 @@ export const transactionsQuery = (filters: TransactionFilters, cursor?: string) 
   for (const [key, value] of Object.entries(filters)) if (value) query.set(key, value);
   if (cursor) query.set("cursor", cursor);
   return query.toString();
+};
+
+export type OwnerDues = {
+  amountMinor: number;
+  /** When dues first went above 0. */
+  since: string | null;
+  /** Below this the dues are left to come out of the next earnings. */
+  minPayMinor: number;
+  pauseEnabled: boolean;
+  /** Set after the warning, until the pause happens. */
+  pauseAt: string | null;
+  paused: boolean;
+  pausedSalons: number;
+  pausedAt: string | null;
 };

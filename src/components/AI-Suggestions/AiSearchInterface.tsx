@@ -134,6 +134,7 @@ const toCardSalon = (salon: AiSalonMatch) => {
     image: usableImage(salon.images?.[0]),
     services: names,
     openNow: salon.openNow ?? null,
+    bookingPaused: !!salon.bookingPaused,
   };
 };
 

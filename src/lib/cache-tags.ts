@@ -43,6 +43,7 @@ export const TAGS = {
   adminPayoutAccounts: "admin-payout-accounts",
   adminApprovals: "admin-approvals",
   adminWallets: "admin-wallets",
+  adminDues: "admin-dues",
   adminLedger: "admin-ledger",
   adminReviews: "admin-reviews",
   adminTickets: "admin-tickets",

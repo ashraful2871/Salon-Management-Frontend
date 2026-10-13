@@ -75,6 +75,8 @@ export type Salon = {
   longitude?: number | null;
   locationAccuracy?: LocationAccuracy | null;
   locationUpdatedAt?: string | null;
+  /** Not taking new online bookings (owner or dues pause); still listed. */
+  bookingPaused?: boolean;
   // Only present in nearby mode (lat/lng in the query).
   distanceMeters?: number;
   createdAt?: string;

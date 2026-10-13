@@ -7,7 +7,7 @@ import {
   Hourglass,
   Send,
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/Shared/StatCard";
 import { DataList, type Column } from "@/components/Shared/DataList";
@@ -16,6 +16,7 @@ import { formatBDT } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { TONE_CLASSES } from "@/lib/status-tone";
 import type { BranchBuckets, OwnerMoneySummary } from "@/services/owner/money-types";
+import { DuesCard } from "./DuesCard";
 
 const day = (iso: string) => format(new Date(iso), "EEE d MMM");
 
@@ -129,21 +130,7 @@ export function MoneyOverview({ summary: s }: { summary: OwnerMoneySummary }) {
         />
       </div>
 
-      {s.duesMinor > 0 && (
-        <Card className="gap-3">
-          <CardHeader className="px-4 sm:px-6">
-            <CardTitle>You owe {formatBDT(s.duesMinor)}</CardTitle>
-            <CardDescription>
-              Commission on bookings paid at your counter is more than we hold for you. It comes
-              out of your next earnings, or you can pay it now.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-3 px-4 sm:px-6">
-            <Button disabled>Pay by bKash</Button>
-            <span className="text-sm text-muted-foreground">Coming soon</span>
-          </CardContent>
-        </Card>
-      )}
+      {(s.dues.amountMinor > 0 || s.dues.paused) && <DuesCard dues={s.dues} />}
 
       {s.perSalon.length > 1 && (
         <Card className="gap-3">

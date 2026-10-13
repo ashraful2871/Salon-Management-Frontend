@@ -225,7 +225,11 @@ const SalonDetails = ({
     (viewer.role === "CUSTOMER" ||
       (viewer.role === "SALON_OWNER" && salon?.owner?.userId === viewer.userId));
 
+  // Paused by its owner or for dues: listed, but no new online bookings.
+  const bookingPaused = !!salon?.bookingPaused;
+
   const handleBook = (serviceId?: string) => {
+    if (bookingPaused) return;
     setSelectedServiceId(serviceId);
     setIsBookingModalOpen(true);
   };
@@ -414,6 +418,7 @@ const SalonDetails = ({
                           size="sm"
                           className="shrink-0"
                           onClick={() => handleBook(s.id)}
+                          disabled={bookingPaused}
                           aria-label={`Select ${s.name}`}
                         >
                           Select
@@ -624,7 +629,12 @@ const SalonDetails = ({
                         : "Closed today"}
                     </span>
                   </p>
-                  <Button size="lg" className="w-full" onClick={() => handleBook()} disabled={services.length === 0}>
+                  {bookingPaused && (
+                    <p role="status" className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-warning">
+                      Not taking online bookings right now. Walk-ins are welcome.
+                    </p>
+                  )}
+                  <Button size="lg" className="w-full" onClick={() => handleBook()} disabled={bookingPaused || services.length === 0}>
                     Book now
                   </Button>
                   <a href="#location" className="block text-center text-sm text-muted-foreground hover:text-foreground">
@@ -653,8 +663,8 @@ const SalonDetails = ({
               <p className="truncate text-sm font-medium">{salon?.name}</p>
             )}
           </div>
-          <Button size="lg" className="px-8" onClick={() => handleBook()} disabled={services.length === 0}>
-            Book now
+          <Button size="lg" className="px-8" onClick={() => handleBook()} disabled={bookingPaused || services.length === 0}>
+            {bookingPaused ? "Bookings paused" : "Book now"}
           </Button>
         </div>
       </div>
