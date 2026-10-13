@@ -12,6 +12,11 @@ const FILE = /^(bookings|ledger|payouts|topups|users)\.csv$/;
 const USER_EXPORT = /^users\/([0-9a-f-]{36})\.json$/i;
 /** `analytics/<report>.csv` → `/admin/analytics/<report>/export.csv` (analytics.export). */
 const ANALYTICS = /^analytics\/(overview|bookings|customers|salons|geo|funnel|search|assistant|tryon)\.csv$/;
+/**
+ * `payout-files/<bkash|beftn>.csv?status&ids` → `/admin/finance/payouts/export.csv?format=…`
+ * (finance.export + finance.payout_accounts): the transfer file, full account numbers.
+ */
+const PAYOUT_FILE = /^payout-files\/(bkash|beftn)\.csv$/;
 
 export const dynamic = "force-dynamic";
 
@@ -22,16 +27,25 @@ export async function GET(
   const file = (await params).path.join("/");
   const report = ANALYTICS.exec(file)?.[1];
   const userId = USER_EXPORT.exec(file)?.[1];
-  if (!report && !userId && !FILE.test(file)) {
+  const payoutFormat = PAYOUT_FILE.exec(file)?.[1];
+  if (!report && !userId && !payoutFormat && !FILE.test(file)) {
     return new Response("Unknown export", { status: 404 });
   }
+
+  const payoutQuery = () => {
+    const query = new URLSearchParams(request.nextUrl.searchParams);
+    query.set("format", payoutFormat!);
+    return `?${query.toString()}`;
+  };
 
   const upstream = await serverFetch.get(
     userId
       ? `/admin/users/${userId}/export`
       : report
         ? `/admin/analytics/${report}/export.csv${request.nextUrl.search}`
-        : `/admin/finance/export/${file}${request.nextUrl.search}`,
+        : payoutFormat
+          ? `/admin/finance/payouts/export.csv${payoutQuery()}`
+          : `/admin/finance/export/${file}${request.nextUrl.search}`,
     { cache: "no-store" },
   );
 

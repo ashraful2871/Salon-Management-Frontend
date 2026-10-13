@@ -33,6 +33,7 @@ export default async function PayoutsPage({ searchParams }: { searchParams: Sear
       includeTest={includeTest}
       canManage={can(permissions, "finance.payouts")}
       canExport={can(permissions, "finance.export")}
+      canExportFiles={can(permissions, "finance.export") && can(permissions, "finance.payout_accounts")}
     />
   );
 }

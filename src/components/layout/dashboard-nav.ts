@@ -18,6 +18,8 @@ import {
   Banknote,
   WalletCards,
   BookOpenCheck,
+  CreditCard,
+  FileBadge,
   UserCheck,
   SlidersHorizontal,
   Store,
@@ -154,6 +156,8 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { path: "/dashboard/wallet", icon: Wallet, label: "Wallet" },
       { path: "/dashboard/earnings", icon: DollarSign, label: "Earnings" },
+      // Phase 5 turns this into the owner money hub; payout settings for now.
+      { path: "/dashboard/money/payout-settings", icon: CreditCard, label: "Money" },
       {
         path: "/dashboard/admin/finance",
         icon: Landmark,
@@ -191,6 +195,13 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "Approvals",
         permission: "finance.view",
         onlyWhen: "approvals",
+      },
+      {
+        path: "/dashboard/admin/finance/payout-accounts",
+        icon: FileBadge,
+        label: "Payout accounts",
+        short: "Accounts",
+        permission: "finance.payout_accounts",
       },
     ],
   },

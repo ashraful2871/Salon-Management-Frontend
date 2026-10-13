@@ -11,6 +11,7 @@ export type ApprovalAction =
   | "wallet.adjust"
   | "topup.refund"
   | "payout.mark_paid"
+  | "payout.approve"
   | "setting.update";
 
 type Person = { id: string; name: string; email: string } | null;

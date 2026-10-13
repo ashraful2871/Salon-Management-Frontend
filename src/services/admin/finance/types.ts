@@ -73,7 +73,24 @@ export type AdminPayout = {
   createdAt: string;
   salon: { id: string; name: string; area: string; phone: string | null } | null;
   markedPaidBy: { id: string; name: string | null } | null;
+  /** Where the batch said it goes; never the full number. Null on payouts raised before Phase 3. */
+  destinationSnapshot: PayoutDestination | null;
 };
+
+export type PayoutDestination = {
+  type: "BKASH" | "NAGAD" | "BANK";
+  accountName: string;
+  last4: string;
+  bankName: string | null;
+  routingNumber: string | null;
+};
+
+/** One row of a bulk payout call (`/admin/finance/payouts/approve`, `/mark-paid`). */
+export type PayoutItemResult =
+  | { payoutId: string; ok: true; status: PayoutStatus | "APPROVAL_REQUIRED"; approvalId?: string }
+  | { payoutId: string; ok: false; error: string; code: number };
+
+export type MarkPaidItem = { payoutId: string; reference: string; method: "BKASH" | "BANK"; proofUrl?: string };
 
 export type AdminPayouts = {
   statusCounts: Record<PayoutStatus, { count: number; netMinor: number }>;
