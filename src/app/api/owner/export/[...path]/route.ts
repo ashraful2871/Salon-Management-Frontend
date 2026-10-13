@@ -17,7 +17,9 @@ export async function GET(
   { params }: { params: Promise<{ path: string[] }> },
 ) {
   const file = (await params).path.join("/");
-  const endpoint = FILES[file];
+  // statements/<id>.csv: one statement's ledger lines (404 when not yours).
+  const statement = /^statements\/([0-9a-f-]{36})\.csv$/i.exec(file);
+  const endpoint = statement ? `/owner/statements/${statement[1]}.csv` : FILES[file];
   if (!endpoint) return new Response("Unknown export", { status: 404 });
 
   const upstream = await serverFetch.get(`${endpoint}${request.nextUrl.search}`, {

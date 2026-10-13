@@ -235,9 +235,9 @@ function SettingField({
     ) : (
       <Input
         id={id}
-        type="number"
-        inputMode={setting.kind === "int" ? "numeric" : "decimal"}
-        step={setting.kind === "int" ? 1 : "any"}
+        type={setting.kind === "text" ? "text" : "number"}
+        inputMode={setting.kind === "text" ? "text" : setting.kind === "int" ? "numeric" : "decimal"}
+        step={setting.kind === "text" ? undefined : setting.kind === "int" ? 1 : "any"}
         min={setting.bounds.min ?? undefined}
         max={setting.bounds.max ?? undefined}
         value={String(draft)}
@@ -245,7 +245,7 @@ function SettingField({
         disabled={!canEdit}
         aria-invalid={!!error}
         aria-describedby={`${id}-help`}
-        className="sm:w-48"
+        className={setting.kind === "text" ? "sm:w-72" : "sm:w-48"}
       />
     );
 

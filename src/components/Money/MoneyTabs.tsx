@@ -8,6 +8,7 @@ const TABS = [
   { href: "/dashboard/money", label: "Overview" },
   { href: "/dashboard/money/transactions", label: "Transactions" },
   { href: "/dashboard/money/payouts", label: "Payouts" },
+  { href: "/dashboard/money/statements", label: "Statements" },
   { href: "/dashboard/money/payout-settings", label: "Payout settings" },
 ] as const;
 

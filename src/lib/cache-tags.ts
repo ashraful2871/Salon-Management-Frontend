@@ -28,6 +28,7 @@ export const TAGS = {
   payoutAccounts: "payout-accounts",
   ownerMoney: "owner-money",
   ownerPayouts: "owner-payouts",
+  ownerStatements: "owner-statements",
   // Back office (`/admin/*`).
   adminMe: "admin-me",
   adminInbox: "admin-inbox",

@@ -33,6 +33,7 @@ const isMoney = (key: string) => key.endsWith("Minor");
 export const formatSettingValue = (setting: Pick<AdminSetting, "key" | "kind">, value: unknown): string => {
   if (value === null || value === undefined) return "None";
   if (setting.kind === "boolean") return value ? "On" : "Off";
+  if (setting.kind === "text") return value === "" ? "Empty" : String(value);
   if (setting.kind === "announcement") {
     const a = value as Announcement;
     return `“${a.message.length > 60 ? `${a.message.slice(0, 60)}…` : a.message}”`;
