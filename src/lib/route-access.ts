@@ -67,10 +67,11 @@ export const ROUTE_ROLES = {
   "/dashboard/customers": ["SALON_OWNER", "STAFF"],
   "/dashboard/services": ["SALON_OWNER"],
   "/dashboard/store": ["SALON_OWNER"],
+  // Redirects to /dashboard/money.
   "/dashboard/earnings": ["SALON_OWNER"],
-  // The business owner only (payout accounts, KYC); Phase 5 adds more tabs.
+  // The business owner only: every tab under it (overview, transactions,
+  // payouts, payout settings) inherits this entry.
   "/dashboard/money": ["SALON_OWNER"],
-  "/dashboard/money/payout-settings": ["SALON_OWNER"],
   // The back office. Agents get Home, Salons and their security page; the
   // rest is ADMIN only. The admin layout checks each child against its own
   // entry, and each page also checks its permission (`guardPermission`),

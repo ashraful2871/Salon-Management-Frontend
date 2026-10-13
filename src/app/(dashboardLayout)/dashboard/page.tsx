@@ -9,6 +9,7 @@ import {
 import { dashboardGreeting } from "@/lib/greeting";
 import { ROLE_HOME } from "@/lib/route-access";
 import { getSelectedSalonId } from "@/lib/branch-cookie";
+import { getOwnerMoneySummary } from "@/services/owner/getOwnerMoneySummary";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -31,7 +32,12 @@ export default async function DashboardPage() {
 
   const load = STATS_FOR[role];
   // The services return the whole envelope; the stats are under `data`.
-  const result = load ? await load() : null;
+  const [result, money] = await Promise.all([
+    load ? load() : null,
+    role === "SALON_OWNER"
+      ? getSelectedSalonId().then((salonId) => getOwnerMoneySummary(salonId))
+      : null,
+  ]);
   const stats = result?.success ? (result.data ?? null) : null;
 
   const { greeting, now } = dashboardGreeting(display);
@@ -39,6 +45,7 @@ export default async function DashboardPage() {
   return (
     <Dashboard
       dashboardData={stats}
+      moneySummary={money?.success ? (money.data ?? null) : null}
       loadError={result && !result.success ? result.message : null}
       userRole={role}
       greeting={greeting}

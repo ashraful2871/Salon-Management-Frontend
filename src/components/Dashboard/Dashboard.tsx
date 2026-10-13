@@ -21,8 +21,10 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
 import { formatBDT } from "@/lib/money";
 import type { Appointment, DashboardStats } from "@/lib/api-types";
+import type { OwnerMoneySummary } from "@/services/owner/money-types";
 import { TONE_CLASSES, toneOf, type Tone } from "@/lib/status-tone";
 import { cn } from "@/lib/utils";
 import EarningsTrend from "@/components/Earnings/EarningsTrend";
@@ -98,12 +100,15 @@ const APPOINTMENT_ROLES = new Set(["SALON_OWNER", "STAFF", "CUSTOMER"]);
 
 const Dashboard = ({
   dashboardData,
+  moneySummary = null,
   loadError,
   userRole,
   greeting,
   now,
 }: {
   dashboardData: DashboardStats | null;
+  /** The owner's balance buckets (`GET /owner/money/summary`). */
+  moneySummary?: OwnerMoneySummary | null;
   loadError: string | null;
   userRole: string;
   greeting: string;
@@ -183,7 +188,7 @@ const Dashboard = ({
           />
           <EarningsCard
             months={data.monthlyEarnings ?? []}
-            detailsHref="/dashboard/earnings"
+            detailsHref="/dashboard/money"
           />
         </div>
       )}
@@ -201,7 +206,7 @@ const Dashboard = ({
             }
           />
           <div className="space-y-4 lg:space-y-6">
-            {isOwner && <MoneyInMotion data={data} />}
+            {isOwner && <MoneyInMotion data={data} summary={moneySummary} />}
             <StatusBreakdown
               title={isCustomer ? "Your bookings by status" : "Bookings by status"}
               rows={data.appointmentsByStatus ?? []}
@@ -235,9 +240,9 @@ const HeaderActions = ({ role }: { role: string }) => {
     return (
       <>
         <Button variant="outline" asChild>
-          <Link href="/dashboard/earnings">
+          <Link href="/dashboard/money">
             <Banknote aria-hidden="true" />
-            Earnings
+            Money
           </Link>
         </Button>
         <Button asChild>
@@ -456,31 +461,50 @@ export const LedgerNotes = ({ children }: { children: ReactNode }) => (
   </div>
 );
 
-const MoneyInMotion = ({ data }: { data: DashboardStats }) => (
+/** Where the owner's money is now; the Money hub has the detail. */
+const MoneyInMotion = ({
+  data,
+  summary,
+}: {
+  data: DashboardStats;
+  summary: OwnerMoneySummary | null;
+}) => (
   <Card className="gap-3">
-    <CardHeader className="px-4 sm:px-6">
+    <CardHeader className="flex flex-row items-center justify-between gap-3 px-4 sm:px-6">
       <CardTitle>Money in motion</CardTitle>
+      <Button asChild variant="ghost" size="sm" className="-mr-2">
+        <Link href="/dashboard/money">Open Money</Link>
+      </Button>
     </CardHeader>
     <CardContent className="px-4 text-sm sm:px-6">
       <dl className="divide-y divide-border">
-        <LedgerRow label="Billed to customers" value={money(data.grossBookingsMinor)} />
-        <LedgerRow
-          label="Platform commission"
-          value={`-${money(data.commissionMinor)}`}
-          tone="danger"
-        />
-        <LedgerRow label="Net earnings" value={money(data.netEarningsMinor)} tone="success" />
-        <LedgerRow label="Next payout" value={money(data.payableMinor)} tone="warning" />
-        <LedgerRow label="Paid out to date" value={money(data.paidOutMinor)} />
+        {summary ? (
+          <>
+            <LedgerRow label="Clearing" value={money(summary.pendingMinor)} />
+            <LedgerRow
+              label={`Next payout · ${format(new Date(summary.nextPayoutDate), "EEE d MMM")}`}
+              value={money(summary.availableMinor)}
+              tone="warning"
+            />
+            <LedgerRow label="On its way" value={money(summary.inPayoutMinor)} />
+            <LedgerRow label="Paid this month" value={money(summary.paidThisMonthMinor)} tone="success" />
+            {summary.duesMinor > 0 && (
+              <LedgerRow label="You owe" value={money(summary.duesMinor)} tone="danger" />
+            )}
+          </>
+        ) : (
+          <>
+            <LedgerRow label="Next payout" value={money(data.payableMinor)} tone="warning" />
+            <LedgerRow label="Paid out to date" value={money(data.paidOutMinor)} />
+          </>
+        )}
       </dl>
       <LedgerNotes>
         <p>This month: {money(data.monthNetMinor)} net</p>
-        <p>Today: {money(data.todayRevenueMinor)} billed</p>
-        <p>Average ticket: {money(data.averageTicketMinor)}</p>
         <p>Deposits held on upcoming bookings: {money(data.depositsHeldMinor)}</p>
         <p>
-          Commission: {data.standardCommissionPercent ?? 10}% on every completed
-          booking
+          Commission: {summary?.commissionPercent ?? data.standardCommissionPercent ?? 10}% on
+          bookings we bring you
         </p>
       </LedgerNotes>
     </CardContent>
