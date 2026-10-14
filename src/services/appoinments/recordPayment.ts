@@ -23,6 +23,7 @@ export const recordPayment = async (
       updateTag(TAGS.appointments);
       updateTag(TAGS.myAppointments);
       updateTag(TAGS.dashboardStats);
+      updateTag(TAGS.ownerHomes);
       revalidateTag(TAGS.earnings, "max");
       revalidateTag(TAGS.slots, "max");
     }

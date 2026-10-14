@@ -26,6 +26,8 @@ import { formatBDT } from "@/lib/money";
 import type { Appointment, DashboardStats } from "@/lib/api-types";
 import type { OwnerMoneySummary } from "@/services/owner/money-types";
 import { OwnerDuesAlerts } from "@/components/Money/OwnerDuesAlerts";
+import { OwnerHome } from "@/components/Owner/home/OwnerHome";
+import type { OwnerHomeData } from "@/services/owner/home-types";
 import { TONE_CLASSES, toneOf, type Tone } from "@/lib/status-tone";
 import { cn } from "@/lib/utils";
 import EarningsTrend from "@/components/Earnings/EarningsTrend";
@@ -102,6 +104,7 @@ const APPOINTMENT_ROLES = new Set(["SALON_OWNER", "STAFF", "CUSTOMER"]);
 const Dashboard = ({
   dashboardData,
   moneySummary = null,
+  ownerHome = null,
   loadError,
   userRole,
   greeting,
@@ -110,6 +113,8 @@ const Dashboard = ({
   dashboardData: DashboardStats | null;
   /** The owner's balance buckets (`GET /owner/money/summary`). */
   moneySummary?: OwnerMoneySummary | null;
+  /** Owner Today v2 (`GET /owner/home`); null falls back to the stat tiles. */
+  ownerHome?: OwnerHomeData | null;
   loadError: string | null;
   userRole: string;
   greeting: string;
@@ -119,7 +124,8 @@ const Dashboard = ({
   const hasData = dashboardData !== null;
   const isOwner = userRole === "SALON_OWNER";
   const isCustomer = userRole === "CUSTOMER";
-  const stats = hasData ? buildStats(data, userRole) : [];
+  const showOwnerHome = isOwner && ownerHome !== null;
+  const stats = hasData && !showOwnerHome ? buildStats(data, userRole) : [];
   const recent = data.recentAppointments ?? [];
   const payouts = data.recentPayouts ?? [];
 
@@ -183,12 +189,22 @@ const Dashboard = ({
         </div>
       )}
 
+      {showOwnerHome && ownerHome && <OwnerHome home={ownerHome} />}
+
+      {/* The money card closes Today v2; without it, the old Today card. */}
       {isOwner && hasData && (
         <div className="grid gap-4 lg:grid-cols-3 lg:gap-6">
-          <TodayCard
-            total={data.todayAppointments}
-            next={nextToday(recent, now)}
-          />
+          {showOwnerHome ? (
+            <div className="space-y-4 lg:space-y-6">
+              <MoneyInMotion data={data} summary={moneySummary} />
+              {payouts.length > 0 && <RecentPayouts payouts={payouts} />}
+            </div>
+          ) : (
+            <TodayCard
+              total={data.todayAppointments}
+              next={nextToday(recent, now)}
+            />
+          )}
           <EarningsCard
             months={data.monthlyEarnings ?? []}
             detailsHref="/dashboard/money"
@@ -196,7 +212,7 @@ const Dashboard = ({
         </div>
       )}
 
-      {hasData && (
+      {hasData && !showOwnerHome && (
         <div className="grid gap-4 lg:grid-cols-3 lg:gap-6">
           <RecentAppointments
             items={recent.slice(0, 5)}

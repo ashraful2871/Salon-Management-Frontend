@@ -9,6 +9,8 @@ export type AppointmentListParams = {
   page?: number;
   limit?: number;
   salonId?: string;
+  /** Owner Home "Needs attention" list: pending | stale | unrecorded | appeal. */
+  attention?: string;
 };
 
 export const getAllAppointments = async (

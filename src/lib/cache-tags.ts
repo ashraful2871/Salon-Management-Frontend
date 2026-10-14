@@ -29,6 +29,9 @@ export const TAGS = {
   ownerMoney: "owner-money",
   ownerPayouts: "owner-payouts",
   ownerStatements: "owner-statements",
+  /** Owner Home (`GET /owner/home`): one per branch key ("all" or a salon id) plus the shared base every booking mutation expires. */
+  ownerHome: (key: string) => `owner-home-${key}`,
+  ownerHomes: "owner-home",
   // Back office (`/admin/*`).
   adminMe: "admin-me",
   adminInbox: "admin-inbox",

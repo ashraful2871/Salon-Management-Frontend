@@ -63,6 +63,8 @@ const GUEST_ONLY_ROUTES = ["/login", "/register"] as const;
 export const ROUTE_ROLES = {
   "/dashboard": SIGNED_IN_ROLES,
   "/dashboard/appointments": ["SALON_OWNER", "STAFF", "CUSTOMER"],
+  // Owners run the day here; staff see their own column, read-only.
+  "/dashboard/calendar": ["SALON_OWNER", "STAFF"],
   "/dashboard/slots": ["SALON_OWNER"],
   "/dashboard/customers": ["SALON_OWNER", "STAFF"],
   "/dashboard/services": ["SALON_OWNER"],

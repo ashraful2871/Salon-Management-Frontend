@@ -173,6 +173,7 @@ export type Appointment = {
     user?: { name: string };
   };
   counter?: {
+    id?: string;
     name: string;
     code?: string;
   };

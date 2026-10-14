@@ -10,7 +10,16 @@ import { getAllAppointments } from "@/services/appoinments/getAllAppointments";
 import { getCashSummary } from "@/services/appoinments/getCashSummary";
 import { getUserRoles } from "@/services/get-roles/getUserRoles";
 import { getSelectedSalonId } from "@/lib/branch-cookie";
+import Link from "next/link";
 import CashSection from "./CashSection";
+
+/** `?attention=` filters the owner Home links to (same filter as its counts). */
+const ATTENTION_LABELS: Record<string, string> = {
+  pending: "Waiting for you to confirm",
+  stale: "Checked in over 2 hours ago",
+  unrecorded: "Completed, payment not recorded",
+  appeal: "No-show appeals open",
+};
 import QueueSection from "./QueueSection";
 
 export const dynamic = "force-dynamic";
@@ -38,9 +47,11 @@ const AppointmentsPage = async ({
     timeZone: "Asia/Dhaka",
   }).format(new Date());
   const requestedDate = first(params.date);
+  // A "Needs attention" row on Home: its filter spans every date.
+  const attention = ATTENTION_LABELS[first(params.attention) ?? ""] ? first(params.attention) : undefined;
   const opensOnToday = userRole === "SALON_OWNER" || userRole === "STAFF";
   const date =
-    requestedDate === "all"
+    requestedDate === "all" || (attention && !requestedDate)
       ? undefined
       : requestedDate || (opensOnToday ? today : undefined);
   const status = first(params.status);
@@ -63,12 +74,23 @@ const AppointmentsPage = async ({
     status,
     searchTerm,
     page,
+    attention,
     salonId,
   });
 
   return (
     <FilterNavigationProvider>
       <div>
+        {attention && (
+          <p className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-warning/20 bg-warning-soft px-4 py-3 text-sm">
+            <span>
+              Showing: <strong>{ATTENTION_LABELS[attention]}</strong>
+            </span>
+            <Link href="/dashboard/appointments" className="font-medium text-primary underline-offset-4 hover:underline">
+              Clear filter
+            </Link>
+          </p>
+        )}
         <Appointments
           appointments={(res?.data ?? []) as any}
           userRole={userRole ?? "GUEST"}
