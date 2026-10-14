@@ -67,6 +67,8 @@ export const ROUTE_ROLES = {
   "/dashboard/calendar": ["SALON_OWNER", "STAFF"],
   "/dashboard/slots": ["SALON_OWNER"],
   "/dashboard/customers": ["SALON_OWNER", "STAFF"],
+  // Reviews of the business and its one public reply (reviews.reply).
+  "/dashboard/reviews": ["SALON_OWNER"],
   "/dashboard/services": ["SALON_OWNER"],
   "/dashboard/store": ["SALON_OWNER"],
   // Redirects to /dashboard/money.

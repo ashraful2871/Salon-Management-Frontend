@@ -596,6 +596,14 @@ const SalonDetails = ({
                           {r?.comment && (
                             <p className="text-sm text-muted-foreground leading-relaxed break-words">{r.comment}</p>
                           )}
+                          {r?.ownerReply && (
+                            <div className="mt-2 rounded-xl border-l-2 border-primary bg-surface-subtle px-3 py-2">
+                              <p className="text-xs font-semibold">Reply from {salon?.name || "the salon"}</p>
+                              <p className="text-sm text-muted-foreground leading-relaxed break-words whitespace-pre-line">
+                                {r.ownerReply}
+                              </p>
+                            </div>
+                          )}
                           {r?.id && canReport && r?.customer?.id !== viewer?.userId && (
                             <div className="mt-1 -ml-2">
                               <ReportReviewButton reviewId={r.id} />

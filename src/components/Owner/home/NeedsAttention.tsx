@@ -48,6 +48,12 @@ export function NeedsAttention({
       href: "/dashboard/appointments?attention=appeal",
     },
     {
+      key: "reviews",
+      count: a.unrepliedReviews,
+      label: `${plural(a.unrepliedReviews, "review")} without a reply`,
+      href: "/dashboard/reviews",
+    },
+    {
       key: "dues",
       count: a.duesMinor ?? 0,
       label: "You owe the platform",

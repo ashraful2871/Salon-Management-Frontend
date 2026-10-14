@@ -1,4 +1,5 @@
 import {
+  MessageSquareQuote,
   Activity,
   Calendar,
   CalendarClock,
@@ -105,6 +106,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { path: "/dashboard/slots", icon: CalendarClock, label: "Slots" },
       { path: "/dashboard/services", icon: Package, label: "Services" },
       { path: "/dashboard/customers", icon: Users, label: "Customers" },
+      { path: "/dashboard/reviews", icon: MessageSquareQuote, label: "Reviews" },
       { path: "/dashboard/store", icon: Store, label: "My salon" },
     ],
   },
