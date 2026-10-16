@@ -79,6 +79,15 @@ export type Salon = {
   locationUpdatedAt?: string | null;
   /** Not taking new online bookings (owner or dues pause); still listed. */
   bookingPaused?: boolean;
+  /** Holidays and special hours in the next 60 days (`GET /salons/:id` only). */
+  upcomingClosures?: Array<{
+    id: string;
+    date: string;
+    allDay: boolean;
+    startTime: string | null;
+    endTime: string | null;
+    reason: string;
+  }>;
   // Only present in nearby mode (lat/lng in the query).
   distanceMeters?: number;
   createdAt?: string;

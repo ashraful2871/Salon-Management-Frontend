@@ -21,6 +21,10 @@ const ServicesPage = async () => {
     ? (allSalons.data ?? []).filter((s: { id: string }) => s.id === salonId)
     : [];
   const salonsResponse = branch.length ? { ...allSalons, data: branch } : allSalons;
+  // Copy / bulk price act on the owner's own branches only.
+  const ownerBranches = access.success
+    ? (access.data ?? []).filter((b) => b.role === "OWNER").map((b) => ({ id: b.salonId, name: b.salonName }))
+    : [];
 
   return (
     <div className="p-4 md:p-6">
@@ -28,6 +32,8 @@ const ServicesPage = async () => {
         salonsResponse={salonsResponse as any}
         servicesResponse={servicesResponse as any}
         canEdit={canEdit}
+        ownerBranches={ownerBranches}
+        currentSalonId={salonId}
       />
     </div>
   );

@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
+import type { Salon } from "@/lib/api-types";
 import {
   Clock,
   Globe,
@@ -134,6 +135,9 @@ const isValidUrl = (url: any) => {
   );
 };
 
+const closureDay = (ymd: string) =>
+  new Date(`${ymd}T00:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
   <h2 className="font-display text-xl font-semibold mb-4">{children}</h2>
 );
@@ -227,6 +231,7 @@ const SalonDetails = ({
 
   // Paused by its owner or for dues: listed, but no new online bookings.
   const bookingPaused = !!salon?.bookingPaused;
+  const closures: NonNullable<Salon["upcomingClosures"]> = salon?.upcomingClosures ?? [];
 
   const handleBook = (serviceId?: string) => {
     if (bookingPaused) return;
@@ -641,6 +646,19 @@ const SalonDetails = ({
                     <p role="status" className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-warning">
                       Not taking online bookings right now. Walk-ins are welcome.
                     </p>
+                  )}
+                  {closures.length > 0 && (
+                    <div className="rounded-lg bg-surface-subtle px-3 py-2 text-sm">
+                      <p className="font-medium">Upcoming closures</p>
+                      <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                        {closures.slice(0, 4).map((c) => (
+                          <li key={c.id}>
+                            {closureDay(c.date)}: {c.allDay ? "closed all day" : `closed ${c.startTime}–${c.endTime}`}
+                            {c.reason ? ` (${c.reason})` : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                   <Button size="lg" className="w-full" onClick={() => handleBook()} disabled={bookingPaused || services.length === 0}>
                     Book now

@@ -39,6 +39,10 @@ import { deleteStaff } from "@/services/staff/deleteStaff";
 import { InviteMemberDialog } from "@/components/Owner/team/InviteMemberDialog";
 import AddCounterModal from "./AddCounterModal";
 import SalonLocationTab from "./SalonLocationTab";
+import { ClosuresTab } from "@/components/Owner/schedule/ClosuresTab";
+import { BookingStatusCard } from "@/components/Owner/schedule/BookingStatusCard";
+import { CopyHoursButton } from "@/components/Owner/catalogue/CopyHoursDialog";
+import type { BookingPauseState, SalonClosure } from "@/services/schedule/schedule-types";
 
 /* ---------------- Types ---------------- */
 
@@ -74,7 +78,7 @@ const DAY_LABEL: Record<Day, string> = {
   sunday: "Sunday",
 };
 
-const TABS = ["details", "hours", "staff", "counters", "location"] as const;
+const TABS = ["details", "hours", "closures", "staff", "counters", "location"] as const;
 type Tab = (typeof TABS)[number];
 
 // `?tab=location` comes from the "needs an exact map pin" notice; `overview`
@@ -127,21 +131,32 @@ export default function ManageSalon({
   initialData,
   initialTab,
   permissions,
+  closures,
+  pause,
+  otherBranches = [],
 }: {
   initialData: ManagedSalon;
   initialTab?: string;
   /** The caller's permissions here (`GET /owner/access`); undefined shows everything. Cosmetic: the API decides. */
   permissions?: string[];
+  /** Holidays and special hours; null hides the tab (no slots.manage). */
+  closures?: SalonClosure[] | null;
+  /** The owner's view of the online-booking pause; null for anyone else. */
+  pause?: BookingPauseState | null;
+  /** The owner's other branches, for "Copy hours to…". */
+  otherBranches?: { id: string; name: string }[];
 }) {
   const can = (perm: string) => !permissions || permissions.includes(perm);
   const showLocation = can("branch.location");
+  const showClosures = !!closures;
   const salonId = initialData.id;
   const fieldId = useId();
   const field = (name: string) => `${fieldId}-${name}`;
 
   const pickTab = (value?: string): Tab => {
     const next = toTab(value);
-    return next === "location" && !showLocation ? "details" : next;
+    if (next === "location" && !showLocation) return "details";
+    return next === "closures" && !showClosures ? "details" : next;
   };
   const [tab, setTab] = useState<Tab>(() => pickTab(initialTab));
   const [openAddStaff, setOpenAddStaff] = useState(false);
@@ -370,6 +385,8 @@ export default function ManageSalon({
         />
       </div>
 
+      {pause && <BookingStatusCard salonId={salonId} pause={pause} />}
+
       {/* --- Sections --- */}
       <Tabs value={tab} onValueChange={(value) => setTab(pickTab(value))}>
         <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden">
@@ -380,6 +397,7 @@ export default function ManageSalon({
             <PillTab value="hours" unsaved={hoursDirty}>
               Hours
             </PillTab>
+            {showClosures && <PillTab value="closures">Closures</PillTab>}
             <PillTab value="staff" count={staff.length}>
               Staff
             </PillTab>
@@ -526,6 +544,11 @@ export default function ManageSalon({
                 <CardDescription>
                   Your weekly hours, shown on your salon page.
                 </CardDescription>
+                {otherBranches.length > 0 && (
+                  <div className="pt-2">
+                    <CopyHoursButton fromSalonId={salonId} branches={otherBranches} disabled={hoursDirty} />
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
                 <fieldset disabled={savingHours}>
@@ -612,6 +635,13 @@ export default function ManageSalon({
             </Card>
           </form>
         </TabsContent>
+
+        {/* ================= CLOSURES ================= */}
+        {showClosures && (
+          <TabsContent value="closures" className="mt-4">
+            <ClosuresTab salonId={salonId} closures={closures ?? []} />
+          </TabsContent>
+        )}
 
         {/* ================= STAFF ================= */}
         <TabsContent value="staff" className="mt-4">

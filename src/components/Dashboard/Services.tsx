@@ -31,6 +31,7 @@ import { DataList, type Column } from "@/components/Shared/DataList";
 import { FilterBar } from "@/components/Shared/FilterBar";
 import { EmptyState } from "@/components/Shared/EmptyState";
 import { humanizeStatus } from "@/components/Shared/ToneBadge";
+import { BranchCatalogueActions } from "@/components/Owner/catalogue/BranchCatalogueActions";
 
 type SalonOption = { id: string; name: string };
 
@@ -44,11 +45,16 @@ export default function Services({
   servicesResponse,
   salonsResponse,
   canEdit = true,
+  ownerBranches = [],
+  currentSalonId,
 }: {
   servicesResponse: ApiResponse<SalonService[]>;
   salonsResponse: ApiResponse<SalonOption[]>;
   /** False for a manager without services.edit: the list is read-only (the API refuses edits anyway). */
   canEdit?: boolean;
+  /** Every branch the caller owns: two or more show the multi-branch actions. */
+  ownerBranches?: SalonOption[];
+  currentSalonId?: string | null;
 }) {
   const [query, setQuery] = useState("");
   const [, startTransition] = useTransition();
@@ -187,10 +193,17 @@ export default function Services({
         description="What your salons offer, for how long and at what price."
         actions={
           canEdit ? (
-            <Button onClick={() => openForm(null)}>
-              <Plus aria-hidden="true" />
-              Add service
-            </Button>
+            <>
+              <BranchCatalogueActions
+                branches={ownerBranches}
+                services={serverServices}
+                currentSalonId={currentSalonId}
+              />
+              <Button onClick={() => openForm(null)}>
+                <Plus aria-hidden="true" />
+                Add service
+              </Button>
+            </>
           ) : undefined
         }
       />

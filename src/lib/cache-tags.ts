@@ -42,6 +42,12 @@ export const TAGS = {
   /** A stylist's working hours and time off, plus the base every schedule write expires (the calendar reads it). */
   staffSchedule: (staffId: string) => `staff-schedule-${staffId}`,
   staffSchedules: "staff-schedules",
+  /** A branch's holidays and special hours (`GET /salons/:id/closures`). */
+  salonClosures: (salonId: string) => `salon-closures-${salonId}`,
+  /** A branch's online-booking pause as its owner sees it (`GET /salons/:id/pause`). */
+  salonPause: (salonId: string) => `salon-pause-${salonId}`,
+  /** Profile completeness per branch (`GET /owner/salons/completeness`). */
+  salonCompleteness: "salon-completeness",
   /** Team → Performance (`GET /owner/team/performance`). */
   teamPerformance: "team-performance",
   // Back office (`/admin/*`).

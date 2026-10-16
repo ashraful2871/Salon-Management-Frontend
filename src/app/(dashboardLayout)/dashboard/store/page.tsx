@@ -4,6 +4,7 @@ import Store from "@/components/Dashboard/Store";
 import { getMySalon } from "@/services/salon/getMySalon";
 import { getUserRoles } from "@/services/get-roles/getUserRoles";
 import { getSelectedBranch } from "@/lib/branch-cookie";
+import { getSalonCompleteness } from "@/services/owner/getSalonCompleteness";
 
 const StorePage = async () => {
   // The salon list (and adding a salon) is the owner's; a manager's "My
@@ -13,11 +14,11 @@ const StorePage = async () => {
     redirect(branch === "all" ? "/dashboard" : `/dashboard/store/${branch}`);
   }
 
-  const storeData = await getMySalon();
+  const [storeData, completeness] = await Promise.all([getMySalon(), getSalonCompleteness()]);
 
   return (
     <div className="p-4 md:p-6">
-      <Store salonResponse={storeData as any} />
+      <Store salonResponse={storeData as any} completeness={completeness.success ? (completeness.data ?? []) : []} />
     </div>
   );
 };
