@@ -10,6 +10,7 @@ import {
   FileClock,
   LayoutDashboard,
   ChartLine,
+  History,
   Package,
   Scale,
   ReceiptText,
@@ -124,7 +125,10 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     // Owner + manager (`ROUTE_ROLES`): how the business is doing.
     title: "Insights",
-    items: [{ path: "/dashboard/reports", icon: ChartLine, label: "Reports" }],
+    items: [
+      { path: "/dashboard/reports", icon: ChartLine, label: "Reports" },
+      { path: "/dashboard/activity", icon: History, label: "Activity" },
+    ],
   },
   {
     title: "Operations",

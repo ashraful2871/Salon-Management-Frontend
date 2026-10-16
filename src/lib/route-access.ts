@@ -78,6 +78,8 @@ export const ROUTE_ROLES = {
   "/dashboard/close": ["SALON_OWNER", "BRANCH_MANAGER"],
   "/dashboard/reports": ["SALON_OWNER", "BRANCH_MANAGER"],
   "/dashboard/activity": ["SALON_OWNER", "BRANCH_MANAGER"],
+  // The bell's full list: every business account, its own rows only.
+  "/dashboard/notifications": ["SALON_OWNER", "BRANCH_MANAGER", "STAFF"],
   // The list page sends a manager on to their branch's profile (`store/[id]`,
   // profile tabs only); the "add salon" flow stays the owner's.
   "/dashboard/store": ["SALON_OWNER", "BRANCH_MANAGER"],

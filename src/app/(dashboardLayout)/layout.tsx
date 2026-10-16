@@ -78,6 +78,7 @@ const CommonDashboardLayout = async ({
       initialCollapsed={collapsed}
       admin={admin}
       branches={branches}
+      notifications={user.role === "SALON_OWNER" || user.role === "BRANCH_MANAGER" || user.role === "STAFF"}
     >
       <SessionKeeper />
       <ImpersonationBanner />

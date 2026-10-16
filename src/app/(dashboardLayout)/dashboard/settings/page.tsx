@@ -3,6 +3,10 @@ import React from "react";
 import { getMySalon } from "@/services/salon/getMySalon";
 import { getSessionUser } from "@/services/auth/session";
 import { getMe } from "@/services/auth/getMe";
+import { getNotificationPrefs } from "@/services/notifications/getNotificationPrefs";
+import { NotificationPrefsCard } from "@/components/Notifications/NotificationPrefsCard";
+
+const BUSINESS_ROLES = ["SALON_OWNER", "BRANCH_MANAGER", "STAFF"];
 
 const SettingsPage = async () => {
   const [res, user, me] = await Promise.all([
@@ -18,10 +22,17 @@ const SettingsPage = async () => {
           signInMethods: me.data.signInMethods ?? [],
         }
       : null;
+  // Business accounts get the event × channel table (the bell's preferences).
+  const prefs = user && BUSINESS_ROLES.includes(user.role) ? await getNotificationPrefs() : null;
 
   return (
     <div>
-      <Settings salon={salon} currentEmail={user?.email ?? ""} signIn={signIn} />
+      <Settings
+        salon={salon}
+        currentEmail={user?.email ?? ""}
+        signIn={signIn}
+        notifications={prefs?.success && prefs.data ? <NotificationPrefsCard initial={prefs.data} /> : null}
+      />
     </div>
   );
 };

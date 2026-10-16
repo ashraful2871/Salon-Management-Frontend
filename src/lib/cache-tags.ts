@@ -52,6 +52,12 @@ export const TAGS = {
   ownerReports: "owner-reports",
   /** Team → Performance (`GET /owner/team/performance`). */
   teamPerformance: "team-performance",
+  /** The bell and the full list (`GET /owner/notifications`); per user. */
+  notifications: "notifications",
+  /** Settings → Notifications (`GET /owner/notification-prefs`). */
+  notificationPrefs: "notification-prefs",
+  /** Activity (`GET /owner/activity`) over the audit log. */
+  ownerActivity: "owner-activity",
   // Back office (`/admin/*`).
   adminMe: "admin-me",
   adminInbox: "admin-inbox",

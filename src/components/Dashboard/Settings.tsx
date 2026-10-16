@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import {
   Card,
@@ -21,7 +21,7 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import Link from "next/link";
-import { Store, Bell, Shield, Wallet, Loader2, Mail, KeyRound } from "lucide-react";
+import { Store, Shield, Wallet, Loader2, Mail, KeyRound } from "lucide-react";
 import { changePassword } from "@/services/auth/changePassword";
 import { confirmEmailChange, requestEmailChange } from "@/services/auth/changeEmail";
 import type { SignInMethod } from "@/services/auth/getMe";
@@ -41,10 +41,13 @@ const Settings = ({
   salon,
   currentEmail = "",
   signIn = null,
+  notifications = null,
 }: {
   salon?: any;
   currentEmail?: string;
   signIn?: { hasPassword: boolean; signInMethods: SignInMethod[] } | null;
+  /** Settings → Notifications (business accounts); null hides it. */
+  notifications?: ReactNode;
 }) => {
   // A Google-only account has no current password to type, so it gets a link
   // to set one by email instead of the change-password form.
@@ -193,58 +196,8 @@ const Settings = ({
 
       {/* Two columns on wide screens; each card keeps its own height. */}
       <div className="grid items-start gap-6 xl:grid-cols-2">
-      {/* Notifications */}
-      <div>
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gold/20">
-                <Bell className="h-5 w-5 text-gold" />
-              </div>
-              <div>
-                <CardTitle>Notifications</CardTitle>
-                <CardDescription>
-                  Configure how you receive notifications
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {[
-              {
-                label: "Email notifications",
-                description: "Receive booking confirmations via email",
-                defaultChecked: true,
-              },
-              {
-                label: "SMS notifications",
-                description: "Get text messages for new bookings",
-                defaultChecked: true,
-              },
-              {
-                label: "Push notifications",
-                description: "Browser notifications for updates",
-                defaultChecked: false,
-              },
-              {
-                label: "Marketing emails",
-                description: "Receive tips and promotional content",
-                defaultChecked: false,
-              },
-            ].map((item, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>{item.label}</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {item.description}
-                  </p>
-                </div>
-                <Switch defaultChecked={item.defaultChecked} />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+      {/* Notifications: business accounts only (the preferences live on the API). */}
+      {notifications && <div className="xl:col-span-2">{notifications}</div>}
 
       {/* Email Address */}
       <div>

@@ -42,6 +42,7 @@ import {
 import { ROLE_HOME } from "@/lib/route-access";
 import { AdminTopBar, type AdminShellData } from "@/components/Admin/AdminTopBar";
 import { BranchSwitcher, type BranchOption } from "@/components/Dashboard/BranchSwitcher";
+import { NotificationBell } from "@/components/Notifications/NotificationBell";
 import LogoutButton from "./LogoutButton";
 import { BottomTabBar } from "./BottomTabBar";
 import {
@@ -240,6 +241,7 @@ export const DashboardShell = ({
   initialCollapsed = false,
   admin,
   branches,
+  notifications = false,
   children,
 }: {
   user: ShellUser;
@@ -248,6 +250,8 @@ export const DashboardShell = ({
   admin?: AdminShellData;
   /** Owners and managers: their branches and the one the pages are scoped to. */
   branches?: { options: BranchOption[]; selected: string; allowAll?: boolean };
+  /** Business accounts (owner, manager, staff): the notification bell. */
+  notifications?: boolean;
   children: ReactNode;
 }) => {
   const pathname = usePathname();
@@ -463,6 +467,8 @@ export const DashboardShell = ({
               allowAll={branches.allowAll}
             />
           )}
+
+          {notifications && <NotificationBell />}
 
           {admin && (
             <AdminTopBar
