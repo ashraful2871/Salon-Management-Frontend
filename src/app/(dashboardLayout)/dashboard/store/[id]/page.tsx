@@ -1,5 +1,6 @@
 import ManageSalon from "@/components/Dashboard/ManageSalon";
 import { getSalonById } from "@/services/salon/getSalonNyId";
+import { getMyAccess } from "@/services/owner/getMyAccess";
 import React from "react";
 
 const ManageSalonPage = async ({
@@ -12,7 +13,11 @@ const ManageSalonPage = async ({
   const { id } = await params;
   const { tab } = await searchParams;
 
-  const getSingleSalon = await getSalonById(id);
+  const [getSingleSalon, access] = await Promise.all([getSalonById(id), getMyAccess()]);
+  // What the caller may do here: hides owner-only controls from a manager.
+  const permissions = access.success
+    ? access.data?.find((b) => b.salonId === id)?.permissions
+    : undefined;
 
   if (!getSingleSalon.data) {
     return (
@@ -30,6 +35,7 @@ const ManageSalonPage = async ({
       <ManageSalon
         initialData={getSingleSalon.data}
         initialTab={typeof tab === "string" ? tab : undefined}
+        permissions={permissions}
       />
     </div>
   );

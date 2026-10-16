@@ -14,9 +14,20 @@ const ITEMS: Record<SetupItem, { label: string; href: (salonId: string) => strin
   kyc: { label: "Verify your business (KYC)", href: () => "/dashboard/money/payout-settings" },
 };
 
+/** Steps only the business owner can take (money pages); a manager never sees them. */
+const OWNER_ONLY = new Set<SetupItem>(["payoutAccount", "kyc"]);
+
 /** What is left to set up, per branch. Hidden once everything is done. */
-export function SetupChecklist({ setup }: { setup: OwnerHomeData["setup"] }) {
-  if (setup.incompleteCount === 0) return null;
+export function SetupChecklist({
+  setup,
+  isOwner = true,
+}: {
+  setup: OwnerHomeData["setup"];
+  isOwner?: boolean;
+}) {
+  const items = isOwner ? setup.items : setup.items.filter((item) => !OWNER_ONLY.has(item));
+  const left = setup.salons.some((s) => items.some((item) => !s.done[item]));
+  if (setup.incompleteCount === 0 || !left) return null;
   const many = setup.salons.length > 1;
 
   return (
@@ -43,7 +54,7 @@ export function SetupChecklist({ setup }: { setup: OwnerHomeData["setup"] }) {
               </p>
             )}
             <ul className="grid gap-1 sm:grid-cols-2">
-              {setup.items.map((item) => {
+              {items.map((item) => {
                 const { label, href } = ITEMS[item];
                 return (
                   <li key={item}>

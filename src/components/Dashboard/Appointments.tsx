@@ -1,5 +1,6 @@
 "use client";
 
+import { runsBranch } from "@/lib/owner-access";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -73,7 +74,7 @@ const Appointments = ({
   const pathname = usePathname();
 
   const isCustomer = userRole === "CUSTOMER";
-  const opensOnToday = userRole === "SALON_OWNER" || userRole === "STAFF";
+  const opensOnToday = runsBranch(userRole) || userRole === "STAFF";
   const selectedDate = filters.date;
 
   // Filters live in the URL and the server applies them, so a refresh or a

@@ -36,7 +36,7 @@ import type { OperatingHours, Salon, StaffMember } from "@/lib/api-types";
 import { formatRating } from "@/lib/rating";
 import { updateSalon } from "@/services/salon/updateSalon";
 import { deleteStaff } from "@/services/staff/deleteStaff";
-import AddStaffModal from "./AddStaffModal";
+import { InviteMemberDialog } from "@/components/Owner/team/InviteMemberDialog";
 import AddCounterModal from "./AddCounterModal";
 import SalonLocationTab from "./SalonLocationTab";
 
@@ -126,15 +126,24 @@ const DEFAULT_DAY = { open: "09:00", close: "21:00" };
 export default function ManageSalon({
   initialData,
   initialTab,
+  permissions,
 }: {
   initialData: ManagedSalon;
   initialTab?: string;
+  /** The caller's permissions here (`GET /owner/access`); undefined shows everything. Cosmetic: the API decides. */
+  permissions?: string[];
 }) {
+  const can = (perm: string) => !permissions || permissions.includes(perm);
+  const showLocation = can("branch.location");
   const salonId = initialData.id;
   const fieldId = useId();
   const field = (name: string) => `${fieldId}-${name}`;
 
-  const [tab, setTab] = useState<Tab>(() => toTab(initialTab));
+  const pickTab = (value?: string): Tab => {
+    const next = toTab(value);
+    return next === "location" && !showLocation ? "details" : next;
+  };
+  const [tab, setTab] = useState<Tab>(() => pickTab(initialTab));
   const [openAddStaff, setOpenAddStaff] = useState(false);
   const [openAddCounter, setOpenAddCounter] = useState(false);
 
@@ -362,7 +371,7 @@ export default function ManageSalon({
       </div>
 
       {/* --- Sections --- */}
-      <Tabs value={tab} onValueChange={(value) => setTab(toTab(value))}>
+      <Tabs value={tab} onValueChange={(value) => setTab(pickTab(value))}>
         <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden">
           <TabsList className="w-max rounded-full bg-muted p-1 group-data-[orientation=horizontal]/tabs:h-11">
             <PillTab value="details" unsaved={detailsDirty}>
@@ -377,7 +386,7 @@ export default function ManageSalon({
             <PillTab value="counters" count={counters.length}>
               Counters
             </PillTab>
-            <PillTab value="location">Location</PillTab>
+            {showLocation && <PillTab value="location">Location</PillTab>}
           </TabsList>
         </div>
 
@@ -614,10 +623,13 @@ export default function ManageSalon({
                   The stylists customers can be assigned to.
                 </CardDescription>
               </div>
-              <Button size="sm" variant="outline" onClick={() => setOpenAddStaff(true)}>
-                <UserPlus />
-                Add staff
-              </Button>
+              {/* Staff join by invitation now: a stylist seat they accept. */}
+              {can("team.invite") && (
+                <Button size="sm" variant="outline" onClick={() => setOpenAddStaff(true)}>
+                  <UserPlus />
+                  Invite staff
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <DataList
@@ -626,7 +638,7 @@ export default function ManageSalon({
                 columns={staffColumns}
                 caption="Staff"
                 rowActions={(m, layout) =>
-                  layout === "table" ? (
+                  !can("team.invite") ? null : layout === "table" ? (
                     <Button
                       size="icon"
                       variant="ghost"
@@ -649,12 +661,14 @@ export default function ManageSalon({
                     <EmptyState
                       icon={Users}
                       title="No staff yet"
-                      description="Add the people who work here so bookings can be assigned to them."
+                      description="Invite the people who work here so bookings can be assigned to them."
                       action={
-                        <Button onClick={() => setOpenAddStaff(true)}>
-                          <UserPlus />
-                          Add staff
-                        </Button>
+                        can("team.invite") ? (
+                          <Button onClick={() => setOpenAddStaff(true)}>
+                            <UserPlus />
+                            Invite staff
+                          </Button>
+                        ) : undefined
                       }
                     />
                   </div>
@@ -724,16 +738,23 @@ export default function ManageSalon({
         </TabsContent>
 
         {/* ================= LOCATION ================= */}
-        <TabsContent value="location" className="mt-4">
-          <SalonLocationTab salon={initialData} />
-        </TabsContent>
+        {showLocation && (
+          <TabsContent value="location" className="mt-4">
+            <SalonLocationTab salon={initialData} />
+          </TabsContent>
+        )}
       </Tabs>
 
-      <AddStaffModal
-        open={openAddStaff}
-        setOpen={setOpenAddStaff}
-        salonId={salonId}
-      />
+      {can("team.invite") && (
+        <InviteMemberDialog
+          open={openAddStaff}
+          onOpenChange={setOpenAddStaff}
+          salonId={salonId}
+          salonName={initialData.name}
+          roles={can("team.invite_manager") ? ["MANAGER", "RECEPTIONIST", "STYLIST"] : ["RECEPTIONIST", "STYLIST"]}
+          defaultRole="STYLIST"
+        />
+      )}
       <AddCounterModal
         open={openAddCounter}
         setOpen={setOpenAddCounter}

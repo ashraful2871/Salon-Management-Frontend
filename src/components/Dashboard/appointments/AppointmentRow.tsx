@@ -1,5 +1,6 @@
 "use client";
 
+import { runsBranch } from "@/lib/owner-access";
 import { Eye, MoreHorizontal, Play, User, UserPlus, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -99,7 +100,7 @@ export const customerCanCancel = (row: AppointmentRow) =>
 // The API lets the owner cancel anything not yet being served. A past day's
 // leftovers are the no-show job's, so they are not offered here.
 const salonCanCancel = (row: AppointmentRow, role: string) =>
-  role === "SALON_OWNER" &&
+  runsBranch(role) &&
   !row.isPast &&
   (row.status === "PENDING" ||
     row.status === "CONFIRMED" ||
@@ -108,7 +109,7 @@ const salonCanCancel = (row: AppointmentRow, role: string) =>
 // The salon works today's book; an upcoming or past booking is not acted on
 // from the desk.
 const canAssign = (row: AppointmentRow, role: string) =>
-  role === "SALON_OWNER" &&
+  runsBranch(role) &&
   row.isToday &&
   row.status !== "COMPLETED" &&
   row.status !== "CANCELLED" &&

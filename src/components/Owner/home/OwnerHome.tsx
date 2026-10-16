@@ -10,12 +10,12 @@ import { BranchesTable } from "./BranchesTable";
  * the week against the last, and every branch. Dashboard renders the money
  * card after it.
  */
-export function OwnerHome({ home }: { home: OwnerHomeData }) {
+export function OwnerHome({ home, isOwner = true }: { home: OwnerHomeData; isOwner?: boolean }) {
   return (
     <>
       <NeedsAttention attention={home.attention} salonId={home.scope.salonId} />
       <TodayStrip today={home.today} />
-      <SetupChecklist setup={home.setup} />
+      <SetupChecklist setup={home.setup} isOwner={isOwner} />
       <WeekVsLast week={home.week} />
       {home.branches && home.branches.length > 0 && (
         <BranchesTable branches={home.branches} total={home.branchesTotal} />

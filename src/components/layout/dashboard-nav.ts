@@ -1,5 +1,6 @@
 import {
   MessageSquareQuote,
+  UsersRound,
   Activity,
   Calendar,
   CalendarClock,
@@ -50,6 +51,8 @@ export type NavItem = {
   tabHref?: string;
   /** Bottom-tab label, when `label` is too long for a fifth of a phone. */
   short?: string;
+  /** Bottom-tab label for one role, over `short`. */
+  shortByRole?: Partial<Record<UserRole, string>>;
   labelByRole?: Partial<Record<UserRole, string>>;
   /** The admin permission the page checks; the link is hidden without it. */
   permission?: Permission;
@@ -75,6 +78,7 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: LayoutDashboard,
         label: "Dashboard",
         short: "Home",
+        shortByRole: { BRANCH_MANAGER: "Today" },
         // They have their own home below; `/dashboard` redirects them there.
         hiddenFor: ["ADMIN", "AGENT"],
       },
@@ -107,7 +111,14 @@ export const NAV_GROUPS: NavGroup[] = [
       { path: "/dashboard/services", icon: Package, label: "Services" },
       { path: "/dashboard/customers", icon: Users, label: "Customers" },
       { path: "/dashboard/reviews", icon: MessageSquareQuote, label: "Reviews" },
-      { path: "/dashboard/store", icon: Store, label: "My salon" },
+      { path: "/dashboard/team", icon: UsersRound, label: "Team" },
+      {
+        path: "/dashboard/store",
+        icon: Store,
+        label: "My salon",
+        // Opens their branch's profile; the salon list is the owner's.
+        labelByRole: { BRANCH_MANAGER: "My branch" },
+      },
     ],
   },
   {
@@ -281,6 +292,12 @@ export const TABS_BY_ROLE: Record<UserRole, ProtectedRoute[]> = {
   CUSTOMER: ["/dashboard", "/dashboard/appointments", "/dashboard/wallet"],
   SALON_OWNER: ["/dashboard", "/dashboard/appointments", "/dashboard/slots", "/dashboard/services"],
   STAFF: ["/dashboard", "/dashboard/appointments", "/dashboard/customers"],
+  BRANCH_MANAGER: [
+    "/dashboard",
+    "/dashboard/calendar",
+    "/dashboard/appointments",
+    "/dashboard/customers",
+  ],
   ADMIN: [
     "/dashboard/admin",
     "/dashboard/admin/bookings",
@@ -290,6 +307,10 @@ export const TABS_BY_ROLE: Record<UserRole, ProtectedRoute[]> = {
   AGENT: ["/dashboard/admin", "/dashboard/admin/salons"],
   GUEST: [],
 };
+
+/** The bottom-tab label: per role, then `short`, then the full label. */
+export const tabLabelFor = (item: NavItem, role: UserRole) =>
+  item.shortByRole?.[role] ?? item.short ?? labelFor(item, role);
 
 export const labelFor = (item: NavItem, role: UserRole) =>
   item.labelByRole?.[role] ?? item.label;

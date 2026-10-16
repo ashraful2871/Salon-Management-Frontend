@@ -43,9 +43,12 @@ const average = (values: number[]) =>
 export default function Services({
   servicesResponse,
   salonsResponse,
+  canEdit = true,
 }: {
   servicesResponse: ApiResponse<SalonService[]>;
   salonsResponse: ApiResponse<SalonOption[]>;
+  /** False for a manager without services.edit: the list is read-only (the API refuses edits anyway). */
+  canEdit?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [, startTransition] = useTransition();
@@ -183,10 +186,12 @@ export default function Services({
         title="Services"
         description="What your salons offer, for how long and at what price."
         actions={
-          <Button onClick={() => openForm(null)}>
-            <Plus aria-hidden="true" />
-            Add service
-          </Button>
+          canEdit ? (
+            <Button onClick={() => openForm(null)}>
+              <Plus aria-hidden="true" />
+              Add service
+            </Button>
+          ) : undefined
         }
       />
 
@@ -224,7 +229,7 @@ export default function Services({
           items={visible}
           rowKey={(s) => s.id}
           columns={columns}
-          rowActions={rowActions}
+          rowActions={canEdit ? rowActions : undefined}
           caption="Services"
           empty={
             <div className="rounded-2xl border border-border bg-surface px-4">
@@ -234,10 +239,12 @@ export default function Services({
                 title="No services yet"
                 description="Add what you offer, then generate slots so customers can book it."
                 action={
-                  <Button onClick={() => openForm(null)}>
-                    <Plus aria-hidden="true" />
-                    Add your first service
-                  </Button>
+                  canEdit ? (
+                    <Button onClick={() => openForm(null)}>
+                      <Plus aria-hidden="true" />
+                      Add your first service
+                    </Button>
+                  ) : undefined
                 }
               />
             ) : (

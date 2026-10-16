@@ -41,12 +41,16 @@ export default async function LoginPage({
   // Only ever bounce back inside this app — an absolute URL here would turn the
   // login page into an open redirect.
   const redirectTo = safeInAppPath(first(params.redirect)) ?? undefined;
+  // A team invitation: its address, prefilled and read-only.
+  const invited = first(params.email)?.trim();
+  const lockedEmail = invited && invited.includes("@") ? invited : undefined;
 
   const providers = await getAuthProviders();
 
   return (
     <LoginForm
       redirectTo={redirectTo}
+      lockedEmail={lockedEmail}
       googleEnabled={providers.google}
       error={first(params.error)}
       demoLogins={

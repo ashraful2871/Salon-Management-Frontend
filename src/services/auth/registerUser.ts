@@ -5,6 +5,7 @@ import type { AuthResult } from "@/lib/auth-types";
 import { applySession, extractTokens } from "@/lib/auth-session";
 import { clientIpHeaders } from "@/lib/client-ip-headers";
 import { setVerifyCookie } from "@/lib/verify-cookie";
+import { safeInAppPath } from "@/lib/safe-path";
 
 /**
  * Registers the user, then one of two things. With the backend's email
@@ -18,6 +19,8 @@ export const registerUser = async (
   formData: FormData,
 ): Promise<any> => {
   let inputs;
+  // Where to go once signed in (e.g. back to a team invitation).
+  const next = safeInAppPath(formData.get("redirect"));
   try {
     inputs = {
       name: formData.get("name"),
@@ -60,7 +63,7 @@ export const registerUser = async (
 
     const data = result.data as AuthResult | undefined;
     if (data?.status === "VERIFICATION_REQUIRED") {
-      await setVerifyCookie(data, null, "register");
+      await setVerifyCookie(data, next, "register");
       redirect("/verify-email");
     }
 
@@ -68,12 +71,14 @@ export const registerUser = async (
     // reporting a failure for something that actually succeeded.
     const tokens = extractTokens(res, result);
     if (!tokens) {
-      redirect("/login?registered=true");
+      redirect(
+        next ? `/login?registered=true&redirect=${encodeURIComponent(next)}` : "/login?registered=true",
+      );
     }
 
     await applySession(tokens);
 
-    redirect("/?registered=true");
+    redirect(next ?? "/?registered=true");
   } catch (error) {
     if ((error as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) {
       throw error;

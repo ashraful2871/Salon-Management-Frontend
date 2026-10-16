@@ -11,7 +11,17 @@ import AuthShell from "./AuthShell";
 import { registerUser } from "@/services/auth/registerUser";
 import { toast } from "sonner";
 
-const RegisterForm = ({ googleEnabled = false }: { googleEnabled?: boolean }) => {
+const RegisterForm = ({
+  googleEnabled = false,
+  lockedEmail,
+  redirectTo,
+}: {
+  googleEnabled?: boolean;
+  /** From a team invitation: the address it was sent to, prefilled and read-only. */
+  lockedEmail?: string;
+  /** Where to go once signed in (kept through the code screen). */
+  redirectTo?: string;
+}) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [state, formAction, isPending] = useActionState(registerUser, null);
   const [showPassword, setShowPassword] = useState(false);
@@ -47,7 +57,7 @@ const RegisterForm = ({ googleEnabled = false }: { googleEnabled?: boolean }) =>
             onSubmit={() => track("signup_started", "method:email")}
             className="grid grid-cols-1 md:grid-cols-2 gap-5"
           >
-            
+            {redirectTo && <input type="hidden" name="redirect" value={redirectTo} />}
             {/* Full Name */}
             <div className="md:col-span-2">
               <label htmlFor="name" className="block text-sm font-bold mb-2">Full Name</label>
@@ -77,7 +87,8 @@ const RegisterForm = ({ googleEnabled = false }: { googleEnabled?: boolean }) =>
                   type="email"
                   placeholder="name@example.com"
                   required
-                  defaultValue={state?.inputs?.email as string}
+                  defaultValue={lockedEmail ?? (state?.inputs?.email as string)}
+                  readOnly={!!lockedEmail}
                   className={`pl-11 ${
                     state && !state.success && state.message?.toLowerCase().includes("email")
                       ? "border-destructive focus-visible:ring-destructive"

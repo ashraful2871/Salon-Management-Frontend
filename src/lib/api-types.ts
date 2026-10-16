@@ -71,6 +71,8 @@ export type Salon = {
   };
   depositMinor?: number;
   cancellationWindowMin?: number;
+  /** Lets this branch's managers edit service names and prices (owner setting). */
+  managerCanEditServices?: boolean;
   latitude?: number | null;
   longitude?: number | null;
   locationAccuracy?: LocationAccuracy | null;

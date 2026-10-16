@@ -38,7 +38,8 @@ export default async function DashboardPage() {
     role === "SALON_OWNER"
       ? getSelectedSalonId().then((salonId) => getOwnerMoneySummary(salonId))
       : null,
-    role === "SALON_OWNER"
+    // Managers get Today v2 for their branch (no money rows), no stats tiles.
+    role === "SALON_OWNER" || role === "BRANCH_MANAGER"
       ? getSelectedSalonId().then((salonId) => getOwnerHome(salonId))
       : null,
   ]);

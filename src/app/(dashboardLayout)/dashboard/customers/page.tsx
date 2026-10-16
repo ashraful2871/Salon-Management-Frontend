@@ -1,3 +1,4 @@
+import { runsBranch } from "@/lib/owner-access";
 import { PageHeader } from "@/components/Shared/PageHeader";
 import { ErrorState } from "@/components/Shared/ErrorState";
 import { CustomersClient } from "@/components/Owner/customers/CustomersClient";
@@ -19,7 +20,7 @@ const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v
 export default async function CustomersPage({ searchParams }: { searchParams: SearchParams }) {
   const [params, role] = await Promise.all([searchParams, getUserRoles()]);
   // Owners follow the branch switcher; staff are scoped to their salon by the API.
-  const salonId = role === "SALON_OWNER" ? await getSelectedSalonId() : undefined;
+  const salonId = runsBranch(role) ? await getSelectedSalonId() : undefined;
 
   const segmentParam = first(params.segment);
   const segment = CUSTOMER_SEGMENTS.some((s) => s.value === segmentParam)

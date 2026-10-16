@@ -99,7 +99,7 @@ const nextToday = (list: Appointment[], now: Now) =>
     .sort(byStart)
     .slice(0, 3);
 
-const APPOINTMENT_ROLES = new Set(["SALON_OWNER", "STAFF", "CUSTOMER"]);
+const APPOINTMENT_ROLES = new Set(["SALON_OWNER", "BRANCH_MANAGER", "STAFF", "CUSTOMER"]);
 
 const Dashboard = ({
   dashboardData,
@@ -123,8 +123,9 @@ const Dashboard = ({
   const data: DashboardStats = dashboardData ?? {};
   const hasData = dashboardData !== null;
   const isOwner = userRole === "SALON_OWNER";
+  const isManager = userRole === "BRANCH_MANAGER";
   const isCustomer = userRole === "CUSTOMER";
-  const showOwnerHome = isOwner && ownerHome !== null;
+  const showOwnerHome = (isOwner || isManager) && ownerHome !== null;
   const stats = hasData && !showOwnerHome ? buildStats(data, userRole) : [];
   const recent = data.recentAppointments ?? [];
   const payouts = data.recentPayouts ?? [];
@@ -189,7 +190,7 @@ const Dashboard = ({
         </div>
       )}
 
-      {showOwnerHome && ownerHome && <OwnerHome home={ownerHome} />}
+      {showOwnerHome && ownerHome && <OwnerHome home={ownerHome} isOwner={isOwner} />}
 
       {/* The money card closes Today v2; without it, the old Today card. */}
       {isOwner && hasData && (
@@ -271,6 +272,16 @@ const HeaderActions = ({ role }: { role: string }) => {
           </Link>
         </Button>
       </>
+    );
+  }
+  if (role === "BRANCH_MANAGER") {
+    return (
+      <Button asChild>
+        <Link href="/dashboard/calendar">
+          <Calendar aria-hidden="true" />
+          Open calendar
+        </Link>
+      </Button>
     );
   }
   if (role === "CUSTOMER") {

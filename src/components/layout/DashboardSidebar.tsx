@@ -60,6 +60,7 @@ const ROLE_LABELS: Record<string, string> = {
   CUSTOMER: "Customer",
   STAFF: "Staff",
   SALON_OWNER: "Salon Owner",
+  BRANCH_MANAGER: "Branch manager",
   ADMIN: "Admin",
   AGENT: "Agent",
 };
@@ -245,8 +246,8 @@ export const DashboardShell = ({
   initialCollapsed?: boolean;
   /** ADMIN and AGENT only: permissions for the nav, plus the top-bar extras. */
   admin?: AdminShellData;
-  /** SALON_OWNER only: their branches and the one the pages are scoped to. */
-  branches?: { options: BranchOption[]; selected: string };
+  /** Owners and managers: their branches and the one the pages are scoped to. */
+  branches?: { options: BranchOption[]; selected: string; allowAll?: boolean };
   children: ReactNode;
 }) => {
   const pathname = usePathname();
@@ -456,7 +457,11 @@ export const DashboardShell = ({
           </p>
 
           {branches && (
-            <BranchSwitcher branches={branches.options} selected={branches.selected} />
+            <BranchSwitcher
+              branches={branches.options}
+              selected={branches.selected}
+              allowAll={branches.allowAll}
+            />
           )}
 
           {admin && (

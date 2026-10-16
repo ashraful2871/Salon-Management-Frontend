@@ -38,6 +38,7 @@ const LoginForm = ({
   googleEnabled = false,
   error,
   demoLogins = null,
+  lockedEmail,
 }: {
   redirectTo?: string;
   googleEnabled?: boolean;
@@ -45,11 +46,13 @@ const LoginForm = ({
   error?: string;
   /** The Demo Access panel; null (the default) hides it. */
   demoLogins?: DemoLogin[] | null;
+  /** From a team invitation: the address it was sent to, prefilled and read-only. */
+  lockedEmail?: string;
 }) => {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(loginUser, null);
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(lockedEmail ?? "");
   const [password, setPassword] = useState("");
 
   // One toast per failed round trip, then drop `error` from the URL so a
@@ -145,6 +148,7 @@ const LoginForm = ({
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  readOnly={!!lockedEmail}
                   placeholder="name@example.com"
                   className="pl-11"
                   required

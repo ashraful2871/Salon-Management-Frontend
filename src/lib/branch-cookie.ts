@@ -9,18 +9,21 @@ import { cookies } from "next/headers";
 import { updateTag } from "next/cache";
 import { TAGS } from "./cache-tags";
 import { getMyAccess } from "@/services/owner/getMyAccess";
+import { BRANCH_COOKIE, BRANCH_COOKIE_OPTIONS } from "./branch-cookie-name";
 
-const BRANCH_COOKIE = "sm_branch";
-const MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
-
-/** "all", or a salon id the caller still has access to (else "all"). */
+/**
+ * "all", or a salon id the caller still has access to (else "all"). A team
+ * member who owns none of their branches (a manager) has no "all": they fall
+ * back to their first branch, so every page is pinned to one they work at.
+ */
 export async function getSelectedBranch(): Promise<string> {
   const raw = (await cookies()).get(BRANCH_COOKIE)?.value;
-  if (!raw || raw === "all") return "all";
-
   const access = await getMyAccess();
-  const known = access.success && access.data?.some((b) => b.salonId === raw);
-  return known ? raw : "all";
+  const branches = access.success ? (access.data ?? []) : [];
+  const memberOnly = branches.length > 0 && !branches.some((b) => b.role === "OWNER");
+
+  if (raw && raw !== "all" && branches.some((b) => b.salonId === raw)) return raw;
+  return memberOnly ? branches[0].salonId : "all";
 }
 
 /** The selected branch as a `salonId` filter; `undefined` means every branch. */
@@ -41,11 +44,5 @@ export async function setSelectedBranch(id: string): Promise<void> {
     }
   }
 
-  (await cookies()).set(BRANCH_COOKIE, value, {
-    path: "/",
-    maxAge: MAX_AGE_SECONDS,
-    sameSite: "lax",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-  });
+  (await cookies()).set(BRANCH_COOKIE, value, BRANCH_COOKIE_OPTIONS);
 }

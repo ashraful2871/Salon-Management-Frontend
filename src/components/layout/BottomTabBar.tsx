@@ -6,7 +6,7 @@ import type { Ref } from "react";
 import { cn } from "@/lib/utils";
 import { NavLinkPending } from "@/components/Shared/NavLinkPending";
 import type { UserRole } from "@/services/auth/auth-utils";
-import { labelFor, type NavItem } from "./dashboard-nav";
+import { tabLabelFor, type NavItem } from "./dashboard-nav";
 
 // Static so Tailwind sees every class; a role has at most 4 tabs plus More.
 const COLS = ["", "grid-cols-1", "grid-cols-2", "grid-cols-3", "grid-cols-4", "grid-cols-5"];
@@ -70,7 +70,7 @@ export function BottomTabBar({
                     isActive && "text-primary-hover",
                   )}
                 >
-                  {tab.short ?? labelFor(tab, role)}
+                  {tabLabelFor(tab, role)}
                 </span>
                 <NavLinkPending className="absolute left-1/2 top-2 ml-5" />
               </Link>

@@ -1,5 +1,6 @@
 "use client";
 
+import { runsBranch } from "@/lib/owner-access";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
@@ -141,7 +142,7 @@ function DayGrid({
 }: Props & { list: Appointment[]; actions: AppointmentActions }) {
   const [nowMs] = useState(() => Date.now());
   const nowMin = useNowMinutes(nowHHmm);
-  const readOnly = data.readOnly || role !== "SALON_OWNER";
+  const readOnly = data.readOnly || !runsBranch(role);
   const isPastDay = date < today;
 
   const rows = actions

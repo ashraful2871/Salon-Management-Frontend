@@ -36,6 +36,9 @@ export const TAGS = {
   /** Owner Home (`GET /owner/home`): one per branch key ("all" or a salon id) plus the shared base every booking mutation expires. */
   ownerHome: (key: string) => `owner-home-${key}`,
   ownerHomes: "owner-home",
+  /** Team page: a branch's members and its pending invitations. */
+  salonMembers: (salonId: string) => `salon-members-${salonId}`,
+  salonInvitations: (salonId: string) => `salon-invitations-${salonId}`,
   // Back office (`/admin/*`).
   adminMe: "admin-me",
   adminInbox: "admin-inbox",

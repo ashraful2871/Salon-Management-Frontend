@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { runsBranch } from "@/lib/owner-access";
 import { Suspense } from "react";
 import Appointments from "@/components/Dashboard/Appointments";
 import {
@@ -39,7 +40,7 @@ const AppointmentsPage = async ({
   const params = await searchParams;
   // The owner's branch switcher; undefined is "All branches".
   const salonId =
-    userRole === "SALON_OWNER" ? await getSelectedSalonId() : undefined;
+    runsBranch(userRole) ? await getSelectedSalonId() : undefined;
 
   // The salon side works one day at a time, so it opens on today in Dhaka.
   // `date=all` is how the "All Dates" button opts out of that default.
@@ -49,7 +50,7 @@ const AppointmentsPage = async ({
   const requestedDate = first(params.date);
   // A "Needs attention" row on Home: its filter spans every date.
   const attention = ATTENTION_LABELS[first(params.attention) ?? ""] ? first(params.attention) : undefined;
-  const opensOnToday = userRole === "SALON_OWNER" || userRole === "STAFF";
+  const opensOnToday = runsBranch(userRole) || userRole === "STAFF";
   const date =
     requestedDate === "all" || (attention && !requestedDate)
       ? undefined

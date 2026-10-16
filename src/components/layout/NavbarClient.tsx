@@ -70,6 +70,7 @@ const ROLE_LABELS: Record<string, string> = {
   CUSTOMER: "Customer",
   STAFF: "Staff",
   SALON_OWNER: "Salon Owner",
+  BRANCH_MANAGER: "Branch manager",
   ADMIN: "Admin",
   AGENT: "Agent",
 };

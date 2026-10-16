@@ -1,3 +1,4 @@
+import { runsBranch } from "@/lib/owner-access";
 import { CalendarDays } from "lucide-react";
 import { PageHeader } from "@/components/Shared/PageHeader";
 import { EmptyState } from "@/components/Shared/EmptyState";
@@ -25,9 +26,9 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
   const date = isDay(requested) ? requested : today;
   const view = first(params.view) === "week" ? "week" : "day";
 
-  // One branch at a time: the owner's switcher; staff work at one salon.
+  // One branch at a time: the owner's or manager's switcher; staff work at one salon.
   const salonId =
-    role === "SALON_OWNER"
+    runsBranch(role)
       ? await getSelectedSalonId()
       : (await getMyAccess()).data?.[0]?.salonId;
 

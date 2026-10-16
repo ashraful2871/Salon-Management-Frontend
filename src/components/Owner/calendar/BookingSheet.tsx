@@ -1,5 +1,6 @@
 "use client";
 
+import { runsBranch } from "@/lib/owner-access";
 import { useState, useTransition } from "react";
 import { MoveRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,7 +47,7 @@ export function BookingSheet({
   const [moving, setMoving] = useState(false);
   const [target, setTarget] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const canMove = !readOnly && role === "SALON_OWNER" && !!row && MOVABLE.has(row.status);
+  const canMove = !readOnly && runsBranch(role) && !!row && MOVABLE.has(row.status);
 
   const move = (slot: CalendarSlot) => {
     if (!row) return;
