@@ -8,6 +8,7 @@ import { serverFetch } from "@/lib/server-fetch";
  */
 const FILES: Record<string, string> = {
   "transactions.csv": "/owner/money/transactions.csv",
+  "team-performance.csv": "/owner/team/performance.csv",
 };
 
 export const dynamic = "force-dynamic";

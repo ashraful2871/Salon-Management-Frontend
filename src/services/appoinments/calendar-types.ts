@@ -2,7 +2,16 @@
  * `GET /appointments/calendar` (backend `appointment.calendar.ts`). Times are
  * wall-clock "YYYY-MM-DDTHH:mm" with no zone; the grid only reads minutes.
  */
-export type CalendarResource = { id: string; kind: "STAFF" | "COUNTER"; name: string };
+/** When a stylist can't take work: outside their shifts ("OFF") or on time off ("LEAVE"). */
+export type CalendarOffRange = { start: string; end: string; kind: "OFF" | "LEAVE"; reason: string | null };
+
+export type CalendarResource = {
+  id: string;
+  kind: "STAFF" | "COUNTER";
+  name: string;
+  /** Stylists only. */
+  off?: CalendarOffRange[];
+};
 
 export type CalendarBooking = {
   id: string;

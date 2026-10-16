@@ -2,7 +2,7 @@
 
 import { useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { MailPlus, MoreHorizontal, RotateCw, UserPlus, Users, X } from "lucide-react";
+import { Clock, MailPlus, MoreHorizontal, RotateCw, UserPlus, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -19,6 +19,7 @@ import { ConfirmDialog } from "@/components/Shared/ConfirmDialog";
 import { EmptyState } from "@/components/Shared/EmptyState";
 import { ToneBadge } from "@/components/Shared/ToneBadge";
 import { InviteMemberDialog } from "./InviteMemberDialog";
+import { StaffScheduleSheet } from "./StaffScheduleSheet";
 import { removeMember, setManagerCanEditServices, updateMember } from "@/services/team/memberActions";
 import { resendInvitation, revokeInvitation } from "@/services/team/invitationActions";
 import {
@@ -65,6 +66,8 @@ export function TeamClient({
 }) {
   const grantable: BranchRole[] = isOwner ? ALL_ROLES : ["RECEPTIONIST", "STYLIST"];
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [schedule, setSchedule] = useState<TeamMember | null>(null);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
@@ -237,6 +240,32 @@ export function TeamClient({
       </DropdownMenu>
     ) : null;
 
+  // Stylists get working hours and time off (owner + manager: staff.manage).
+  const memberActions = (m: TeamMember) => {
+    const menu = memberMenu(m);
+    const hours =
+      m.role === "STYLIST" && m.staffId && m.status !== "REMOVED" ? (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            setSchedule(m);
+            setScheduleOpen(true);
+          }}
+        >
+          <Clock />
+          Hours
+        </Button>
+      ) : null;
+    if (!menu && !hours) return null;
+    return (
+      <div className="flex items-center gap-2">
+        {hours}
+        {menu}
+      </div>
+    );
+  };
+
   const inviteColumns: Column<TeamInvitation>[] = [
     {
       key: "email",
@@ -310,7 +339,7 @@ export function TeamClient({
             rowKey={(m) => m.id}
             columns={memberColumns}
             caption="Team members"
-            rowActions={memberMenu}
+            rowActions={memberActions}
             rowClassName={(m) => (busy === m.id ? "opacity-60" : "")}
             empty={
               <div className="rounded-2xl border border-dashed border-border">
@@ -376,6 +405,13 @@ export function TeamClient({
         salonId={salonId}
         salonName={salonName}
         roles={grantable}
+      />
+
+      <StaffScheduleSheet
+        staffId={schedule?.staffId ?? null}
+        name={schedule?.name ?? ""}
+        open={scheduleOpen}
+        onOpenChange={setScheduleOpen}
       />
 
       <ConfirmDialog

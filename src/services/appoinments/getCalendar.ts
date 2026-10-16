@@ -12,7 +12,7 @@ export const getCalendar = async (params: {
   try {
     const query = new URLSearchParams(params);
     const response = await serverFetch.get(`/appointments/calendar?${query}`, {
-      next: { revalidate: 30, tags: [TAGS.appointments, TAGS.slots] },
+      next: { revalidate: 30, tags: [TAGS.appointments, TAGS.slots, TAGS.staffSchedules] },
     });
     return (await response.json()) as ApiResponse<CalendarData>;
   } catch (error) {

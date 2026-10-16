@@ -8,6 +8,8 @@ export type TeamMember = {
   userId: string;
   role: BranchRole;
   status: MemberStatus;
+  /** A stylist's Staff row at this branch (hours, time off); null for other roles. */
+  staffId: string | null;
   name: string;
   email: string;
   phone: string | null;

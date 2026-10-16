@@ -6,7 +6,7 @@ import { revalidateTag, updateTag } from "next/cache";
 import { TAGS } from "@/lib/cache-tags";
 
 export const bookWalkIn = async (
-  payload: { slotId: string; customerName: string; customerPhone: string; notes?: string },
+  payload: { slotId: string; customerName: string; customerPhone: string; notes?: string; staffId?: string },
 ): Promise<ApiResponse<Appointment>> => {
   try {
     const response = await serverFetch.post(`/appointments/walk-in`, {

@@ -14,7 +14,7 @@ import { useAppointmentActions, type AppointmentActions } from "@/components/Das
 import { useBookingDialogs } from "@/components/Dashboard/appointments/useBookingDialogs";
 import { formatDay, formatTime12 } from "@/components/Dashboard/appointments/format";
 import { humanizeStatus } from "@/components/Shared/ToneBadge";
-import type { CalendarData, CalendarSlot } from "@/services/appoinments/calendar-types";
+import type { CalendarData, CalendarOffRange, CalendarSlot } from "@/services/appoinments/calendar-types";
 import { BookingSheet } from "./BookingSheet";
 import { WalkInDialog } from "./WalkInDialog";
 import {
@@ -206,6 +206,12 @@ function DayGrid({
     items,
   );
 
+  // Stylists' time off and the hours outside their shifts, hatched under the blocks.
+  const offOf = (col: string) =>
+    (data.resources.find((r) => r.id === col)?.off ?? []).filter((o) => dayOfStamp(o.start) === date);
+  const stylists =
+    data.mode === "STAFF" ? data.resources.filter((r) => r.kind === "STAFF" && r.id !== UNASSIGNED) : [];
+
   const openBooking = (id: string) => {
     setSheetId(id);
     setSheetOpen(true);
@@ -228,12 +234,17 @@ function DayGrid({
         columns={columns.map((c) => ({ key: c.id, label: c.name }))}
         bounds={bounds}
         nowMin={date === today ? nowMin : null}
-        render={(key) =>
-          place(
-            items.filter((i) => i.col === key),
-            bounds.start,
-          ).map((p) => <DayBlock key={p.id} item={p} onBooking={openBooking} onSlot={(s) => { setWalkIn(s); setWalkInOpen(true); }} />)
-        }
+        render={(key) => (
+          <>
+            {offOf(key).map((o, i) => (
+              <OffBand key={`off-${i}`} range={o} bounds={bounds} />
+            ))}
+            {place(
+              items.filter((i) => i.col === key),
+              bounds.start,
+            ).map((p) => <DayBlock key={p.id} item={p} onBooking={openBooking} onSlot={(s) => { setWalkIn(s); setWalkInOpen(true); }} />)}
+          </>
+        )}
       />
       {!readOnly && free.length > 0 && (
         <p className="text-xs text-muted-foreground">Tap a dashed free slot to book a walk-in.</p>
@@ -260,9 +271,26 @@ function DayGrid({
           dialogs.openView(r);
         }}
       />
-      <WalkInDialog slot={walkIn} open={walkInOpen} onOpenChange={setWalkInOpen} />
+      <WalkInDialog key={walkIn?.id ?? "none"} slot={walkIn} open={walkInOpen} onOpenChange={setWalkInOpen} stylists={stylists} />
       {dialogs.dialogs}
     </>
+  );
+}
+
+/** A stretch a stylist can't be booked: hatched, under the blocks, never clickable. */
+function OffBand({ range, bounds }: { range: CalendarOffRange; bounds: { start: number; end: number } }) {
+  const s = Math.max(minutesOf(range.start) ?? bounds.start, bounds.start);
+  const e = Math.min(minutesOf(range.end) ?? bounds.end, bounds.end);
+  if (e <= s) return null;
+  const label = range.kind === "LEAVE" ? (range.reason ? `Time off · ${range.reason}` : "Time off") : "Off";
+  return (
+    <div
+      className="pointer-events-none absolute inset-x-0 overflow-hidden bg-muted/60 px-2 py-1 text-[11px] text-muted-foreground [background-image:repeating-linear-gradient(135deg,transparent_0_6px,rgb(0_0_0/0.06)_6px_12px)]"
+      style={{ top: (s - bounds.start) * PX_PER_MIN, height: (e - s) * PX_PER_MIN }}
+      title={label}
+    >
+      {(e - s) * PX_PER_MIN >= 18 && <span className="truncate">{label}</span>}
+    </div>
   );
 }
 

@@ -39,6 +39,11 @@ export const TAGS = {
   /** Team page: a branch's members and its pending invitations. */
   salonMembers: (salonId: string) => `salon-members-${salonId}`,
   salonInvitations: (salonId: string) => `salon-invitations-${salonId}`,
+  /** A stylist's working hours and time off, plus the base every schedule write expires (the calendar reads it). */
+  staffSchedule: (staffId: string) => `staff-schedule-${staffId}`,
+  staffSchedules: "staff-schedules",
+  /** Team → Performance (`GET /owner/team/performance`). */
+  teamPerformance: "team-performance",
   // Back office (`/admin/*`).
   adminMe: "admin-me",
   adminInbox: "admin-inbox",

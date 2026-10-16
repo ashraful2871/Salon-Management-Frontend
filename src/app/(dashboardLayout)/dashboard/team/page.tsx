@@ -4,6 +4,7 @@ import { EmptyState } from "@/components/Shared/EmptyState";
 import { ErrorState } from "@/components/Shared/ErrorState";
 import { BranchSwitcher } from "@/components/Dashboard/BranchSwitcher";
 import { TeamClient } from "@/components/Owner/team/TeamClient";
+import { TeamTabs } from "@/components/Owner/team/TeamTabs";
 import { getMyAccess } from "@/services/owner/getMyAccess";
 import { getSelectedSalonId } from "@/lib/branch-cookie";
 import { canAt, roleAt } from "@/lib/owner-access";
@@ -31,15 +32,18 @@ export default async function TeamPage() {
   const branch = branches.find((b) => b.salonId === salonId);
 
   const header = (
-    <PageHeader
-      title="Team"
-      description="Invite people, set what they can do, and remove access."
-      actions={
-        branches.length > 1 ? (
-          <BranchSwitcher branches={branches} selected={salonId ?? ""} allowAll={false} />
-        ) : undefined
-      }
-    />
+    <>
+      <PageHeader
+        title="Team"
+        description="Invite people, set their hours, and see how each stylist is doing."
+        actions={
+          branches.length > 1 ? (
+            <BranchSwitcher branches={branches} selected={salonId ?? ""} allowAll={false} />
+          ) : undefined
+        }
+      />
+      <TeamTabs />
+    </>
   );
 
   if (!access.success) {
