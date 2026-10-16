@@ -20,7 +20,13 @@ export async function GET(
   const file = (await params).path.join("/");
   // statements/<id>.csv: one statement's ledger lines (404 when not yours).
   const statement = /^statements\/([0-9a-f-]{36})\.csv$/i.exec(file);
-  const endpoint = statement ? `/owner/statements/${statement[1]}.csv` : FILES[file];
+  // reports/<name>.csv: one owner report's main table (owner Phase 12).
+  const report = /^reports\/(overview|bookings|services|team|customers|utilisation|discovery|money)\.csv$/.exec(file);
+  const endpoint = statement
+    ? `/owner/statements/${statement[1]}.csv`
+    : report
+      ? `/owner/reports/${report[1]}.csv`
+      : FILES[file];
   if (!endpoint) return new Response("Unknown export", { status: 404 });
 
   const upstream = await serverFetch.get(`${endpoint}${request.nextUrl.search}`, {

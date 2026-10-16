@@ -48,6 +48,8 @@ export const TAGS = {
   salonPause: (salonId: string) => `salon-pause-${salonId}`,
   /** Profile completeness per branch (`GET /owner/salons/completeness`). */
   salonCompleteness: "salon-completeness",
+  /** Owner Reports (`GET /owner/reports/:report`); every report shares it. */
+  ownerReports: "owner-reports",
   /** Team → Performance (`GET /owner/team/performance`). */
   teamPerformance: "team-performance",
   // Back office (`/admin/*`).
