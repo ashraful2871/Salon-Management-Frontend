@@ -90,6 +90,8 @@ type BookingSummaryProps = {
   slot: SlotInfo;
   notes: string;
   depositMinor: number;
+  /** The salon takes the whole bill in the app (owner Phase 15). */
+  prepayAllowed?: boolean;
   wallet: WalletInfo;
   editHref: string;
 };
@@ -192,6 +194,7 @@ const BookingSummary = ({
   slot,
   notes,
   depositMinor,
+  prepayAllowed = false,
   wallet,
   editHref,
 }: BookingSummaryProps) => {
@@ -201,6 +204,10 @@ const BookingSummary = ({
     null,
   );
   const [selectedMethod, setSelectedMethod] = useState(WALLET_METHOD_ID);
+  // "Pay all now" or "deposit only" - one hold either way, released the same.
+  const [payInFull, setPayInFull] = useState(false);
+  const paysInFull = prepayAllowed && payInFull;
+  const payNowMinor = paysInFull ? service.priceMinor : depositMinor;
   const lastHandled = React.useRef(state);
 
   // Between the booking succeeding and the confirmation page arriving, this
@@ -208,8 +215,8 @@ const BookingSummary = ({
   // flash "this time has just been taken" at the person who just took it.
   const isCompleting = state?.success === true;
 
-  const dueAtSalonMinor = Math.max(service.priceMinor - depositMinor, 0);
-  const shortfallMinor = Math.max(depositMinor - wallet.available, 0);
+  const dueAtSalonMinor = Math.max(service.priceMinor - payNowMinor, 0);
+  const shortfallMinor = Math.max(payNowMinor - wallet.available, 0);
   const hasShortfall = shortfallMinor > 0;
 
   const blocker = useMemo(() => {
@@ -228,7 +235,9 @@ const BookingSummary = ({
     if (hasShortfall)
       return {
         title: `Add ${formatBDT(shortfallMinor)} to confirm`,
-        body: `This booking holds a ${formatBDT(depositMinor)} deposit, and your available balance is ${formatBDT(wallet.available)}. Top up and come straight back.`,
+        body: paysInFull
+          ? `Paying in full holds ${formatBDT(payNowMinor)}, and your available balance is ${formatBDT(wallet.available)}. Top up and come straight back, or pay only the deposit.`
+          : `This booking holds a ${formatBDT(depositMinor)} deposit, and your available balance is ${formatBDT(wallet.available)}. Top up and come straight back.`,
         action: { label: "Add money to wallet", href: "/dashboard/wallet" },
       };
     return null;
@@ -239,6 +248,8 @@ const BookingSummary = ({
     hasShortfall,
     shortfallMinor,
     depositMinor,
+    paysInFull,
+    payNowMinor,
     editHref,
   ]);
 
@@ -307,6 +318,7 @@ const BookingSummary = ({
           {staff?.id && <input type="hidden" name="staffId" value={staff.id} />}
           {notes && <input type="hidden" name="notes" value={notes} />}
           <input type="hidden" name="paymentMethod" value={selectedMethod} />
+          {paysInFull && <input type="hidden" name="payInFull" value="true" />}
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
             {/* LEFT: what is being booked */}
@@ -430,8 +442,9 @@ const BookingSummary = ({
                       Payment method
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      Only the deposit is paid now. The rest is settled at the
-                      salon.
+                      {prepayAllowed
+                        ? "Pay the whole bill now, or only the deposit and the rest at the salon."
+                        : "Only the deposit is paid now. The rest is settled at the salon."}
                     </p>
                   </CardHeader>
                   <CardContent className="space-y-3" role="radiogroup" aria-label="Payment method">
@@ -588,15 +601,60 @@ const BookingSummary = ({
 
                     <Separator />
 
+                    {prepayAllowed && (
+                      <div
+                        className="grid gap-2"
+                        role="radiogroup"
+                        aria-label="How much to pay now"
+                      >
+                        {[
+                          {
+                            full: true,
+                            label: `Pay ${formatBDT(service.priceMinor)} now`,
+                            hint: "Nothing to pay at the salon",
+                          },
+                          {
+                            full: false,
+                            label: `Pay ${formatBDT(depositMinor)} deposit`,
+                            hint: "Rest at the salon",
+                          },
+                        ].map((option) => {
+                          const selected = paysInFull === option.full;
+                          return (
+                            <button
+                              key={String(option.full)}
+                              type="button"
+                              role="radio"
+                              aria-checked={selected}
+                              onClick={() => setPayInFull(option.full)}
+                              className={cn(
+                                "flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left text-sm transition-colors",
+                                selected
+                                  ? "border-primary bg-primary-soft ring-2 ring-primary/20"
+                                  : "bg-surface hover:border-primary/40 hover:bg-surface-subtle",
+                              )}
+                            >
+                              <span className="font-semibold">{option.label}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {option.hint}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="font-semibold">Pay now (deposit)</p>
+                        <p className="font-semibold">
+                          {paysInFull ? "Pay now (in full)" : "Pay now (deposit)"}
+                        </p>
                         <p className="text-xs text-muted-foreground">
-                          Held on your wallet, not spent
+                          Held on your wallet until your visit
                         </p>
                       </div>
                       <p className="text-xl font-bold text-primary">
-                        {formatBDT(depositMinor)}
+                        {formatBDT(payNowMinor)}
                       </p>
                     </div>
 
@@ -633,7 +691,7 @@ const BookingSummary = ({
                             hasShortfall && "text-destructive",
                           )}
                         >
-                          {formatBDT(Math.max(wallet.available - depositMinor, 0))}
+                          {formatBDT(Math.max(wallet.available - payNowMinor, 0))}
                         </span>
                       </div>
                       <p className="mt-2 text-xs text-muted-foreground">
@@ -677,7 +735,8 @@ const BookingSummary = ({
                       ) : (
                         <>
                           <Lock aria-hidden />
-                          Confirm &amp; hold {formatBDT(depositMinor)}
+                          {paysInFull ? "Confirm & pay" : "Confirm & hold"}{" "}
+                          {formatBDT(payNowMinor)}
                         </>
                       )}
                     </Button>
@@ -725,7 +784,7 @@ const BookingSummary = ({
                     Pay now · total{" "}
                     <span className="tabular-nums">{formatBDT(service.priceMinor)}</span>
                   </p>
-                  <p className="text-lg font-bold tabular-nums">{formatBDT(depositMinor)}</p>
+                  <p className="text-lg font-bold tabular-nums">{formatBDT(payNowMinor)}</p>
                 </div>
                 <Button
                   type="submit"

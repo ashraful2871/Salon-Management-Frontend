@@ -131,6 +131,13 @@ const BookingConfirmedCard = ({ block }: { block: ConfirmedBlock }) => (
               held from your wallet.
             </span>
           </>
+        ) : (block.prepaidMinor ?? 0) > 0 ? (
+          <>
+            Paid in full
+            <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+              {formatBDT(block.totalMinor)} is held from your wallet until your visit.
+            </span>
+          </>
         ) : (
           <>
             Nothing more to pay at the salon

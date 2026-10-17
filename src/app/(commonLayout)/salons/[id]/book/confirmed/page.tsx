@@ -80,6 +80,7 @@ const BookingConfirmedPage = async ({
         notes: booking.notes,
         totalMinor: booking.totalMinor ?? 0,
         depositMinor: booking.depositMinor ?? 0,
+        prepaidMinor: booking.prepaidMinor ?? 0,
         amountDueMinor: booking.amountDueMinor,
         serialNumber: booking.serialNumber,
         token: booking.token,

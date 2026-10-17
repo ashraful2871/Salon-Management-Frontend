@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { getSingleSalon } from "@/services/salon/getSingleSalon";
 import { getSlots } from "@/services/slots/slot-api";
 import { getMyWallet } from "@/services/wallet/getMyWallet";
+import { getPublicSettings } from "@/services/settings/getPublicSettings";
 import { getUserRoles } from "@/services/get-roles/getUserRoles";
 import { resolveDepositMinor } from "@/lib/deposit";
 
@@ -95,7 +96,7 @@ const BookingSummaryPage = async ({
     );
   }
 
-  const [salonRes, slotRes, walletRes] = await Promise.all([
+  const [salonRes, slotRes, walletRes, settingsRes] = await Promise.all([
     getSingleSalon(id),
     // Deliberately unfiltered by status: we want to know if the slot has been
     // taken since the customer picked it, not just that it vanished. Past times
@@ -103,6 +104,7 @@ const BookingSummaryPage = async ({
     // back to pick again rather than reaching the pay button on a dead slot.
     getSlots({ salonId: id, date, upcomingOnly: true }),
     getMyWallet(),
+    getPublicSettings(),
   ]);
 
   const salon: any = salonRes?.data;
@@ -158,6 +160,14 @@ const BookingSummaryPage = async ({
 
   const wallet = walletRes?.success ? walletRes.data : undefined;
 
+  // "Pay ৳450 now" is offered when the platform switch and the salon's own
+  // opt-in are both on; the API checks both again on booking.
+  const prepayAllowed =
+    settingsRes.success &&
+    settingsRes.data?.["booking.prepayEnabled"] === true &&
+    salon.acceptsPrepay === true &&
+    priceMinor > depositMinor;
+
   return (
     <BookingSummary
       salon={{
@@ -198,6 +208,7 @@ const BookingSummaryPage = async ({
       }}
       notes={notes}
       depositMinor={depositMinor}
+      prepayAllowed={prepayAllowed}
       wallet={{
         available: wallet?.availableMinor ?? 0,
         balance: wallet?.balanceMinor ?? 0,

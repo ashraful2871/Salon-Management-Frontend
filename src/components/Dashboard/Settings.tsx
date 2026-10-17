@@ -158,6 +158,7 @@ const Settings = ({
 
   const [deposit, setDeposit] = useState(salon?.depositMinor ? toTaka(salon.depositMinor).toString() : "30");
   const [cancelWindow, setCancelWindow] = useState(salon?.cancellationWindowMin?.toString() || "120");
+  const [acceptsPrepay, setAcceptsPrepay] = useState(salon?.acceptsPrepay === true);
   const [isPolicyPending, startPolicyTransition] = useTransition();
 
   const handleChangePassword = () => {
@@ -506,6 +507,19 @@ const Settings = ({
                   <p className="text-xs text-muted-foreground">Free cancel up to {cancelWindow} mins before.</p>
                 </div>
               </div>
+              <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="acceptsPrepay">Let customers pay in full in the app</Label>
+                  <p className="text-sm text-muted-foreground">
+                    The whole bill is paid from their wallet when they book, and reaches you in the Monday payout, less commission.
+                  </p>
+                </div>
+                <Switch
+                  id="acceptsPrepay"
+                  checked={acceptsPrepay}
+                  onCheckedChange={setAcceptsPrepay}
+                />
+              </div>
               <Button
                 variant="default"
                 disabled={isPolicyPending}
@@ -516,6 +530,7 @@ const Settings = ({
                     fd.append("name", salon.name);
                     fd.append("depositMinor", deposit);
                     fd.append("cancellationWindowMin", cancelWindow);
+                    fd.append("acceptsPrepay", String(acceptsPrepay));
                     const res = await updateSalon(null, fd);
                     if (res?.success) {
                       toast.success("Booking policy updated successfully");

@@ -37,6 +37,8 @@ export const CheckoutDialog = ({
 
   const totalMinor = appointment?.totalMinor ?? 0;
   const depositPaidMinor = appointment?.depositPaidMinor ?? 0;
+  // Owner Phase 15: the rest of the bill paid in the app; then ৳0 is due here.
+  const prepaidPaidMinor = appointment?.prepaidPaidMinor ?? 0;
   const paidAtCounterMinor = appointment?.paidAtCounterMinor ?? 0;
   const billDueMinor = appointment?.amountDueMinor ?? 0;
 
@@ -124,9 +126,11 @@ export const CheckoutDialog = ({
             <span className="font-medium tabular-nums">{formatBDT(totalMinor)}</span>
           </div>
           <div className="flex justify-between gap-3">
-            <span className="text-muted-foreground">Deposit already paid (wallet)</span>
+            <span className="text-muted-foreground">
+              {prepaidPaidMinor > 0 ? "Paid in app (wallet)" : "Deposit already paid (wallet)"}
+            </span>
             <span className="whitespace-nowrap font-medium tabular-nums">
-              − {formatBDT(depositPaidMinor)}
+              − {formatBDT(depositPaidMinor + prepaidPaidMinor)}
             </span>
           </div>
           {paidAtCounterMinor > 0 && (

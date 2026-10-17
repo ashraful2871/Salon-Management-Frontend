@@ -71,6 +71,8 @@ export type Salon = {
   };
   depositMinor?: number;
   cancellationWindowMin?: number;
+  /** Customers may pay the whole bill in the app here (owner Phase 15). */
+  acceptsPrepay?: boolean;
   /** Lets this branch's managers edit service names and prices (owner setting). */
   managerCanEditServices?: boolean;
   latitude?: number | null;
@@ -194,8 +196,13 @@ export type Appointment = {
   // the owner and the customer always read the same numbers.
   totalMinor: number;
   depositMinor: number;
+  /** The rest of the bill paid in the app (owner Phase 15); held with the deposit. */
+  prepaidMinor?: number;
   depositStatus: string;
   depositPaidMinor: number;
+  /** Prepaid part counted as paid (HELD/APPLIED); `paidInApp` when > 0. */
+  prepaidPaidMinor?: number;
+  paidInApp?: boolean;
   paidAtCounterMinor: number;
   amountDueMinor: number;
   paymentState: PaymentState;

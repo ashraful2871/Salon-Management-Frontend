@@ -8,6 +8,8 @@ type Billing = Pick<
   | "paymentState"
   | "amountDueMinor"
   | "depositPaidMinor"
+  | "prepaidPaidMinor"
+  | "paidInApp"
   | "paidAtCounterMinor"
   | "payment"
 >;
@@ -44,6 +46,9 @@ export const PaymentBadge = ({
 }) => {
   const due = appointment.amountDueMinor ?? 0;
   const deposit = appointment.depositPaidMinor ?? 0;
+  // Owner Phase 15: the whole bill was paid from the wallet when booking.
+  const inApp = appointment.paidInApp === true;
+  const inAppMinor = deposit + (appointment.prepaidPaidMinor ?? 0);
   const method =
     appointment.payment?.status === "COMPLETED"
       ? paymentMethodLabel(appointment.payment.paymentMethod)
@@ -64,7 +69,11 @@ export const PaymentBadge = ({
       return (
         <ToneBadge status="PAID" dot className={WRAP}>
           {/* No counter payment means the deposit alone covered the bill. */}
-          {viewer === "customer"
+          {inApp && !method
+            ? viewer === "customer"
+              ? `Paid ${formatBDT(inAppMinor)} in the app`
+              : "Paid in app"
+            : viewer === "customer"
             ? customerPaidLabel(
                 deposit,
                 appointment.paidAtCounterMinor ?? 0,

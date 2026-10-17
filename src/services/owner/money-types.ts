@@ -6,6 +6,8 @@ export type MoneyBucket = "pending" | "available" | "in_payout" | "paid";
 /** Mirrors `TRANSACTION_TYPES` in the backend's `Owner/owner.money.ts`. */
 export const TRANSACTION_TYPES = [
   { value: "booking", label: "Bookings" },
+  { value: "prepaid", label: "Paid in app" },
+  { value: "refund", label: "Refunds" },
   { value: "no_show", label: "No-shows" },
   { value: "late_cancel", label: "Late cancels" },
   { value: "commission", label: "Commission" },
