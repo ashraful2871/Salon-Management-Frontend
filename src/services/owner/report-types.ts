@@ -117,6 +117,17 @@ export type MoneyReport = {
   counterByMethod: Array<{ key: string; valueMinor: number; payments: number }>;
   platformByType: Array<{ key: string; valueMinor: number }>;
   payouts: Array<{ payoutId: string; paidAt: string; amountMinor: number }>;
+  /** Daily closes in the range (Phase 14); absent from an older API. */
+  closes?: Array<{
+    id: string;
+    day: string;
+    salonId: string;
+    salonName: string;
+    expectedCashMinor: number;
+    countedCashMinor: number;
+    differenceMinor: number;
+  }>;
+  closeDifferenceMinor?: number;
   series: Array<{ day: string; counter: number; platform: number }>;
 };
 

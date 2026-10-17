@@ -75,7 +75,8 @@ export const ROUTE_ROLES = {
   // and stylists only - the API decides).
   "/dashboard/team": ["SALON_OWNER", "BRANCH_MANAGER"],
   // Later owner pages; managers see their branch's.
-  "/dashboard/close": ["SALON_OWNER", "BRANCH_MANAGER"],
+  // The till count at closing time (close.manage: owner, manager, receptionist).
+  "/dashboard/close": ["SALON_OWNER", "BRANCH_MANAGER", "STAFF"],
   "/dashboard/reports": ["SALON_OWNER", "BRANCH_MANAGER"],
   "/dashboard/activity": ["SALON_OWNER", "BRANCH_MANAGER"],
   // The bell's full list: every business account, its own rows only.

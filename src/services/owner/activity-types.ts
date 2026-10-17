@@ -15,6 +15,7 @@ export const ACTIVITY_GROUPS = [
   { value: "bookings", label: "Bookings" },
   { value: "customers", label: "Customers & reviews" },
   { value: "catalogue", label: "Branch & services" },
+  { value: "close", label: "Daily close" },
   { value: "team", label: "Team" },
 ] as const;
 

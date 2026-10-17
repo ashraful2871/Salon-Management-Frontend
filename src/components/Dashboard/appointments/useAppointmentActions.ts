@@ -125,7 +125,8 @@ export const useAppointmentActions = () => {
     payload: CheckoutPayload,
     onDone?: OnDone,
   ) => {
-    const dueMinor = appointment.amountDueMinor ?? 0;
+    const dueMinor = Math.max((appointment.amountDueMinor ?? 0) - (payload.discountMinor ?? 0), 0);
+    const tipMinor = payload.tipMinor ?? 0;
     run(
       appointment.id,
       dueMinor > 0
@@ -135,9 +136,9 @@ export const useAppointmentActions = () => {
       (res: ApiResponse<CheckoutReceipt>) =>
         showResultToast(
           res,
-          dueMinor === 0
+          dueMinor + tipMinor === 0
             ? "Booking completed"
-            : `Collected ${formatBDT(res.data?.collectedMinor ?? dueMinor)} · booking completed`,
+            : `Collected ${formatBDT((res.data?.collectedMinor ?? dueMinor) + (res.data?.tipMinor ?? tipMinor))} · booking completed`,
           "Failed to complete the booking",
         ),
       onDone,

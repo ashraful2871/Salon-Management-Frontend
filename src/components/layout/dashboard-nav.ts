@@ -33,6 +33,7 @@ import {
   LifeBuoy,
   Newspaper,
   type LucideIcon,
+  Calculator,
 } from "lucide-react";
 import type { UserRole } from "@/services/auth/auth-utils";
 import { rolesForPath, type ProtectedRoute } from "@/lib/route-access";
@@ -108,6 +109,7 @@ export const NAV_GROUPS: NavGroup[] = [
         labelByRole: { CUSTOMER: "My bookings" },
       },
       { path: "/dashboard/calendar", icon: CalendarDays, label: "Calendar" },
+      { path: "/dashboard/close", icon: Calculator, label: "Daily close", short: "Close" },
       { path: "/dashboard/slots", icon: CalendarClock, label: "Slots" },
       { path: "/dashboard/services", icon: Package, label: "Services" },
       { path: "/dashboard/customers", icon: Users, label: "Customers" },

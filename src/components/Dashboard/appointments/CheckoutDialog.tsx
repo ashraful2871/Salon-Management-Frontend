@@ -4,7 +4,7 @@ import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ResponsiveDialog } from "@/components/Shared/ResponsiveDialog";
-import { formatBDT } from "@/lib/money";
+import { formatBDT, toMinor } from "@/lib/money";
 import type { Appointment, CounterPaymentMethod } from "@/lib/api-types";
 import { cn } from "@/lib/utils";
 import { COUNTER_PAYMENT_METHODS } from "./format";
@@ -25,14 +25,34 @@ export const CheckoutDialog = ({
 }) => {
   const [method, setMethod] = useState<CounterPaymentMethod>("CASH");
   const [reference, setReference] = useState("");
+  // Checkout v2: an optional tip (the salon's own, never commissioned) and an
+  // optional discount off the bill, which needs a reason for the audit log.
+  const [showTip, setShowTip] = useState(false);
+  const [tip, setTip] = useState("");
+  const [showDiscount, setShowDiscount] = useState(false);
+  const [discount, setDiscount] = useState("");
+  const [discountReason, setDiscountReason] = useState("");
   const radioName = useId();
+  const fieldId = useId();
 
   const totalMinor = appointment?.totalMinor ?? 0;
   const depositPaidMinor = appointment?.depositPaidMinor ?? 0;
   const paidAtCounterMinor = appointment?.paidAtCounterMinor ?? 0;
-  const dueMinor = appointment?.amountDueMinor ?? 0;
+  const billDueMinor = appointment?.amountDueMinor ?? 0;
+
+  const takaToMinor = (value: string) => {
+    const n = Number(value);
+    return value.trim() !== "" && Number.isFinite(n) && n > 0 ? toMinor(n) : 0;
+  };
+  const tipMinor = showTip ? takaToMinor(tip) : 0;
+  const discountMinor = showDiscount ? takaToMinor(discount) : 0;
+  // A deposit or counter money already taken can't be discounted away.
+  const discountTooBig = discountMinor > billDueMinor;
+  const discountNeedsReason = discountMinor > 0 && discountReason.trim().length < 3;
+  const dueMinor = Math.max(billDueMinor - discountMinor, 0) + tipMinor;
   const nothingToCollect = dueMinor === 0;
   const takesReference = !nothingToCollect && method !== "CASH";
+  const blocked = discountTooBig || discountNeedsReason;
 
   const customerName =
     appointment?.customer?.name || appointment?.customer?.email || "the customer";
@@ -40,6 +60,11 @@ export const CheckoutDialog = ({
   const reset = () => {
     setMethod("CASH");
     setReference("");
+    setShowTip(false);
+    setTip("");
+    setShowDiscount(false);
+    setDiscount("");
+    setDiscountReason("");
   };
 
   const handleOpenChange = (next: boolean) => {
@@ -51,7 +76,7 @@ export const CheckoutDialog = ({
   // answers (a failure puts it back and says why), so the dialog closes now.
   // The action ignores a second click for a booking already in flight.
   const handleConfirm = () => {
-    if (!appointment) return;
+    if (!appointment || blocked) return;
     // The API always wants a method; with nothing due no payment row is
     // written, so the choice is moot.
     complete(
@@ -59,6 +84,11 @@ export const CheckoutDialog = ({
       {
         paymentMethod: nothingToCollect ? "CASH" : method,
         reference: takesReference ? reference.trim() || undefined : undefined,
+        ...(tipMinor > 0 && { tipMinor }),
+        ...(discountMinor > 0 && {
+          discountMinor,
+          discountReason: discountReason.trim(),
+        }),
       },
       onDone,
     );
@@ -81,7 +111,7 @@ export const CheckoutDialog = ({
           <Button variant="outline" onClick={() => handleOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={!appointment}>
+          <Button onClick={handleConfirm} disabled={!appointment || blocked}>
             {nothingToCollect ? "Complete" : `Confirm · collect ${formatBDT(dueMinor)}`}
           </Button>
         </>
@@ -107,6 +137,22 @@ export const CheckoutDialog = ({
               </span>
             </div>
           )}
+          {discountMinor > 0 && (
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">Discount</span>
+              <span className="whitespace-nowrap font-medium tabular-nums">
+                − {formatBDT(discountMinor)}
+              </span>
+            </div>
+          )}
+          {tipMinor > 0 && (
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">Tip</span>
+              <span className="whitespace-nowrap font-medium tabular-nums">
+                + {formatBDT(tipMinor)}
+              </span>
+            </div>
+          )}
           <div className="mt-3 flex items-end justify-between gap-3 border-t border-border pt-3">
             <span className="font-semibold">Collect now</span>
             <span className="text-3xl font-bold tabular-nums text-primary-hover">
@@ -114,6 +160,90 @@ export const CheckoutDialog = ({
             </span>
           </div>
         </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant={showTip ? "secondary" : "outline"}
+            size="sm"
+            aria-expanded={showTip}
+            onClick={() => setShowTip((v) => !v)}
+          >
+            {showTip ? "Remove tip" : "Add tip"}
+          </Button>
+          {billDueMinor > 0 && (
+            <Button
+              type="button"
+              variant={showDiscount ? "secondary" : "outline"}
+              size="sm"
+              aria-expanded={showDiscount}
+              onClick={() => setShowDiscount((v) => !v)}
+            >
+              {showDiscount ? "Remove discount" : "Discount"}
+            </Button>
+          )}
+        </div>
+
+        {showTip && (
+          <div className="space-y-1.5">
+            <label htmlFor={`${fieldId}-tip`} className="text-sm font-medium">
+              Tip (৳)
+            </label>
+            <Input
+              id={`${fieldId}-tip`}
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="1"
+              value={tip}
+              onChange={(e) => setTip(e.target.value)}
+              placeholder="0"
+            />
+            <p className="text-xs text-muted-foreground">Goes to the salon in full - no commission.</p>
+          </div>
+        )}
+
+        {showDiscount && (
+          <div className="space-y-2">
+            <div className="space-y-1.5">
+              <label htmlFor={`${fieldId}-discount`} className="text-sm font-medium">
+                Discount (৳)
+              </label>
+              <Input
+                id={`${fieldId}-discount`}
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="1"
+                value={discount}
+                onChange={(e) => setDiscount(e.target.value)}
+                placeholder="0"
+                aria-invalid={discountTooBig || undefined}
+              />
+              {discountTooBig && (
+                <p role="alert" className="text-xs text-danger">
+                  At most {formatBDT(billDueMinor)} - the bill less what is already paid.
+                </p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor={`${fieldId}-reason`} className="text-sm font-medium">
+                Reason
+              </label>
+              <Input
+                id={`${fieldId}-reason`}
+                value={discountReason}
+                onChange={(e) => setDiscountReason(e.target.value)}
+                maxLength={200}
+                placeholder="e.g. Regular customer, service ran late"
+                aria-invalid={discountNeedsReason || undefined}
+              />
+              {discountNeedsReason && (
+                <p className="text-xs text-muted-foreground">A reason is required for a discount.</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {nothingToCollect ? (
           <p className="text-center text-sm text-muted-foreground">

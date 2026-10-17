@@ -240,7 +240,13 @@ export type CheckoutReceipt = {
   counterName?: string | null;
   customerName: string;
   totalMinor: number;
+  /** Checkout v2: billable = total - discount; the tip is on top, never billed. */
+  discountMinor?: number;
+  discountReason?: string | null;
+  billableMinor?: number;
+  tipMinor?: number;
   depositPaidMinor: number;
+  /** The bill taken at the counter (never the tip). */
   collectedMinor: number;
   paymentMethod?: CounterPaymentMethod | null;
   completedAt: string;

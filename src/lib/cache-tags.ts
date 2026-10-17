@@ -58,6 +58,8 @@ export const TAGS = {
   notificationPrefs: "notification-prefs",
   /** Activity (`GET /owner/activity`) over the audit log. */
   ownerActivity: "owner-activity",
+  /** Daily close history (`GET /owner/daily-close/history`); the day itself is never cached. */
+  ownerDailyClose: "owner-daily-close",
   // Back office (`/admin/*`).
   adminMe: "admin-me",
   adminInbox: "admin-inbox",

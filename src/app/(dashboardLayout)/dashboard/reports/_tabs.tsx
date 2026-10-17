@@ -681,6 +681,34 @@ export function MoneyTab({ data, csv }: TabProps<MoneyReport>) {
           />
         }
       />
+      <ChartCard
+        title={`Daily closes (${formatMetric(data.closeDifferenceMinor ?? 0, "minor")} net short/over)`}
+        definition="The till counted at closing time against the cash the system expected that day. Negative = short."
+        table={
+          <DataTable<NonNullable<MoneyReport["closes"]>[number]>
+            caption="Daily closes in the range"
+            rows={data.closes ?? []}
+            rowKey={(r) => r.id}
+            empty="No days were closed in this range."
+            columns={[
+              { key: "d", label: "Day", render: (r) => formatDayFull(r.day) },
+              { key: "b", label: "Branch", render: (r) => r.salonName },
+              { key: "e", label: "Expected", numeric: true, render: (r) => formatMetric(r.expectedCashMinor, "minor") },
+              { key: "c", label: "Counted", numeric: true, render: (r) => formatMetric(r.countedCashMinor, "minor") },
+              {
+                key: "x",
+                label: "Difference",
+                numeric: true,
+                render: (r) => (
+                  <span className={cn(r.differenceMinor === 0 ? "text-success" : "text-danger")}>
+                    {formatMetric(r.differenceMinor, "minor")}
+                  </span>
+                ),
+              },
+            ]}
+          />
+        }
+      />
     </div>
   );
 }
