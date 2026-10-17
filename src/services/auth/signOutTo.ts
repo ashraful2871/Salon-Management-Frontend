@@ -22,5 +22,8 @@ export const signOutTo = async (formData: FormData): Promise<void> => {
   // A sign-out during "View as" ends the admin's stashed session too.
   await deleteCookie(ADMIN_REFRESH_COOKIE);
   await deleteCookie(ADMIN_ACCESS_COOKIE);
-  redirect(`/login?redirect=${encodeURIComponent(returnTo)}`);
+  // A ready-made sign-in URL (a team invite's, with the address prefilled) is used as is.
+  redirect(
+    returnTo.startsWith("/login?") ? returnTo : `/login?redirect=${encodeURIComponent(returnTo)}`,
+  );
 };

@@ -25,6 +25,8 @@ export const markPayoutsPaid = async (
     updateTag(TAGS.adminPayouts);
     revalidateTag(TAGS.adminFinance, "max");
     revalidateTag(TAGS.earnings, "max");
+    // PAID writes the owner's payout statement.
+    revalidateTag(TAGS.ownerStatements, "max");
     revalidateTag(TAGS.adminInbox, "max");
   }
   return result;

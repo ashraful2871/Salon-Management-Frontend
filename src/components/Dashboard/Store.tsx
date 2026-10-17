@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import { CompletenessMeter } from "@/components/Owner/catalogue/CompletenessMeter";
+import type { SalonCompleteness } from "@/services/owner/catalogue-types";
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -128,9 +130,13 @@ const statusGroup = (status: string): Exclude<StatusFilter, "all"> =>
 
 export default function Store({
   salonResponse,
+  completeness = [],
 }: {
   salonResponse: SalonResponse;
+  /** Profile completeness per branch (`GET /owner/salons/completeness`). */
+  completeness?: SalonCompleteness[];
 }) {
+  const scoreOf = new Map(completeness.map((c) => [c.salonId, c]));
   const salons = Array.isArray(salonResponse?.data) ? salonResponse.data : [];
 
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -287,7 +293,7 @@ export default function Store({
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {filteredSalons.map((salon) => (
-              <SalonTile key={salon.id} salon={salon} />
+              <SalonTile key={salon.id} salon={salon} completeness={scoreOf.get(salon.id)} />
             ))}
           </div>
         )}
@@ -299,7 +305,7 @@ export default function Store({
 
 /* ---------------- UI Helpers ---------------- */
 
-function SalonTile({ salon }: { salon: Salon }) {
+function SalonTile({ salon, completeness }: { salon: Salon; completeness?: SalonCompleteness }) {
   const hours = salon.operatingHours?.[todayKey()];
   const place = [salon.city, salon.state].filter(Boolean).join(", ");
   const isLive = statusGroup(salon.status) === "active";
@@ -371,6 +377,8 @@ function SalonTile({ salon }: { salon: Salon }) {
             </dd>
           </div>
         </dl>
+
+        {completeness && <CompletenessMeter data={completeness} />}
 
         <div className="mt-auto flex gap-2 pt-1">
           <Button asChild className="flex-1">

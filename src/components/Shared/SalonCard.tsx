@@ -21,6 +21,8 @@ interface SalonCardProps {
     openNow: boolean | null;
     /** Cheapest active service, in poisha. Absent or null hides "From". */
     minPriceMinor?: number | null;
+    /** Not taking online bookings: the card says so instead of "Book now". */
+    bookingPaused?: boolean;
   };
   index: number;
   // Preformatted by formatDistance; a leading "~" marks an approximate pin.
@@ -184,13 +186,21 @@ const SalonCard = ({
           ) : (
             <p className="text-xs text-muted-foreground">See services &amp; prices</p>
           )}
-          <span
-            aria-hidden="true"
-            className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition-colors group-hover:bg-gold-dark"
-          >
-            Book now
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          </span>
+          {salon.bookingPaused ? (
+            <span className="shrink-0 text-right text-xs font-medium text-muted-foreground">
+              Not taking online
+              <br />
+              bookings now
+            </span>
+          ) : (
+            <span
+              aria-hidden="true"
+              className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition-colors group-hover:bg-gold-dark"
+            >
+              Book now
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </span>
+          )}
         </div>
       </div>
     </article>

@@ -42,6 +42,7 @@ import {
 import { ROLE_HOME } from "@/lib/route-access";
 import { AdminTopBar, type AdminShellData } from "@/components/Admin/AdminTopBar";
 import { BranchSwitcher, type BranchOption } from "@/components/Dashboard/BranchSwitcher";
+import { NotificationBell } from "@/components/Notifications/NotificationBell";
 import LogoutButton from "./LogoutButton";
 import { BottomTabBar } from "./BottomTabBar";
 import {
@@ -60,6 +61,7 @@ const ROLE_LABELS: Record<string, string> = {
   CUSTOMER: "Customer",
   STAFF: "Staff",
   SALON_OWNER: "Salon Owner",
+  BRANCH_MANAGER: "Branch manager",
   ADMIN: "Admin",
   AGENT: "Agent",
 };
@@ -239,14 +241,17 @@ export const DashboardShell = ({
   initialCollapsed = false,
   admin,
   branches,
+  notifications = false,
   children,
 }: {
   user: ShellUser;
   initialCollapsed?: boolean;
   /** ADMIN and AGENT only: permissions for the nav, plus the top-bar extras. */
   admin?: AdminShellData;
-  /** SALON_OWNER only: their branches and the one the pages are scoped to. */
-  branches?: { options: BranchOption[]; selected: string };
+  /** Owners and managers: their branches and the one the pages are scoped to. */
+  branches?: { options: BranchOption[]; selected: string; allowAll?: boolean };
+  /** Business accounts (owner, manager, staff): the notification bell. */
+  notifications?: boolean;
   children: ReactNode;
 }) => {
   const pathname = usePathname();
@@ -456,8 +461,14 @@ export const DashboardShell = ({
           </p>
 
           {branches && (
-            <BranchSwitcher branches={branches.options} selected={branches.selected} />
+            <BranchSwitcher
+              branches={branches.options}
+              selected={branches.selected}
+              allowAll={branches.allowAll}
+            />
           )}
+
+          {notifications && <NotificationBell />}
 
           {admin && (
             <AdminTopBar

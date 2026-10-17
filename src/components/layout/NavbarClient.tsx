@@ -70,6 +70,7 @@ const ROLE_LABELS: Record<string, string> = {
   CUSTOMER: "Customer",
   STAFF: "Staff",
   SALON_OWNER: "Salon Owner",
+  BRANCH_MANAGER: "Branch manager",
   ADMIN: "Admin",
   AGENT: "Agent",
 };
@@ -218,7 +219,7 @@ const NavbarClient = ({
           ? [{ href: "/dashboard/wallet", label: "My wallet", icon: WalletIcon }]
           : []),
         ...(user.role === "SALON_OWNER"
-          ? [{ href: "/dashboard/earnings", label: "Earnings", icon: WalletIcon }]
+          ? [{ href: "/dashboard/money", label: "Money", icon: WalletIcon }]
           : []),
         { href: "/my-profile", label: "My profile", icon: User },
       ]
@@ -522,7 +523,7 @@ const NavbarClient = ({
                 footer={
                   <div className="border-t border-border p-3">
                     <Button variant="outline" size="sm" className="w-full" asChild>
-                      <Link href="/dashboard/earnings" onClick={closeMenu}>
+                      <Link href="/dashboard/money" onClick={closeMenu}>
                         View details
                       </Link>
                     </Button>

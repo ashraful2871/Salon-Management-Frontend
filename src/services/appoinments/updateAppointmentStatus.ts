@@ -22,6 +22,7 @@ export const updateAppointmentStatus = async (
       updateTag(TAGS.appointments);
       updateTag(TAGS.myAppointments);
       updateTag(TAGS.dashboardStats);
+      updateTag(TAGS.ownerHomes);
       // Completing or cancelling a booking settles its ledger entries, which
       // is what the earnings and payout figures are derived from.
       revalidateTag(TAGS.earnings, "max");

@@ -55,11 +55,15 @@ const CommonDashboardLayout = async ({
     };
   }
   // The owner's branch switcher: every page below reads the same choice.
-  let branches: { options: { salonId: string; salonName: string }[]; selected: string } | undefined;
-  if (user.role === "SALON_OWNER") {
+  // Managers get it too, pinned to their branches (no "All branches").
+  let branches:
+    | { options: { salonId: string; salonName: string }[]; selected: string; allowAll: boolean }
+    | undefined;
+  if (user.role === "SALON_OWNER" || user.role === "BRANCH_MANAGER") {
     const [access, selected] = await Promise.all([getMyAccess(), getSelectedBranch()]);
     branches = {
       options: access.success ? (access.data ?? []) : [],
+      allowAll: user.role === "SALON_OWNER",
       selected,
     };
   }
@@ -74,6 +78,7 @@ const CommonDashboardLayout = async ({
       initialCollapsed={collapsed}
       admin={admin}
       branches={branches}
+      notifications={user.role === "SALON_OWNER" || user.role === "BRANCH_MANAGER" || user.role === "STAFF"}
     >
       <SessionKeeper />
       <ImpersonationBanner />

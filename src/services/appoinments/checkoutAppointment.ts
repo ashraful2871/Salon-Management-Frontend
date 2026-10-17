@@ -14,7 +14,15 @@ import { TAGS } from "@/lib/cache-tags";
 // receipt, so a double submit cannot take the money twice.
 export const checkoutAppointment = async (
   id: string,
-  payload: { paymentMethod: CounterPaymentMethod; reference?: string },
+  payload: {
+    paymentMethod: CounterPaymentMethod;
+    reference?: string;
+    /** Poisha; the salon's own money, never commissioned. */
+    tipMinor?: number;
+    /** Poisha off the bill; needs `discountReason`. */
+    discountMinor?: number;
+    discountReason?: string;
+  },
 ): Promise<ApiResponse<CheckoutReceipt>> => {
   try {
     const response = await serverFetch.post(`/appointments/${id}/checkout`, {
@@ -22,6 +30,11 @@ export const checkoutAppointment = async (
       body: JSON.stringify({
         paymentMethod: payload.paymentMethod,
         ...(payload.reference && { reference: payload.reference }),
+        ...(payload.tipMinor && { tipMinor: payload.tipMinor }),
+        ...(payload.discountMinor && {
+          discountMinor: payload.discountMinor,
+          discountReason: payload.discountReason,
+        }),
       }),
     });
 
@@ -31,6 +44,8 @@ export const checkoutAppointment = async (
       updateTag(TAGS.appointments);
       updateTag(TAGS.myAppointments);
       updateTag(TAGS.dashboardStats);
+      updateTag(TAGS.ownerHomes);
+      revalidateTag(TAGS.ownerReports, "max");
       revalidateTag(TAGS.earnings, "max");
       revalidateTag(TAGS.slots, "max");
     }

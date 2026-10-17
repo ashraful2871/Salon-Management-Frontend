@@ -24,9 +24,12 @@ export type BranchOption = { salonId: string; salonName: string };
 export function BranchSwitcher({
   branches,
   selected,
+  allowAll = true,
 }: {
   branches: BranchOption[];
   selected: string;
+  /** False for a manager: they work one branch at a time, never "All branches". */
+  allowAll?: boolean;
 }) {
   const router = useRouter();
   // Shows the new choice while it saves; the server's value wins afterwards.
@@ -63,10 +66,10 @@ export function BranchSwitcher({
         )}
       >
         <Store className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-        <SelectValue />
+        <SelectValue placeholder="Choose a branch" />
       </SelectTrigger>
       <SelectContent position="popper" align="end">
-        <SelectItem value="all">All branches</SelectItem>
+        {allowAll && <SelectItem value="all">All branches</SelectItem>}
         {branches.map((branch) => (
           <SelectItem key={branch.salonId} value={branch.salonId}>
             {branch.salonName}

@@ -1,29 +1,54 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import Customers from "@/components/Dashboard/Customers";
-import { getAllUsers } from "@/services/users/getAllUsers";
-import { getMyCustomers } from "@/services/users/getMyCustomers";
-import { getUserRoles } from "@/services/get-roles/getUserRoles";
+import { runsBranch } from "@/lib/owner-access";
+import { PageHeader } from "@/components/Shared/PageHeader";
+import { ErrorState } from "@/components/Shared/ErrorState";
+import { CustomersClient } from "@/components/Owner/customers/CustomersClient";
 import { getSelectedSalonId } from "@/lib/branch-cookie";
+import { getUserRoles } from "@/services/get-roles/getUserRoles";
+import { getOwnerCustomers } from "@/services/owner/getOwnerCustomers";
+import {
+  CUSTOMER_SEGMENTS,
+  type CustomerFilters,
+  type CustomerSegment,
+} from "@/services/owner/customer-types";
 
-const CustomersPage = async () => {
-  const userRole = await getUserRoles();
+export const metadata = { title: "Customers" };
+export const dynamic = "force-dynamic";
 
-  let usersResponse;
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-  if (userRole === "SALON_OWNER") {
-    usersResponse = await getMyCustomers({
-      limit: 50,
-      salonId: await getSelectedSalonId(),
-    });
-  } else {
-    usersResponse = await getAllUsers({ role: "CUSTOMER", limit: 50 });
-  }
+export default async function CustomersPage({ searchParams }: { searchParams: SearchParams }) {
+  const [params, role] = await Promise.all([searchParams, getUserRoles()]);
+  // Owners follow the branch switcher; staff are scoped to their salon by the API.
+  const salonId = runsBranch(role) ? await getSelectedSalonId() : undefined;
+
+  const segmentParam = first(params.segment);
+  const segment = CUSTOMER_SEGMENTS.some((s) => s.value === segmentParam)
+    ? (segmentParam as CustomerSegment)
+    : undefined;
+  const search = first(params.q)?.trim().slice(0, 100) || undefined;
+
+  const filters: CustomerFilters = {
+    ...(salonId && { salonId }),
+    ...(segment && { segment }),
+    ...(search && { search }),
+  };
+  const result = await getOwnerCustomers(filters);
 
   return (
     <div>
-      <Customers usersResponse={usersResponse as any} />
+      <PageHeader title="Customers" description="Who comes back, what they spend, and your notes on them." />
+      {!result.success || !result.data ? (
+        <ErrorState message={result.message} />
+      ) : (
+        <CustomersClient
+          key={JSON.stringify(filters)}
+          initial={result.data.items}
+          nextCursor={result.data.nextCursor}
+          counts={result.data.counts}
+          filters={filters}
+        />
+      )}
     </div>
   );
-};
-
-export default CustomersPage;
+}

@@ -1,12 +1,16 @@
 import {
+  MessageSquareQuote,
+  UsersRound,
   Activity,
   Calendar,
   CalendarClock,
+  CalendarDays,
   ClipboardCheck,
   DollarSign,
   FileClock,
   LayoutDashboard,
   ChartLine,
+  History,
   Package,
   Scale,
   ReceiptText,
@@ -18,7 +22,6 @@ import {
   Banknote,
   WalletCards,
   BookOpenCheck,
-  CreditCard,
   FileBadge,
   UserCheck,
   SlidersHorizontal,
@@ -30,6 +33,7 @@ import {
   LifeBuoy,
   Newspaper,
   type LucideIcon,
+  Calculator,
 } from "lucide-react";
 import type { UserRole } from "@/services/auth/auth-utils";
 import { rolesForPath, type ProtectedRoute } from "@/lib/route-access";
@@ -49,6 +53,8 @@ export type NavItem = {
   tabHref?: string;
   /** Bottom-tab label, when `label` is too long for a fifth of a phone. */
   short?: string;
+  /** Bottom-tab label for one role, over `short`. */
+  shortByRole?: Partial<Record<UserRole, string>>;
   labelByRole?: Partial<Record<UserRole, string>>;
   /** The admin permission the page checks; the link is hidden without it. */
   permission?: Permission;
@@ -74,6 +80,7 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: LayoutDashboard,
         label: "Dashboard",
         short: "Home",
+        shortByRole: { BRANCH_MANAGER: "Today" },
         // They have their own home below; `/dashboard` redirects them there.
         hiddenFor: ["ADMIN", "AGENT"],
       },
@@ -101,10 +108,28 @@ export const NAV_GROUPS: NavGroup[] = [
         short: "Bookings",
         labelByRole: { CUSTOMER: "My bookings" },
       },
+      { path: "/dashboard/calendar", icon: CalendarDays, label: "Calendar" },
+      { path: "/dashboard/close", icon: Calculator, label: "Daily close", short: "Close" },
       { path: "/dashboard/slots", icon: CalendarClock, label: "Slots" },
       { path: "/dashboard/services", icon: Package, label: "Services" },
       { path: "/dashboard/customers", icon: Users, label: "Customers" },
-      { path: "/dashboard/store", icon: Store, label: "My salon" },
+      { path: "/dashboard/reviews", icon: MessageSquareQuote, label: "Reviews" },
+      { path: "/dashboard/team", icon: UsersRound, label: "Team" },
+      {
+        path: "/dashboard/store",
+        icon: Store,
+        label: "My salon",
+        // Opens their branch's profile; the salon list is the owner's.
+        labelByRole: { BRANCH_MANAGER: "My branch" },
+      },
+    ],
+  },
+  {
+    // Owner + manager (`ROUTE_ROLES`): how the business is doing.
+    title: "Insights",
+    items: [
+      { path: "/dashboard/reports", icon: ChartLine, label: "Reports" },
+      { path: "/dashboard/activity", icon: History, label: "Activity" },
     ],
   },
   {
@@ -155,9 +180,8 @@ export const NAV_GROUPS: NavGroup[] = [
     title: "Money",
     items: [
       { path: "/dashboard/wallet", icon: Wallet, label: "Wallet" },
-      { path: "/dashboard/earnings", icon: DollarSign, label: "Earnings" },
-      // Phase 5 turns this into the owner money hub; payout settings for now.
-      { path: "/dashboard/money/payout-settings", icon: CreditCard, label: "Money" },
+      // The owner money hub (Overview · Transactions · Payouts · Payout settings).
+      { path: "/dashboard/money", icon: DollarSign, label: "Money" },
       {
         path: "/dashboard/admin/finance",
         icon: Landmark,
@@ -202,6 +226,13 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "Payout accounts",
         short: "Accounts",
         permission: "finance.payout_accounts",
+      },
+      {
+        path: "/dashboard/admin/finance/dues",
+        icon: Scale,
+        label: "Owner dues",
+        short: "Dues",
+        permission: "finance.view",
       },
     ],
   },
@@ -272,6 +303,12 @@ export const TABS_BY_ROLE: Record<UserRole, ProtectedRoute[]> = {
   CUSTOMER: ["/dashboard", "/dashboard/appointments", "/dashboard/wallet"],
   SALON_OWNER: ["/dashboard", "/dashboard/appointments", "/dashboard/slots", "/dashboard/services"],
   STAFF: ["/dashboard", "/dashboard/appointments", "/dashboard/customers"],
+  BRANCH_MANAGER: [
+    "/dashboard",
+    "/dashboard/calendar",
+    "/dashboard/appointments",
+    "/dashboard/customers",
+  ],
   ADMIN: [
     "/dashboard/admin",
     "/dashboard/admin/bookings",
@@ -281,6 +318,10 @@ export const TABS_BY_ROLE: Record<UserRole, ProtectedRoute[]> = {
   AGENT: ["/dashboard/admin", "/dashboard/admin/salons"],
   GUEST: [],
 };
+
+/** The bottom-tab label: per role, then `short`, then the full label. */
+export const tabLabelFor = (item: NavItem, role: UserRole) =>
+  item.shortByRole?.[role] ?? item.short ?? labelFor(item, role);
 
 export const labelFor = (item: NavItem, role: UserRole) =>
   item.labelByRole?.[role] ?? item.label;

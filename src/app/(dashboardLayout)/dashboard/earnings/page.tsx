@@ -1,16 +1,6 @@
-import EarningsView from "@/components/Earnings/EarningsView";
-import { getMyEarnings } from "@/services/settlement/getMyEarnings";
-import { getSelectedSalonId } from "@/lib/branch-cookie";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default async function EarningsPage() {
-  const result = await getMyEarnings(25, await getSelectedSalonId());
-
-  return (
-    <EarningsView
-      earnings={result.success ? (result.data ?? null) : null}
-      error={result.success ? undefined : result.message}
-    />
-  );
+/** Earnings moved into the Money hub. */
+export default function EarningsPage() {
+  redirect("/dashboard/money");
 }

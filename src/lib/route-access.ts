@@ -27,6 +27,7 @@ export const SIGNED_IN_ROLES = [
   "CUSTOMER",
   "STAFF",
   "SALON_OWNER",
+  "BRANCH_MANAGER",
   "ADMIN",
   "AGENT",
 ] as const satisfies readonly UserRole[];
@@ -62,15 +63,32 @@ const GUEST_ONLY_ROUTES = ["/login", "/register"] as const;
  */
 export const ROUTE_ROLES = {
   "/dashboard": SIGNED_IN_ROLES,
-  "/dashboard/appointments": ["SALON_OWNER", "STAFF", "CUSTOMER"],
-  "/dashboard/slots": ["SALON_OWNER"],
-  "/dashboard/customers": ["SALON_OWNER", "STAFF"],
-  "/dashboard/services": ["SALON_OWNER"],
-  "/dashboard/store": ["SALON_OWNER"],
+  "/dashboard/appointments": ["SALON_OWNER", "BRANCH_MANAGER", "STAFF", "CUSTOMER"],
+  // Owners run the day here; staff see their own column, read-only.
+  "/dashboard/calendar": ["SALON_OWNER", "BRANCH_MANAGER", "STAFF"],
+  "/dashboard/slots": ["SALON_OWNER", "BRANCH_MANAGER"],
+  "/dashboard/customers": ["SALON_OWNER", "BRANCH_MANAGER", "STAFF"],
+  // Reviews of the business and its one public reply (reviews.reply).
+  "/dashboard/reviews": ["SALON_OWNER", "BRANCH_MANAGER"],
+  "/dashboard/services": ["SALON_OWNER", "BRANCH_MANAGER"],
+  // A branch's people: owners and managers (managers invite receptionists
+  // and stylists only - the API decides).
+  "/dashboard/team": ["SALON_OWNER", "BRANCH_MANAGER"],
+  // Later owner pages; managers see their branch's.
+  // The till count at closing time (close.manage: owner, manager, receptionist).
+  "/dashboard/close": ["SALON_OWNER", "BRANCH_MANAGER", "STAFF"],
+  "/dashboard/reports": ["SALON_OWNER", "BRANCH_MANAGER"],
+  "/dashboard/activity": ["SALON_OWNER", "BRANCH_MANAGER"],
+  // The bell's full list: every business account, its own rows only.
+  "/dashboard/notifications": ["SALON_OWNER", "BRANCH_MANAGER", "STAFF"],
+  // The list page sends a manager on to their branch's profile (`store/[id]`,
+  // profile tabs only); the "add salon" flow stays the owner's.
+  "/dashboard/store": ["SALON_OWNER", "BRANCH_MANAGER"],
+  // Redirects to /dashboard/money.
   "/dashboard/earnings": ["SALON_OWNER"],
-  // The business owner only (payout accounts, KYC); Phase 5 adds more tabs.
+  // The business owner only: every tab under it (overview, transactions,
+  // payouts, payout settings) inherits this entry.
   "/dashboard/money": ["SALON_OWNER"],
-  "/dashboard/money/payout-settings": ["SALON_OWNER"],
   // The back office. Agents get Home, Salons and their security page; the
   // rest is ADMIN only. The admin layout checks each child against its own
   // entry, and each page also checks its permission (`guardPermission`),
@@ -90,6 +108,7 @@ export const ROUTE_ROLES = {
   "/dashboard/admin/finance/ledger": ["ADMIN"],
   "/dashboard/admin/finance/approvals": ["ADMIN"],
   "/dashboard/admin/finance/payout-accounts": ["ADMIN"],
+  "/dashboard/admin/finance/dues": ["ADMIN"],
   "/dashboard/admin/team": ["ADMIN"],
   "/dashboard/admin/settings": ["ADMIN"],
   "/dashboard/admin/system": ["ADMIN"],
@@ -123,6 +142,7 @@ export const ROLE_HOME: Record<UserRole, string> = {
   ADMIN: "/dashboard/admin",
   AGENT: "/dashboard/admin",
   SALON_OWNER: "/dashboard",
+  BRANCH_MANAGER: "/dashboard",
   STAFF: "/dashboard",
   CUSTOMER: "/dashboard",
   GUEST: "/login",

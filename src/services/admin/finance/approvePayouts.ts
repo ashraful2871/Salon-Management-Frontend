@@ -24,6 +24,8 @@ export const approvePayouts = async (
   );
   if (result.success) {
     updateTag(TAGS.adminPayouts);
+    revalidateTag(TAGS.ownerPayouts, "max");
+    revalidateTag(TAGS.ownerMoney, "max");
     updateTag(TAGS.adminApprovals);
     revalidateTag(TAGS.adminFinance, "max");
     revalidateTag(TAGS.adminInbox, "max");

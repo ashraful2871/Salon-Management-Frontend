@@ -71,10 +71,23 @@ export type Salon = {
   };
   depositMinor?: number;
   cancellationWindowMin?: number;
+  /** Lets this branch's managers edit service names and prices (owner setting). */
+  managerCanEditServices?: boolean;
   latitude?: number | null;
   longitude?: number | null;
   locationAccuracy?: LocationAccuracy | null;
   locationUpdatedAt?: string | null;
+  /** Not taking new online bookings (owner or dues pause); still listed. */
+  bookingPaused?: boolean;
+  /** Holidays and special hours in the next 60 days (`GET /salons/:id` only). */
+  upcomingClosures?: Array<{
+    id: string;
+    date: string;
+    allDay: boolean;
+    startTime: string | null;
+    endTime: string | null;
+    reason: string;
+  }>;
   // Only present in nearby mode (lat/lng in the query).
   distanceMeters?: number;
   createdAt?: string;
@@ -171,6 +184,7 @@ export type Appointment = {
     user?: { name: string };
   };
   counter?: {
+    id?: string;
     name: string;
     code?: string;
   };
@@ -226,7 +240,13 @@ export type CheckoutReceipt = {
   counterName?: string | null;
   customerName: string;
   totalMinor: number;
+  /** Checkout v2: billable = total - discount; the tip is on top, never billed. */
+  discountMinor?: number;
+  discountReason?: string | null;
+  billableMinor?: number;
+  tipMinor?: number;
   depositPaidMinor: number;
+  /** The bill taken at the counter (never the tip). */
   collectedMinor: number;
   paymentMethod?: CounterPaymentMethod | null;
   completedAt: string;

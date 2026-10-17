@@ -97,6 +97,7 @@ export const toSalonCardData = (salon: Salon) => {
     services,
     minPriceMinor: prices.length ? Math.min(...prices) : null,
     openNow: salon.operatingHours ? isOpenNow(salon.operatingHours) : null,
+    bookingPaused: !!salon.bookingPaused,
     distance:
       salon.distanceMeters != null
         ? formatDistance(

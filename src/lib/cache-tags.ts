@@ -26,6 +26,40 @@ export const TAGS = {
   hairstyles: "hairstyles",
   ownerAccess: "owner-access",
   payoutAccounts: "payout-accounts",
+  ownerMoney: "owner-money",
+  ownerPayouts: "owner-payouts",
+  ownerStatements: "owner-statements",
+  /** Owner Customer 360 (list, profile, notes). */
+  ownerCustomers: "owner-customers",
+  /** Owner Reviews page (list + summary). */
+  ownerReviews: "owner-reviews",
+  /** Owner Home (`GET /owner/home`): one per branch key ("all" or a salon id) plus the shared base every booking mutation expires. */
+  ownerHome: (key: string) => `owner-home-${key}`,
+  ownerHomes: "owner-home",
+  /** Team page: a branch's members and its pending invitations. */
+  salonMembers: (salonId: string) => `salon-members-${salonId}`,
+  salonInvitations: (salonId: string) => `salon-invitations-${salonId}`,
+  /** A stylist's working hours and time off, plus the base every schedule write expires (the calendar reads it). */
+  staffSchedule: (staffId: string) => `staff-schedule-${staffId}`,
+  staffSchedules: "staff-schedules",
+  /** A branch's holidays and special hours (`GET /salons/:id/closures`). */
+  salonClosures: (salonId: string) => `salon-closures-${salonId}`,
+  /** A branch's online-booking pause as its owner sees it (`GET /salons/:id/pause`). */
+  salonPause: (salonId: string) => `salon-pause-${salonId}`,
+  /** Profile completeness per branch (`GET /owner/salons/completeness`). */
+  salonCompleteness: "salon-completeness",
+  /** Owner Reports (`GET /owner/reports/:report`); every report shares it. */
+  ownerReports: "owner-reports",
+  /** Team → Performance (`GET /owner/team/performance`). */
+  teamPerformance: "team-performance",
+  /** The bell and the full list (`GET /owner/notifications`); per user. */
+  notifications: "notifications",
+  /** Settings → Notifications (`GET /owner/notification-prefs`). */
+  notificationPrefs: "notification-prefs",
+  /** Activity (`GET /owner/activity`) over the audit log. */
+  ownerActivity: "owner-activity",
+  /** Daily close history (`GET /owner/daily-close/history`); the day itself is never cached. */
+  ownerDailyClose: "owner-daily-close",
   // Back office (`/admin/*`).
   adminMe: "admin-me",
   adminInbox: "admin-inbox",
@@ -41,6 +75,7 @@ export const TAGS = {
   adminPayoutAccounts: "admin-payout-accounts",
   adminApprovals: "admin-approvals",
   adminWallets: "admin-wallets",
+  adminDues: "admin-dues",
   adminLedger: "admin-ledger",
   adminReviews: "admin-reviews",
   adminTickets: "admin-tickets",

@@ -7,7 +7,8 @@ import { TAGS } from "@/lib/cache-tags";
 export type BranchAccess = {
   salonId: string;
   salonName: string;
-  role: "OWNER" | "STAFF";
+  // OWNER at their own salons; a team seat otherwise (STAFF = pre-team staff row).
+  role: "OWNER" | "MANAGER" | "RECEPTIONIST" | "STYLIST" | "STAFF";
   permissions: string[];
 };
 

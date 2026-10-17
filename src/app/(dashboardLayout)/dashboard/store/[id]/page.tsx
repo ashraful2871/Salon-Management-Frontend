@@ -1,5 +1,8 @@
 import ManageSalon from "@/components/Dashboard/ManageSalon";
 import { getSalonById } from "@/services/salon/getSalonNyId";
+import { getMyAccess } from "@/services/owner/getMyAccess";
+import { getClosures } from "@/services/schedule/getClosures";
+import { getBookingPause } from "@/services/schedule/getBookingPause";
 import React from "react";
 
 const ManageSalonPage = async ({
@@ -12,7 +15,21 @@ const ManageSalonPage = async ({
   const { id } = await params;
   const { tab } = await searchParams;
 
-  const getSingleSalon = await getSalonById(id);
+  const [getSingleSalon, access] = await Promise.all([getSalonById(id), getMyAccess()]);
+  // What the caller may do here: hides owner-only controls from a manager.
+  const branch = access.success ? access.data?.find((b) => b.salonId === id) : undefined;
+  const permissions = branch?.permissions;
+  const isOwner = branch?.role === "OWNER";
+  // Each read 404s for a caller without the permission; that just hides its UI.
+  const [closures, pause] = await Promise.all([
+    !branch || permissions?.includes("slots.manage") ? getClosures(id) : null,
+    isOwner ? getBookingPause(id) : null,
+  ]);
+  const otherBranches = isOwner
+    ? (access.data ?? [])
+        .filter((b) => b.role === "OWNER" && b.salonId !== id)
+        .map((b) => ({ id: b.salonId, name: b.salonName }))
+    : [];
 
   if (!getSingleSalon.data) {
     return (
@@ -30,6 +47,10 @@ const ManageSalonPage = async ({
       <ManageSalon
         initialData={getSingleSalon.data}
         initialTab={typeof tab === "string" ? tab : undefined}
+        permissions={permissions}
+        closures={closures?.success ? (closures.data ?? []) : null}
+        pause={pause?.success ? (pause.data ?? null) : null}
+        otherBranches={otherBranches}
       />
     </div>
   );

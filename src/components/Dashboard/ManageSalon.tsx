@@ -36,9 +36,13 @@ import type { OperatingHours, Salon, StaffMember } from "@/lib/api-types";
 import { formatRating } from "@/lib/rating";
 import { updateSalon } from "@/services/salon/updateSalon";
 import { deleteStaff } from "@/services/staff/deleteStaff";
-import AddStaffModal from "./AddStaffModal";
+import { InviteMemberDialog } from "@/components/Owner/team/InviteMemberDialog";
 import AddCounterModal from "./AddCounterModal";
 import SalonLocationTab from "./SalonLocationTab";
+import { ClosuresTab } from "@/components/Owner/schedule/ClosuresTab";
+import { BookingStatusCard } from "@/components/Owner/schedule/BookingStatusCard";
+import { CopyHoursButton } from "@/components/Owner/catalogue/CopyHoursDialog";
+import type { BookingPauseState, SalonClosure } from "@/services/schedule/schedule-types";
 
 /* ---------------- Types ---------------- */
 
@@ -74,7 +78,7 @@ const DAY_LABEL: Record<Day, string> = {
   sunday: "Sunday",
 };
 
-const TABS = ["details", "hours", "staff", "counters", "location"] as const;
+const TABS = ["details", "hours", "closures", "staff", "counters", "location"] as const;
 type Tab = (typeof TABS)[number];
 
 // `?tab=location` comes from the "needs an exact map pin" notice; `overview`
@@ -126,15 +130,35 @@ const DEFAULT_DAY = { open: "09:00", close: "21:00" };
 export default function ManageSalon({
   initialData,
   initialTab,
+  permissions,
+  closures,
+  pause,
+  otherBranches = [],
 }: {
   initialData: ManagedSalon;
   initialTab?: string;
+  /** The caller's permissions here (`GET /owner/access`); undefined shows everything. Cosmetic: the API decides. */
+  permissions?: string[];
+  /** Holidays and special hours; null hides the tab (no slots.manage). */
+  closures?: SalonClosure[] | null;
+  /** The owner's view of the online-booking pause; null for anyone else. */
+  pause?: BookingPauseState | null;
+  /** The owner's other branches, for "Copy hours to…". */
+  otherBranches?: { id: string; name: string }[];
 }) {
+  const can = (perm: string) => !permissions || permissions.includes(perm);
+  const showLocation = can("branch.location");
+  const showClosures = !!closures;
   const salonId = initialData.id;
   const fieldId = useId();
   const field = (name: string) => `${fieldId}-${name}`;
 
-  const [tab, setTab] = useState<Tab>(() => toTab(initialTab));
+  const pickTab = (value?: string): Tab => {
+    const next = toTab(value);
+    if (next === "location" && !showLocation) return "details";
+    return next === "closures" && !showClosures ? "details" : next;
+  };
+  const [tab, setTab] = useState<Tab>(() => pickTab(initialTab));
   const [openAddStaff, setOpenAddStaff] = useState(false);
   const [openAddCounter, setOpenAddCounter] = useState(false);
 
@@ -361,8 +385,10 @@ export default function ManageSalon({
         />
       </div>
 
+      {pause && <BookingStatusCard salonId={salonId} pause={pause} />}
+
       {/* --- Sections --- */}
-      <Tabs value={tab} onValueChange={(value) => setTab(toTab(value))}>
+      <Tabs value={tab} onValueChange={(value) => setTab(pickTab(value))}>
         <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden">
           <TabsList className="w-max rounded-full bg-muted p-1 group-data-[orientation=horizontal]/tabs:h-11">
             <PillTab value="details" unsaved={detailsDirty}>
@@ -371,13 +397,14 @@ export default function ManageSalon({
             <PillTab value="hours" unsaved={hoursDirty}>
               Hours
             </PillTab>
+            {showClosures && <PillTab value="closures">Closures</PillTab>}
             <PillTab value="staff" count={staff.length}>
               Staff
             </PillTab>
             <PillTab value="counters" count={counters.length}>
               Counters
             </PillTab>
-            <PillTab value="location">Location</PillTab>
+            {showLocation && <PillTab value="location">Location</PillTab>}
           </TabsList>
         </div>
 
@@ -517,6 +544,11 @@ export default function ManageSalon({
                 <CardDescription>
                   Your weekly hours, shown on your salon page.
                 </CardDescription>
+                {otherBranches.length > 0 && (
+                  <div className="pt-2">
+                    <CopyHoursButton fromSalonId={salonId} branches={otherBranches} disabled={hoursDirty} />
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
                 <fieldset disabled={savingHours}>
@@ -604,6 +636,13 @@ export default function ManageSalon({
           </form>
         </TabsContent>
 
+        {/* ================= CLOSURES ================= */}
+        {showClosures && (
+          <TabsContent value="closures" className="mt-4">
+            <ClosuresTab salonId={salonId} closures={closures ?? []} />
+          </TabsContent>
+        )}
+
         {/* ================= STAFF ================= */}
         <TabsContent value="staff" className="mt-4">
           <Card>
@@ -614,10 +653,13 @@ export default function ManageSalon({
                   The stylists customers can be assigned to.
                 </CardDescription>
               </div>
-              <Button size="sm" variant="outline" onClick={() => setOpenAddStaff(true)}>
-                <UserPlus />
-                Add staff
-              </Button>
+              {/* Staff join by invitation now: a stylist seat they accept. */}
+              {can("team.invite") && (
+                <Button size="sm" variant="outline" onClick={() => setOpenAddStaff(true)}>
+                  <UserPlus />
+                  Invite staff
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <DataList
@@ -626,7 +668,7 @@ export default function ManageSalon({
                 columns={staffColumns}
                 caption="Staff"
                 rowActions={(m, layout) =>
-                  layout === "table" ? (
+                  !can("team.invite") ? null : layout === "table" ? (
                     <Button
                       size="icon"
                       variant="ghost"
@@ -649,12 +691,14 @@ export default function ManageSalon({
                     <EmptyState
                       icon={Users}
                       title="No staff yet"
-                      description="Add the people who work here so bookings can be assigned to them."
+                      description="Invite the people who work here so bookings can be assigned to them."
                       action={
-                        <Button onClick={() => setOpenAddStaff(true)}>
-                          <UserPlus />
-                          Add staff
-                        </Button>
+                        can("team.invite") ? (
+                          <Button onClick={() => setOpenAddStaff(true)}>
+                            <UserPlus />
+                            Invite staff
+                          </Button>
+                        ) : undefined
                       }
                     />
                   </div>
@@ -724,16 +768,23 @@ export default function ManageSalon({
         </TabsContent>
 
         {/* ================= LOCATION ================= */}
-        <TabsContent value="location" className="mt-4">
-          <SalonLocationTab salon={initialData} />
-        </TabsContent>
+        {showLocation && (
+          <TabsContent value="location" className="mt-4">
+            <SalonLocationTab salon={initialData} />
+          </TabsContent>
+        )}
       </Tabs>
 
-      <AddStaffModal
-        open={openAddStaff}
-        setOpen={setOpenAddStaff}
-        salonId={salonId}
-      />
+      {can("team.invite") && (
+        <InviteMemberDialog
+          open={openAddStaff}
+          onOpenChange={setOpenAddStaff}
+          salonId={salonId}
+          salonName={initialData.name}
+          roles={can("team.invite_manager") ? ["MANAGER", "RECEPTIONIST", "STYLIST"] : ["RECEPTIONIST", "STYLIST"]}
+          defaultRole="STYLIST"
+        />
+      )}
       <AddCounterModal
         open={openAddCounter}
         setOpen={setOpenAddCounter}

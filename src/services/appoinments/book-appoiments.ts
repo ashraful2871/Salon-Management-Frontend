@@ -33,6 +33,7 @@ export const bookingAppointment = async (
       // A new booking holds a deposit, so both the counts and the held-money
       // figures on every dashboard are now stale.
       revalidateTag(TAGS.dashboardStats, "max");
+      revalidateTag(TAGS.ownerHomes, "max");
       revalidateTag(TAGS.earnings, "max");
       revalidateTag(TAGS.slots, "max");
     }

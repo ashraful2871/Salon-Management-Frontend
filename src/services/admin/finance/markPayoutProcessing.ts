@@ -19,6 +19,8 @@ export const markPayoutProcessing = async (
   );
   if (result.success) {
     updateTag(TAGS.adminPayouts);
+    revalidateTag(TAGS.ownerPayouts, "max");
+    revalidateTag(TAGS.ownerMoney, "max");
     revalidateTag(TAGS.adminFinance, "max");
   }
   return result;

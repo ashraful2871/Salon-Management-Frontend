@@ -1,4 +1,3 @@
-import { PageHeader } from "@/components/Shared/PageHeader";
 import { ErrorState } from "@/components/Shared/ErrorState";
 import { PayoutAccountCard } from "@/components/Money/PayoutAccountCard";
 import { KycCard } from "@/components/Money/KycCard";
@@ -11,10 +10,7 @@ export default async function PayoutSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Payout settings"
-        description="Where we send your earnings, and the business details our finance team verifies."
-      />
+      <p className="text-sm text-muted-foreground">Where we send your earnings, and the business details our finance team verifies.</p>
       {!response.success || !response.data ? (
         <ErrorState message={response.message} />
       ) : (

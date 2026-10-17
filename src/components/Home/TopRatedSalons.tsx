@@ -35,6 +35,8 @@ const toFeaturedCard = (s: FeaturedSalon): SalonCardData => ({
   services: [],
   minPriceMinor: null,
   openNow: null,
+  // Featured salons come from content settings, which do not carry the pause.
+  bookingPaused: false,
   distance: undefined,
 });
 

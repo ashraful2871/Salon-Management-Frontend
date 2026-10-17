@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
+import type { Salon } from "@/lib/api-types";
 import {
   Clock,
   Globe,
@@ -134,6 +135,9 @@ const isValidUrl = (url: any) => {
   );
 };
 
+const closureDay = (ymd: string) =>
+  new Date(`${ymd}T00:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
   <h2 className="font-display text-xl font-semibold mb-4">{children}</h2>
 );
@@ -225,7 +229,12 @@ const SalonDetails = ({
     (viewer.role === "CUSTOMER" ||
       (viewer.role === "SALON_OWNER" && salon?.owner?.userId === viewer.userId));
 
+  // Paused by its owner or for dues: listed, but no new online bookings.
+  const bookingPaused = !!salon?.bookingPaused;
+  const closures: NonNullable<Salon["upcomingClosures"]> = salon?.upcomingClosures ?? [];
+
   const handleBook = (serviceId?: string) => {
+    if (bookingPaused) return;
     setSelectedServiceId(serviceId);
     setIsBookingModalOpen(true);
   };
@@ -414,6 +423,7 @@ const SalonDetails = ({
                           size="sm"
                           className="shrink-0"
                           onClick={() => handleBook(s.id)}
+                          disabled={bookingPaused}
                           aria-label={`Select ${s.name}`}
                         >
                           Select
@@ -591,6 +601,14 @@ const SalonDetails = ({
                           {r?.comment && (
                             <p className="text-sm text-muted-foreground leading-relaxed break-words">{r.comment}</p>
                           )}
+                          {r?.ownerReply && (
+                            <div className="mt-2 rounded-xl border-l-2 border-primary bg-surface-subtle px-3 py-2">
+                              <p className="text-xs font-semibold">Reply from {salon?.name || "the salon"}</p>
+                              <p className="text-sm text-muted-foreground leading-relaxed break-words whitespace-pre-line">
+                                {r.ownerReply}
+                              </p>
+                            </div>
+                          )}
                           {r?.id && canReport && r?.customer?.id !== viewer?.userId && (
                             <div className="mt-1 -ml-2">
                               <ReportReviewButton reviewId={r.id} />
@@ -624,7 +642,25 @@ const SalonDetails = ({
                         : "Closed today"}
                     </span>
                   </p>
-                  <Button size="lg" className="w-full" onClick={() => handleBook()} disabled={services.length === 0}>
+                  {bookingPaused && (
+                    <p role="status" className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-warning">
+                      Not taking online bookings right now. Walk-ins are welcome.
+                    </p>
+                  )}
+                  {closures.length > 0 && (
+                    <div className="rounded-lg bg-surface-subtle px-3 py-2 text-sm">
+                      <p className="font-medium">Upcoming closures</p>
+                      <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                        {closures.slice(0, 4).map((c) => (
+                          <li key={c.id}>
+                            {closureDay(c.date)}: {c.allDay ? "closed all day" : `closed ${c.startTime}–${c.endTime}`}
+                            {c.reason ? ` (${c.reason})` : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <Button size="lg" className="w-full" onClick={() => handleBook()} disabled={bookingPaused || services.length === 0}>
                     Book now
                   </Button>
                   <a href="#location" className="block text-center text-sm text-muted-foreground hover:text-foreground">
@@ -653,8 +689,8 @@ const SalonDetails = ({
               <p className="truncate text-sm font-medium">{salon?.name}</p>
             )}
           </div>
-          <Button size="lg" className="px-8" onClick={() => handleBook()} disabled={services.length === 0}>
-            Book now
+          <Button size="lg" className="px-8" onClick={() => handleBook()} disabled={bookingPaused || services.length === 0}>
+            {bookingPaused ? "Bookings paused" : "Book now"}
           </Button>
         </div>
       </div>
