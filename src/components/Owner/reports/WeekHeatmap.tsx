@@ -14,8 +14,8 @@ export function WeekHeatmap({ rows, grid }: { rows: string[]; grid: number[][] }
   const label = (h: number) => `${String(h).padStart(2, "0")}:00`;
 
   return (
-    <div className="min-w-[320px]">
-      <table className="w-full border-separate border-spacing-0.5 text-xs" aria-label="Bookings by weekday and hour">
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[320px] border-separate border-spacing-0.5 text-xs" aria-label="Bookings by weekday and hour">
         <thead>
           <tr>
             <th scope="col" className="w-10" />
