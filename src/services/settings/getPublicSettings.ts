@@ -42,6 +42,8 @@ export type PublicSettings = {
   "hairTryOn.enabled": boolean;
   "signup.enabled": boolean;
   "applications.enabled": boolean;
+  /** Owner Phase 15: customers may pay the whole bill in the app (salons opt in too). */
+  "booking.prepayEnabled"?: boolean;
   "content.announcement": Announcement | null;
   "content.homeChips"?: HomeChip[];
   "content.categoryTiles"?: CategoryTile[];

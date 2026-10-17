@@ -17,6 +17,8 @@ export const bookingAppointment = async (
       counterId: formData.get("counterId")?.toString(),
       slotId: formData.get("slotId")?.toString(),
       notes: formData.get("notes")?.toString() || undefined,
+      // "Pay all now" (owner Phase 15); absent = deposit only.
+      ...(formData.get("payInFull") === "true" ? { payInFull: true } : {}),
     };
 
     const res = await serverFetch.post("/appointments", {

@@ -25,6 +25,7 @@ export const updateSalon = async (
       zipCode: formData.get("zipCode") as string,
       ...(formData.has("depositMinor") && { depositMinor: toMinor(Number(formData.get("depositMinor"))) }),
       ...(formData.has("cancellationWindowMin") && { cancellationWindowMin: Number(formData.get("cancellationWindowMin")) }),
+      ...(formData.has("acceptsPrepay") && { acceptsPrepay: formData.get("acceptsPrepay") === "true" }),
     };
 
     const operatingHours = JSON.parse(

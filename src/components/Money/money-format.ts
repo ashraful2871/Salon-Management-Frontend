@@ -3,6 +3,8 @@ import type { Tone } from "@/lib/status-tone";
 
 export const TYPE_LABEL: Record<TransactionType, string> = {
   booking: "Booking",
+  prepaid: "Paid in app",
+  refund: "Refund",
   no_show: "No-show",
   late_cancel: "Late cancel",
   commission: "Commission",

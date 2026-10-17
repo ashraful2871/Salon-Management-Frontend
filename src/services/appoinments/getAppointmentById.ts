@@ -17,6 +17,8 @@ export type AppointmentDetail = {
   /** Frozen onto the appointment at booking time. Poisha. */
   totalMinor: number;
   depositMinor: number;
+  /** The rest of the bill paid in the app (owner Phase 15). */
+  prepaidMinor?: number;
   depositStatus?: string;
   /** What is still owed at the counter, as the server works it out. Poisha. */
   amountDueMinor?: number | null;

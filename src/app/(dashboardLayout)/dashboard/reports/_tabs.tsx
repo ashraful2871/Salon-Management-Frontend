@@ -32,6 +32,8 @@ const SOURCE_LABELS: Record<string, string> = { PLATFORM: "Found you on SalonKhu
 const SOURCE_COLORS: Record<string, string> = { PLATFORM: "var(--chart-1)", SALON_DIRECT: "var(--chart-2)" };
 const TYPE_LABELS: Record<string, string> = {
   booking: "Deposits applied",
+  prepaid: "Paid in app",
+  refund: "Refunds",
   no_show: "No-show share",
   late_cancel: "Late-cancel fees",
   commission: "Commission",

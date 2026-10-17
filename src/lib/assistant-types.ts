@@ -273,6 +273,14 @@ export type Block =
       holdExpiresAt?: string;
       /** Present when this summary moves an existing booking. */
       reschedule?: RescheduleInfo;
+      /** The salon takes the whole bill in the app (owner Phase 15): "Pay all
+       *  now" uses this token and shortfall instead of the deposit ones. */
+      prepay?: {
+        prepaidMinor: number;
+        payNowMinor: number;
+        shortfallMinor: number;
+        confirmToken?: string;
+      };
     }
   | {
       type: "booking_list";
@@ -316,6 +324,8 @@ export type Block =
       total?: number;
       depositMinor: number;
       deposit?: number;
+      /** Paid in full in the app when > 0 (owner Phase 15). */
+      prepaidMinor?: number;
       dueAtSalonMinor: number;
       dueAtSalon?: number;
       /** ISO instant, or null when the window has already closed. */

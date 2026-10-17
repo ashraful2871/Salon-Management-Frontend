@@ -43,6 +43,8 @@ export type ConfirmedBooking = {
   notes?: string | null;
   totalMinor: number;
   depositMinor: number;
+  /** The rest of the bill paid in the app (owner Phase 15). */
+  prepaidMinor?: number;
   /** The server's figure for what is left to pay; preferred when present. */
   amountDueMinor?: number | null;
   serialNumber?: number | null;
@@ -89,9 +91,11 @@ const Row = ({
 
 const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
   const reference = booking.id.slice(0, 8).toUpperCase();
+  const prepaidMinor = booking.prepaidMinor ?? 0;
+  const paidInFull = prepaidMinor > 0;
   const dueAtSalonMinor =
     booking.amountDueMinor ??
-    Math.max(booking.totalMinor - booking.depositMinor, 0);
+    Math.max(booking.totalMinor - booking.depositMinor - prepaidMinor, 0);
   const hasSerial =
     booking.serialNumber !== null && booking.serialNumber !== undefined;
   // The token is what the counter asks for; the ref is only a fallback so the
@@ -208,10 +212,10 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-muted-foreground">
-                  Deposit held from your wallet
+                  {paidInFull ? "Paid in full from your wallet" : "Deposit held from your wallet"}
                 </span>
                 <span className="font-semibold text-primary tabular-nums">
-                  {formatBDT(booking.depositMinor)}
+                  {formatBDT(booking.depositMinor + prepaidMinor)}
                 </span>
               </div>
               <Separator />
@@ -224,14 +228,17 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
                     </span>{" "}
                     at the salon
                   </>
+                ) : paidInFull ? (
+                  "Paid in full - nothing to pay at the salon"
                 ) : (
                   "Nothing more to pay at the salon"
                 )}
               </p>
               <p className="flex items-start gap-2 rounded-lg bg-surface-subtle p-3 text-xs text-muted-foreground">
                 <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" aria-hidden />
-                The deposit is held, not spent. It comes off your bill when you
-                arrive, and returns to your wallet in full if you cancel in time.
+                {paidInFull
+                  ? "Your payment is held, not spent, until your visit. It returns to your wallet in full if you cancel in time."
+                  : "The deposit is held, not spent. It comes off your bill when you arrive, and returns to your wallet in full if you cancel in time."}
               </p>
             </CardContent>
           </Card>

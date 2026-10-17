@@ -80,9 +80,17 @@ const ChatBookingSummary = ({
   confirmed?: boolean;
 }) => {
   const { close } = useAssistantLauncher();
-  const shortfall = block.wallet?.shortfallMinor ?? 0;
+  // "Pay all now" or "deposit only" when the salon takes full payment.
+  const [payAll, setPayAll] = useState(false);
+  const prepay = block.prepay;
+  const paysAll = Boolean(prepay) && payAll;
+  const shortfall = paysAll
+    ? (prepay?.shortfallMinor ?? 0)
+    : (block.wallet?.shortfallMinor ?? 0);
   const countdown = useHoldCountdown(block.holdExpiresAt);
-  const token = block.confirmToken;
+  const token = paysAll ? prepay?.confirmToken : block.confirmToken;
+  const payNowMinor = paysAll ? block.priceMinor : block.depositMinor;
+  const dueAtSalonMinor = paysAll ? 0 : block.dueAtSalonMinor;
 
   const confirmInChat =
     block.canConfirmInChat && Boolean(onConfirm) && Boolean(token);
@@ -134,16 +142,16 @@ const ChatBookingSummary = ({
           </div>
           <div className="flex justify-between gap-3">
             <dt className="text-muted-foreground">
-              Deposit held from wallet
+              {paysAll ? "Paid now from wallet" : "Deposit held from wallet"}
             </dt>
             <dd className="font-medium text-foreground">
-              {formatBDT(block.depositMinor)}
+              {formatBDT(payNowMinor)}
             </dd>
           </div>
           <div className="flex justify-between gap-3">
             <dt className="text-muted-foreground">Pay at the salon</dt>
             <dd className="font-medium text-foreground">
-              {formatBDT(block.dueAtSalonMinor)}
+              {formatBDT(dueAtSalonMinor)}
             </dd>
           </div>
           {shortfall > 0 && (
@@ -192,6 +200,27 @@ const ChatBookingSummary = ({
           </p>
         )}
 
+        {prepay && !confirmed && (
+          <div
+            className="flex flex-wrap gap-2"
+            role="group"
+            aria-label="How much to pay now"
+          >
+            <Chip
+              label={`Pay ${formatBDT(block.priceMinor)} now`}
+              selected={paysAll}
+              disabled={disabled || confirming}
+              onClick={() => setPayAll(true)}
+            />
+            <Chip
+              label={`Pay ${formatBDT(block.depositMinor)} deposit, rest at the salon`}
+              selected={!paysAll}
+              disabled={disabled || confirming}
+              onClick={() => setPayAll(false)}
+            />
+          </div>
+        )}
+
         <div className="flex flex-col gap-2 sm:flex-row">
           {confirmed ? (
             <Chip
@@ -219,7 +248,9 @@ const ChatBookingSummary = ({
                     ? "Moving…"
                     : "Booking…"
                   : blockedByWallet
-                    ? "Top up to confirm"
+                    ? paysAll
+                      ? "Top up to pay in full"
+                      : "Top up to confirm"
                     : move
                       ? "Move booking"
                       : "Confirm booking"
