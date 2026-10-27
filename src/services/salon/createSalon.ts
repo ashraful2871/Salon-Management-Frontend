@@ -19,6 +19,7 @@ interface CreateSalonPayload {
   state?: string;
   country: string;
   zipCode?: string;
+  audience?: string;
   images: string[];
   operatingHours: Record<string, { open: string; close: string }>;
   latitude?: number;
@@ -44,6 +45,9 @@ export const createSalon = async (
       state: (formData.get("state") as string) || "",
       country: formData.get("country") as string,
       zipCode: (formData.get("zipCode") as string) || "",
+      ...(["UNISEX", "LADIES", "GENTS"].includes(formData.get("audience") as string) && {
+        audience: formData.get("audience") as string,
+      }),
     };
 
     const imagesRaw = formData.get("images") as string;

@@ -12,6 +12,8 @@ import {
   LogIn,
   Mail,
   Menu,
+  Flower2,
+  Scissors,
   Sparkles,
   Store,
   User,
@@ -59,12 +61,16 @@ interface NavbarClientProps {
   accountLoading?: boolean;
 }
 
-const NAV_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
+// `wide`: in the desktop bar only from 2xl; below that the bar has no room
+// for them, so they sit under "More" (and in the phone drawer as usual).
+const NAV_LINKS: { href: string; label: string; icon: LucideIcon; wide?: boolean }[] = [
   { href: "/", label: "Home", icon: Home },
   { href: "/salons", label: "Salons", icon: Store },
+  { href: "/ladies-parlour", label: "Ladies", icon: Flower2 },
+  { href: "/gents-parlour", label: "Gents", icon: Scissors },
   { href: "/ai-suggestions", label: "AI Match", icon: Sparkles },
-  { href: "/about", label: "About", icon: Info },
-  { href: "/contact", label: "Contact", icon: Mail },
+  { href: "/about", label: "About", icon: Info, wide: true },
+  { href: "/contact", label: "Contact", icon: Mail, wide: true },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -263,7 +269,8 @@ const NavbarClient = ({
                   href={link.href}
                   aria-current={isActive(link.href) ? "page" : undefined}
                   className={cn(
-                    "rounded-full px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 xl:px-4",
+                    "rounded-full px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 2xl:px-4",
+                    link.wide && "hidden 2xl:block",
                     isActive(link.href)
                       ? "bg-surface text-foreground shadow-xs"
                       : "text-muted-foreground hover:bg-surface/70 hover:text-foreground",
@@ -272,6 +279,29 @@ const NavbarClient = ({
                   {link.label}
                 </Link>
               ))}
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  className={cn(
+                    "inline-flex cursor-pointer items-center gap-1 rounded-full px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 2xl:hidden",
+                    NAV_LINKS.some((l) => l.wide && isActive(l.href))
+                      ? "bg-surface text-foreground shadow-xs"
+                      : "text-muted-foreground hover:bg-surface/70 hover:text-foreground",
+                  )}
+                >
+                  More
+                  <ChevronDown className="size-4" aria-hidden />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-40">
+                  {NAV_LINKS.filter((l) => l.wide).map((link) => (
+                    <DropdownMenuItem key={link.href} asChild>
+                      <Link href={link.href} className="flex items-center">
+                        <link.icon className="mr-2 size-4" aria-hidden />
+                        {link.label}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Right cluster */}

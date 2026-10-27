@@ -6,6 +6,7 @@ import PageViewTracker from "@/components/Shared/PageViewTracker";
 import { AnnouncementBar } from "@/components/Shared/AnnouncementBar";
 import { ImpersonationBanner } from "@/components/Shared/ImpersonationBanner";
 import AssistantProvider from "@/components/Assistant/AssistantProvider";
+import LocationWelcome from "@/components/Location/LocationWelcome";
 import { getAssistantAccess } from "@/services/assistant/getAssistantAccess";
 
 const CommonLayout = async ({ children }: { children: React.ReactNode }) => {
@@ -40,6 +41,8 @@ const CommonLayout = async ({ children }: { children: React.ReactNode }) => {
           {children}
         </main>
         <Footer />
+        {/* Asks for a location once, on the first visit. */}
+        <LocationWelcome />
       </div>
     </AssistantProvider>
   );

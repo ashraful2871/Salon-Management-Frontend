@@ -41,6 +41,9 @@ export type SalonStatus = "ACTIVE" | "INACTIVE" | "PENDING";
 
 export type LocationAccuracy = "EXACT" | "APPROXIMATE";
 
+/** Ladies parlour, gents parlour, or both. */
+export type SalonAudience = "UNISEX" | "LADIES" | "GENTS";
+
 export type Salon = {
   id: string;
   name: string;
@@ -58,6 +61,7 @@ export type Salon = {
   zipCode?: string;
   images?: string[];
   operatingHours?: OperatingHours;
+  audience?: SalonAudience;
   status?: SalonStatus;
   rating?: number;
   totalReviews?: number;
@@ -434,6 +438,8 @@ export type SalonQuery = {
   radiusKm?: number;
   sort?: "distance" | "rating" | "newest";
   category?: string;
+  /** LADIES / GENTS also return UNISEX salons. */
+  audience?: "LADIES" | "GENTS";
   page?: number;
   limit?: number;
 };

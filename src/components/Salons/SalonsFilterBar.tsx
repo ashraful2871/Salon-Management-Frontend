@@ -36,6 +36,12 @@ const CHIP_SELECTED = "border-transparent bg-foreground text-background";
 
 type Place = { division: string; district: string; area: string };
 
+// Each also lists unisex salons, which serve both.
+const AUDIENCE_OPTIONS = [
+  { value: "LADIES", label: "Ladies" },
+  { value: "GENTS", label: "Gents" },
+] as const;
+
 /**
  * The /salons search, area and service filters. It sticks under the navbar
  * and never waits for the list: every change is a URL navigation, and the
@@ -91,6 +97,11 @@ export default function SalonsFilterBar() {
   const category = searchParams.get("category");
   const setCategory = (value: string | null) => navigate({ category: value });
 
+  const audience = AUDIENCE_OPTIONS.find(
+    (o) => o.value === searchParams.get("audience"),
+  )?.value ?? null;
+  const setAudience = (value: string | null) => navigate({ audience: value });
+
   const clearFilters = () => {
     setSearch("");
     setPlace({ division: "", district: "", area: "" });
@@ -100,6 +111,7 @@ export default function SalonsFilterBar() {
       district: null,
       area: null,
       category: null,
+      audience: null,
     });
   };
 
@@ -110,7 +122,7 @@ export default function SalonsFilterBar() {
   ].filter(Boolean).length;
   const activeFilterCount =
     locationFilterCount +
-    [searchParams.get("searchTerm"), category].filter(Boolean).length;
+    [searchParams.get("searchTerm"), category, audience].filter(Boolean).length;
 
   // Closing the sheet without "Show salons" drops what was picked in it.
   const closeSheet = (apply: boolean) => {
@@ -177,28 +189,56 @@ export default function SalonsFilterBar() {
           />
         </div>
 
-        {/* Row 2: the Filters sheet on phones, then the service chips. */}
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="shrink-0 md:hidden"
-            onClick={() => setFiltersOpen(true)}
-            aria-haspopup="dialog"
-          >
-            <SlidersHorizontal aria-hidden="true" />
-            Filters
-            {locationFilterCount > 0 && (
-              <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">
-                {locationFilterCount}
-              </span>
-            )}
-          </Button>
+        {/* Row 2: the Filters sheet on phones and Ladies / Gents, then the
+            service chips (their own swipeable row on phones). */}
+        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="shrink-0 md:hidden"
+              onClick={() => setFiltersOpen(true)}
+              aria-haspopup="dialog"
+            >
+              <SlidersHorizontal aria-hidden="true" />
+              Filters
+              {locationFilterCount > 0 && (
+                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">
+                  {locationFilterCount}
+                </span>
+              )}
+            </Button>
+
+            <div
+              role="group"
+              aria-label="Ladies or gents"
+              className="inline-flex shrink-0 rounded-full border border-border bg-surface p-1"
+            >
+              {[{ value: null, label: "All" }, ...AUDIENCE_OPTIONS].map((o) => (
+                <button
+                  key={o.label}
+                  type="button"
+                  onClick={() => setAudience(o.value)}
+                  aria-pressed={audience === o.value}
+                  className={cn(
+                    "h-8 cursor-pointer rounded-full px-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:h-9",
+                    audience === o.value
+                      ? "bg-foreground text-background"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+
+            <span aria-hidden="true" className="hidden h-6 w-px shrink-0 bg-border md:block" />
+          </div>
 
           <div
             role="group"
             aria-label="Filter by service"
-            className="-mr-4 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-0.5 pr-4 [scrollbar-width:none] sm:-mr-6 sm:pr-6 md:mr-0 md:flex-wrap md:overflow-visible md:pr-0 [&::-webkit-scrollbar]:hidden"
+            className="-mx-4 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto px-4 py-0.5 [scrollbar-width:none] sm:-mx-6 sm:px-6 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden"
           >
             <button
               type="button"

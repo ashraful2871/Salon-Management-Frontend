@@ -6,6 +6,8 @@ import { TAGS } from "@/lib/cache-tags";
 import type { ApiResponse, Salon } from "@/lib/api-types";
 import { toMinor } from "@/lib/money";
 
+const AUDIENCES = ["UNISEX", "LADIES", "GENTS"];
+
 export const updateSalon = async (
   _currentState: ApiResponse<Salon> | null,
   formData: FormData,
@@ -23,6 +25,9 @@ export const updateSalon = async (
       city: formData.get("city") as string,
       state: formData.get("state") as string,
       zipCode: formData.get("zipCode") as string,
+      ...(AUDIENCES.includes(formData.get("audience") as string) && {
+        audience: formData.get("audience") as string,
+      }),
       ...(formData.has("depositMinor") && { depositMinor: toMinor(Number(formData.get("depositMinor"))) }),
       ...(formData.has("cancellationWindowMin") && { cancellationWindowMin: Number(formData.get("cancellationWindowMin")) }),
       ...(formData.has("acceptsPrepay") && { acceptsPrepay: formData.get("acceptsPrepay") === "true" }),

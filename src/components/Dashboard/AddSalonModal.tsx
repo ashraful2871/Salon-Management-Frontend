@@ -24,7 +24,13 @@ import { searchPlaces } from "@/services/geo/searchPlaces";
 import { toast } from "sonner";
 import { BANGLADESH_LOCATIONS } from "@/constants/bangladesh-locations";
 import LocationPicker from "@/components/Map/LocationPicker";
-import type { ApiResponse, GeoPlace, Salon } from "@/lib/api-types";
+import type {
+  ApiResponse,
+  GeoPlace,
+  Salon,
+  SalonAudience,
+} from "@/lib/api-types";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 /* ---------------- Types ---------------- */
 
@@ -60,8 +66,15 @@ export type AddSalonPayload = {
   state: string;
   country: string;
   zipCode: string;
+  audience: SalonAudience;
   images: string[];
   operatingHours: OperatingHours;
+};
+
+const AUDIENCE_LABEL: Record<SalonAudience, string> = {
+  UNISEX: "Unisex",
+  LADIES: "Ladies parlour",
+  GENTS: "Gents parlour",
 };
 
 const daysOrder: (keyof OperatingHours)[] = [
@@ -108,6 +121,7 @@ const emptyForm = (): AddSalonPayload => ({
   state: "",
   country: "Bangladesh",
   zipCode: "",
+  audience: "UNISEX",
   images: [],
   operatingHours: defaultHours,
 });
@@ -314,6 +328,7 @@ export default function AddSalonModal({
           name="operatingHours"
           value={JSON.stringify(form.operatingHours)}
         />
+        <input type="hidden" name="audience" value={form.audience} />
 
         {/* ---- Basics ---- */}
         <FormSection title="Basics">
@@ -342,6 +357,32 @@ export default function AddSalonModal({
                 placeholder="https://your-salon.com"
               />
             </Field>
+
+            <div className="space-y-2 md:col-span-2">
+              <p id={`${formId}-audience`} className="text-sm font-medium">
+                Who you serve *
+              </p>
+              <ToggleGroup
+                type="single"
+                spacing={2}
+                value={form.audience}
+                onValueChange={(value) => {
+                  if (value) update("audience", value as SalonAudience);
+                }}
+                aria-labelledby={`${formId}-audience`}
+                className="flex flex-wrap gap-2"
+              >
+                {(Object.keys(AUDIENCE_LABEL) as SalonAudience[]).map((a) => (
+                  <ToggleGroupItem
+                    key={a}
+                    value={a}
+                    className="h-9 rounded-full border border-border bg-surface px-4 text-sm font-medium data-[state=on]:border-primary/40 data-[state=on]:bg-primary-soft data-[state=on]:text-primary-hover"
+                  >
+                    {AUDIENCE_LABEL[a]}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </div>
 
             <div className="md:col-span-2">
               <Field label="Description">

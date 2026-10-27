@@ -12,6 +12,7 @@ export const getAllSalon = async (
   if (query?.searchTerm) params.set("searchTerm", query.searchTerm);
   if (query?.city) params.set("city", query.city);
   if (query?.category) params.set("category", query.category);
+  if (query?.audience) params.set("audience", query.audience);
 
   const nearby = query?.lat != null && query?.lng != null;
   if (nearby) {

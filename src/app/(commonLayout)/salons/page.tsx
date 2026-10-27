@@ -28,6 +28,7 @@ export const metadata: Metadata = {
 
 const PAGE_SIZE = 12;
 const SORTS: SalonSort[] = ["distance", "rating", "newest"];
+const AUDIENCES = ["LADIES", "GENTS"] as const;
 
 type Point = { lat: number; lng: number; label?: string };
 
@@ -80,6 +81,7 @@ export default async function SalonsStorePage({
     category: isServiceCategory(resolvedSearchParams.category)
       ? resolvedSearchParams.category
       : undefined,
+    audience: AUDIENCES.find((a) => a === resolvedSearchParams.audience),
     ...(point ? { lat: point.lat, lng: point.lng, radiusKm } : {}),
     sort,
     page,
