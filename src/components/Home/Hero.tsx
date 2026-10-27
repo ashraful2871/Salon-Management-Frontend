@@ -8,6 +8,7 @@ import HeroSearch from "./HeroSearch";
 import NearMeButton from "./NearMeButton";
 import heroImg from "@/assets/hero-salon.jpg";
 import { getPublicSettings } from "@/services/settings/getPublicSettings";
+import { SITE } from "@/lib/site";
 
 // Each one is true today: admin approves every salon, slots are live and
 // prices go through formatBDT. Don't add claims that aren't.
@@ -41,7 +42,7 @@ const Hero = async () => {
 
             <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg lg:mx-0">
               Compare prices, see open slots and book in seconds. Pay from your
-              SalonKhuji wallet.
+              {SITE.name} wallet.
             </p>
 
             <div className="mx-auto mt-8 max-w-xl lg:mx-0">

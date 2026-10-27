@@ -4,6 +4,7 @@ import { CalendarClock, Search, Wallet } from "lucide-react";
 import heroImg from "@/assets/hero-salon.jpg";
 import { FeatureCard } from "../Shared/FeatureCard";
 import { Section, SectionHeader } from "../Shared/Section";
+import { SITE } from "@/lib/site";
 
 // Only claims that are true today: approved salons show up in search, slots
 // come from the salon's own schedule, and customers pay from their wallet.
@@ -24,7 +25,7 @@ const FEATURES = [
     icon: Wallet,
     title: "Paid at booking",
     description:
-      "Customers pay from their SalonKhuji wallet, and you see every booking and your earnings in the dashboard.",
+      `Customers pay from their ${SITE.name} wallet, and you see every booking and your earnings in the dashboard.`,
   },
 ];
 
@@ -37,8 +38,8 @@ const PageFeatures = () => {
     >
       <div>
         <SectionHeader
-          overline="Why SalonKhuji"
-          title="Why partner with SalonKhuji?"
+          overline={`Why ${SITE.name}`}
+          title={`Why partner with ${SITE.name}?`}
           titleId="owner-why-heading"
         />
         <div className="grid gap-4">

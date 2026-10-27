@@ -33,6 +33,7 @@ import z from "zod";
 import { ownerApplyForm } from "@/services/become-a-salone-woner/wonerApplyForm";
 import type { UserRole } from "@/services/auth/auth-utils";
 import { Section, SectionHeader } from "../Shared/Section";
+import { SITE } from "@/lib/site";
 
 function Field({
   label,
@@ -93,7 +94,7 @@ function RoleNotice({ role }: { role?: UserRole }) {
     return (
       <div className={card}>
         <h3 className="font-display text-lg font-semibold text-foreground">
-          You already own a salon on SalonKhuji
+          You already own a salon on {SITE.name}
         </h3>
         <p className="mt-1.5 text-base leading-relaxed text-muted-foreground">
           Manage your salons, services and bookings from your dashboard.

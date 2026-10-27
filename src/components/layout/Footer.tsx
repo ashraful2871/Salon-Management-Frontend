@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import {
   Facebook,
@@ -18,6 +17,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { SITE } from "@/lib/site";
+import { BrandLogo } from "@/components/Shared/BrandLogo";
 
 // Every link here goes to a page that exists. Privacy and Terms join once
 // those pages are written.
@@ -71,17 +71,10 @@ const Footer = () => {
           <div className="md:col-span-4">
             <Link
               href="/"
-              aria-label="SalonKhuji home"
+              aria-label={`${SITE.name} home`}
               className="inline-block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
-              <Image
-                src="/salon-logo.png"
-                alt="SalonKhuji"
-                width={1534}
-                height={326}
-                sizes="160px"
-                className="h-8 w-auto"
-              />
+              <BrandLogo className="text-2xl" />
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
               {SITE.description}
@@ -159,7 +152,7 @@ const Footer = () => {
         </div>
 
         <div className="mt-10 flex flex-col gap-1 border-t border-border pt-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <p>&copy; {year} SalonKhuji</p>
+          <p>&copy; {year} {SITE.name}</p>
           <p>{SITE.tagline}</p>
         </div>
       </div>

@@ -1,7 +1,8 @@
+import { SITE } from "@/lib/site";
 /**
  * The payment methods the checkout offers.
  *
- * Only one is live today: the SalonKhuji Wallet, which is what the booking API
+ * Only one is live today: the site wallet (`SITE.name` Wallet), which is what the booking API
  * actually settles against - `POST /appointments` holds the deposit on the
  * customer's wallet inside the booking transaction and has no notion of any
  * other tender. Everything else here is declared but disabled, so the checkout
@@ -30,7 +31,7 @@ export const WALLET_METHOD_ID = "SALON_WALLET";
 export const PAYMENT_METHODS: PaymentMethod[] = [
   {
     id: WALLET_METHOD_ID,
-    name: "SalonKhuji Wallet",
+    name: `${SITE.name} Wallet`,
     description: "Pay the reservation deposit from your wallet balance",
     detail:
       "The deposit is held, not spent. It comes off your bill when you turn up, and is returned in full if you cancel in time.",
@@ -62,4 +63,4 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
 
 /** The single line shown under the disabled rows. */
 export const COMING_SOON_NOTICE =
-  "Other payment methods are coming soon. For now, bookings are secured with your SalonKhuji Wallet balance.";
+  `Other payment methods are coming soon. For now, bookings are secured with your ${SITE.name} Wallet balance.`;

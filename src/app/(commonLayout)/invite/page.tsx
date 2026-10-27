@@ -6,6 +6,7 @@ import { AcceptTeamInvitationForm } from "@/components/Owner/team/AcceptTeamInvi
 import { previewTeamInvitation } from "@/services/team/previewTeamInvitation";
 import { signOutTo } from "@/services/auth/signOutTo";
 import { ROLE_LABEL } from "@/services/team/team-types";
+import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Team invitation",
@@ -86,7 +87,7 @@ export default async function TeamInvitePage({
             {invite.forYou === null ? (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  Sign in with {invite.maskedEmail} to accept. New to SalonKhuji? Create an account
+                  Sign in with {invite.maskedEmail} to accept. New to {SITE.name}? Create an account
                   with that address; you&apos;ll come back here once it&apos;s verified.
                 </p>
                 <div className="flex flex-col gap-2 sm:flex-row">
@@ -139,7 +140,7 @@ function Notice({
   title,
   children,
   href = "/",
-  cta = "Back to SalonKhuji",
+  cta = `Back to ${SITE.name}`,
 }: {
   title: string;
   children: React.ReactNode;

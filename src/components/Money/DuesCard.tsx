@@ -130,8 +130,8 @@ export function DuesCard({ dues }: { dues: OwnerDues }) {
                 </Button>
               </div>
             )}
-            {bkash?.testMode && (
-              <p className="text-xs text-muted-foreground">bKash sandbox - no real money moves.</p>
+            {methods.some((m) => m.testMode) && (
+              <p className="text-xs text-muted-foreground">Test mode - no real money moves.</p>
             )}
           </>
         )}

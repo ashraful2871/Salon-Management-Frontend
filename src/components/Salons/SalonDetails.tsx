@@ -18,6 +18,8 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import BookAppointmentModal from "./BookAppointmentModal";
+import CustomerOnlyNotice from "./CustomerOnlyNotice";
+import { ResponsiveDialog } from "@/components/Shared/ResponsiveDialog";
 import ReviewModal from "./ReviewModal";
 import SalonLocationCard from "./SalonLocationCard";
 import { getMyAppointments } from "@/services/appoinments/getMyAppointments";
@@ -233,8 +235,17 @@ const SalonDetails = ({
   const bookingPaused = !!salon?.bookingPaused;
   const closures: NonNullable<Salon["upcomingClosures"]> = salon?.upcomingClosures ?? [];
 
+  // Signed in as anything but a customer: say why instead of opening the flow.
+  // Visitors still go through it and are asked to sign in at the review step.
+  const [customerOnlyOpen, setCustomerOnlyOpen] = useState(false);
+  const bookingRoleBlocked = !!viewer?.role && viewer.role !== "CUSTOMER";
+
   const handleBook = (serviceId?: string) => {
     if (bookingPaused) return;
+    if (bookingRoleBlocked) {
+      setCustomerOnlyOpen(true);
+      return;
+    }
     setSelectedServiceId(serviceId);
     setIsBookingModalOpen(true);
   };
@@ -701,6 +712,25 @@ const SalonDetails = ({
         salon={salon}
         initialServiceId={selectedServiceId}
       />
+      {bookingRoleBlocked && (
+        <ResponsiveDialog
+          open={customerOnlyOpen}
+          onOpenChange={setCustomerOnlyOpen}
+          title="Only customer accounts can book"
+          className="sm:max-w-md"
+        >
+          <CustomerOnlyNotice
+            inDialog
+            role={viewer?.role ?? ""}
+            returnTo={`/salons/${salon?.id}`}
+            secondary={
+              <Button variant="outline" onClick={() => setCustomerOnlyOpen(false)}>
+                Close
+              </Button>
+            }
+          />
+        </ResponsiveDialog>
+      )}
       {unreviewedAppointmentId && (
         <ReviewModal
           open={reviewModalOpen}

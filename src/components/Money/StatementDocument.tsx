@@ -10,6 +10,7 @@ import type {
 } from "@/services/owner/statement-types";
 import { PrintButton } from "./PrintButton";
 import { dhakaDate, statementPeriod } from "./statement-format";
+import { SITE } from "@/lib/site";
 
 /**
  * Print rules: A4 portrait, and everything on the page except the document
@@ -118,7 +119,7 @@ function Monthly({ t }: { t: MonthlyTotals }) {
           </tbody>
         </table>
         <p className="text-xs text-muted-foreground">
-          Balance = what SalonKhuji owes the business (negative: dues owed to SalonKhuji). Collected at the
+          Balance = what {SITE.name} owes the business (negative: dues owed to {SITE.name}). Collected at the
           counter this month, not part of the balance: {money(t.counterCollectedMinor)}.
         </p>
       </Section>

@@ -47,6 +47,7 @@ import type {
   AdminUserFilters,
   AdminUserRow,
 } from "@/services/admin/users/types";
+import { SITE } from "@/lib/site";
 
 const ROLES: AccountRole[] = [
   "CUSTOMER",
@@ -231,7 +232,7 @@ function UsersList({ response, filters, permissions }: Props) {
     <div className="min-w-0 space-y-6">
       <PageHeader
         title="Users"
-        description="Every account on SalonKhuji. Contact details are masked here; open a user to see more."
+        description={`Every account on ${SITE.name}. Contact details are masked here; open a user to see more.`}
         actions={
           can(permissions, "finance.export") ? (
             <ExportButton kind="users" includeTest={filters.includeTest === "true"} label="Export" />

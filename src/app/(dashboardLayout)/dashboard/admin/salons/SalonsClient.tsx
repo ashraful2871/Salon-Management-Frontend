@@ -47,6 +47,7 @@ import type {
   AdminSalonRow,
   AdminSalonStatus,
 } from "@/services/admin/salons/types";
+import { SITE } from "@/lib/site";
 
 const ALL = "ALL";
 const ANY = "ANY";
@@ -255,7 +256,7 @@ function SalonsList({ response, filters, permissions, viewerId }: Props) {
     <div className="min-w-0 space-y-6">
       <PageHeader
         title="Salons"
-        description="Every salon on SalonKhuji. Pending salons wait here for review; open one to see the checklist."
+        description={`Every salon on ${SITE.name}. Pending salons wait here for review; open one to see the checklist.`}
       />
 
       <FilterBar

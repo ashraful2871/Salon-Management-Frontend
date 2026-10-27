@@ -13,6 +13,7 @@ import { activateMfa } from "@/services/admin/mfa/activateMfa";
 import { regenerateRecoveryCodes } from "@/services/admin/mfa/regenerateRecoveryCodes";
 import type { AdminMfaState, MfaSetup } from "@/services/admin/types";
 import { RecoveryCodesCard } from "./RecoveryCodesCard";
+import { SITE } from "@/lib/site";
 
 const dateFmt = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" });
 
@@ -169,7 +170,7 @@ export function SecurityClient({
                 <>
                   {" "}
                   It appears as{" "}
-                  <span className="font-medium text-foreground">SalonKhuji ({email})</span>.
+                  <span className="font-medium text-foreground">{SITE.name} ({email})</span>.
                 </>
               ) : null}
             </p>

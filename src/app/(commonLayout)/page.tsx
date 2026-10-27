@@ -8,7 +8,7 @@ import ServiceCategories from "@/components/Home/ServiceCategories";
 import TopRatedSalons, {
   TopRatedSkeleton,
 } from "@/components/Home/TopRatedSalons";
-import WhySalonKhuji from "@/components/Home/WhySalonKhuji";
+import WhyUs from "@/components/Home/WhyUs";
 import RecentReviews from "@/components/Home/RecentReviews";
 import PartnerCtaSection from "@/components/Home/PartnerCtaSection";
 import CtaSection from "@/components/Home/CtaSection";
@@ -25,7 +25,7 @@ export default function Home() {
       </Suspense>
       <HairTryOnSection />
       <HowItWorks />
-      <WhySalonKhuji />
+      <WhyUs />
       {/* Renders nothing below three good reviews, so no skeleton to collapse. */}
       <Suspense fallback={null}>
         <RecentReviews />

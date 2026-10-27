@@ -4,10 +4,11 @@ import type { AdminBookingFilters } from "@/services/admin/bookings/types";
 import { getAdminMe } from "@/services/admin/getAdminMe";
 import { can } from "@/lib/admin-permissions";
 import { BookingsClient } from "./BookingsClient";
+import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Bookings | Admin",
-  description: "Find any booking on SalonKhuji",
+  description: `Find any booking on ${SITE.name}`,
 };
 
 type Search = Record<string, string | string[] | undefined>;

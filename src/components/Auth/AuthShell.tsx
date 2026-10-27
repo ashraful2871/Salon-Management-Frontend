@@ -4,6 +4,7 @@ import Link from "next/link";
 import React from "react";
 
 import heroImage from "@/assets/hero-salon.jpg";
+import { SITE } from "@/lib/site";
 
 type AuthShellProps = {
   title: string;
@@ -25,7 +26,7 @@ const AuthShell = ({ title, subtitle, children }: AuthShellProps) => {
               <Scissors className="w-5 h-5 text-primary" />
             </div>
             <span className="font-display text-2xl font-semibold tracking-tight text-foreground">
-              Salon<span className="text-primary">Khuji</span>
+              {SITE.name}
             </span>
           </Link>
 
@@ -59,7 +60,7 @@ const AuthShell = ({ title, subtitle, children }: AuthShellProps) => {
                 <Scissors className="w-6 h-6 text-primary-soft" />
               </div>
               <span className="font-display text-4xl font-semibold tracking-tight text-white">
-                Salon<span className="text-primary-soft">Khuji</span>
+                {SITE.name}
               </span>
             </div>
 

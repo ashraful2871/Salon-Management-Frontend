@@ -53,6 +53,8 @@ import {
   tabsFor,
   type NavGroup,
 } from "./dashboard-nav";
+import { SITE } from "@/lib/site";
+import { BrandLogo } from "@/components/Shared/BrandLogo";
 
 /** The cookie the layout reads so the sidebar renders collapsed on the server. */
 const SIDEBAR_COOKIE = "sm_sidebar";
@@ -199,27 +201,20 @@ const Logo = ({ collapsed }: { collapsed: boolean }) => (
   <Link
     href="/"
     className={cn("flex min-w-0 items-center gap-2 rounded-lg", FOCUS_RING)}
-    aria-label="SalonKhuji home"
+    aria-label={`${SITE.name} home`}
   >
     {/* sizes is the rendered width, so a 32 px logo doesn't pull a 1920 w file. */}
     {collapsed ? (
       <Image
         src="/favicon.png"
-        alt="SalonKhuji"
+        alt={SITE.name}
         width={476}
         height={315}
         sizes="55px"
         className="h-9 w-auto object-contain"
       />
     ) : (
-      <Image
-        src="/salon-logo.png"
-        alt="SalonKhuji"
-        width={1534}
-        height={326}
-        sizes="151px"
-        className="h-8 w-auto object-contain"
-      />
+      <BrandLogo className="text-2xl" />
     )}
   </Link>
 );

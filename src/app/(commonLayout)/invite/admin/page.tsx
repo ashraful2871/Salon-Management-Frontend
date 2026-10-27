@@ -6,6 +6,7 @@ import { AcceptInvitationForm } from "@/components/Admin/invite/AcceptInvitation
 import { previewInvitation } from "@/services/admin/invitations/previewInvitation";
 import { signOutTo } from "@/services/auth/signOutTo";
 import type { InvitationPreview } from "@/services/admin/types";
+import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Team invitation",
@@ -58,7 +59,7 @@ export default async function AdminInvitePage({
             <div className="space-y-2">
               <ShieldCheck className="h-8 w-8 text-primary" aria-hidden />
               <h1 className="font-display text-title-lg font-semibold tracking-tight">
-                Join the SalonKhuji team
+                Join the {SITE.name} team
               </h1>
               <p className="text-muted-foreground">
                 {invite.inviterName ?? "An admin"} invited{" "}
@@ -129,7 +130,7 @@ function Notice({ title, children }: { title: string; children: React.ReactNode 
       <h1 className="font-display text-title-lg font-semibold tracking-tight">{title}</h1>
       <p className="text-muted-foreground">{children}</p>
       <Button asChild variant="outline" className="rounded-full">
-        <Link href="/">Back to SalonKhuji</Link>
+        <Link href="/">Back to {SITE.name}</Link>
       </Button>
     </div>
   );

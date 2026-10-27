@@ -326,7 +326,7 @@ export default function AddSalonModal({
                 name="name"
                 value={form.name}
                 onChange={(e) => update("name", e.target.value)}
-                placeholder="e.g. SalonKhuji Salon & Spa"
+                placeholder="e.g. Glow Salon & Spa"
               />
             </Field>
 

@@ -1,4 +1,5 @@
 import { formatBDT } from "@/lib/money";
+import { SITE } from "@/lib/site";
 
 /**
  * `.ics` built in the browser rather than fetched: the whole event is already
@@ -28,9 +29,9 @@ export function calendarHref(event: CalendarEvent): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//SalonKhuji//Booking//EN",
+    `PRODID:-//${SITE.name}//Booking//EN`,
     "BEGIN:VEVENT",
-    `UID:${event.id}@salonkhuji`,
+    `UID:${event.id}@${SITE.name.toLowerCase().replace(/[^a-z0-9]+/g, "")}`,
     `DTSTART:${stamp(event.startTime)}`,
     `DTEND:${stamp(event.endTime ?? event.startTime)}`,
     `SUMMARY:${escape(event.title)}`,
