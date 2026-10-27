@@ -15,18 +15,28 @@ import {
 import { NEARBY_RADIUS_KM } from "@/lib/geo";
 import { cn } from "@/lib/utils";
 
-const nearbyUrl = ({ lat, lng }: Pick<SavedLocation, "lat" | "lng">) =>
-  `/salons?lat=${lat}&lng=${lng}&r=${NEARBY_RADIUS_KM}&sort=distance`;
+const nearbyUrl = (
+  { lat, lng }: Pick<SavedLocation, "lat" | "lng">,
+  audience?: "LADIES" | "GENTS",
+) =>
+  `/salons?lat=${lat}&lng=${lng}&r=${NEARBY_RADIUS_KM}&sort=distance${audience ? `&audience=${audience}` : ""}`;
 
 // Hero CTA. Asks for the location only when tapped, then goes straight to the
 // nearby list. If GPS is refused, fails or lands outside Bangladesh, the
 // location dialog takes over with search and areas.
 export default function NearMeButton({
   className,
+  iconClassName = "text-primary",
   size = "lg",
+  label = "Find salons near me",
+  audience,
 }: {
   className?: string;
+  iconClassName?: string;
   size?: "lg" | "xl";
+  label?: string;
+  /** The ladies / gents parlour pages keep their filter on the list. */
+  audience?: "LADIES" | "GENTS";
 }) {
   const router = useRouter();
   const { locate, busy, canAsk } = useLocateAndSave();
@@ -34,14 +44,14 @@ export default function NearMeButton({
 
   const findNearMe = async () => {
     const saved = canAsk ? await locate() : null;
-    if (saved) router.push(nearbyUrl(saved));
+    if (saved) router.push(nearbyUrl(saved, audience));
     else setDialogOpen(true);
   };
 
   // The dialog saved (or cleared) a location; follow through to the list.
   const onDialogDone = () => {
     const saved = parseSavedLocation(readLocationCookie());
-    if (saved) router.push(nearbyUrl(saved));
+    if (saved) router.push(nearbyUrl(saved, audience));
   };
 
   return (
@@ -58,9 +68,9 @@ export default function NearMeButton({
         {busy ? (
           <Loader2 className="size-5 animate-spin" />
         ) : (
-          <LocateFixed className="size-5 text-primary" />
+          <LocateFixed className={cn("size-5", iconClassName)} />
         )}
-        Find salons near me
+        {label}
       </Button>
       <LocationDialog
         open={dialogOpen}

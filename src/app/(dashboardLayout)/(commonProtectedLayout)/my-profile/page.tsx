@@ -4,7 +4,7 @@ import React from "react";
 import MyProfile from "@/components/Dashboard/MyProfile";
 
 export const metadata = {
-  title: "My Profile | SalonKhuji",
+  title: "My Profile",
 };
 
 export default async function CommonProfilePage() {

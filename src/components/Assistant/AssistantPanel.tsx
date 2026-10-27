@@ -76,6 +76,8 @@ const AssistantPanel = ({
   const headingId = useId();
   const isMobile = !useMediaQuery("(min-width: 768px)");
   const reduceMotion = useReducedMotion();
+  // The overlay's breakpoint (`sm`): a floating window from here up.
+  const isDesktop = useMediaQuery("(min-width: 640px)");
 
   const panelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -267,18 +269,24 @@ const AssistantPanel = ({
           "flex shrink-0 items-center gap-3 border-b border-border px-4 py-3 bg-surface z-10",
         )}
       >
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary-soft text-primary-hover">
-          <Sparkles className="h-4.5 w-4.5" aria-hidden />
+        <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
+          <Sparkles className="h-5 w-5" aria-hidden />
+          <span
+            aria-hidden
+            className="absolute -right-0.5 -bottom-0.5 size-3 rounded-full border-2 border-surface bg-success"
+          />
         </span>
         <div className="min-w-0 flex-1">
           <h2
             id={headingId}
-            className="truncate font-display text-base font-semibold text-foreground"
+            className="truncate font-display text-base font-semibold leading-tight text-foreground"
           >
             Salon Assistant
           </h2>
           <p className="truncate text-xs text-muted-foreground">
-            Tap an option or type what you need
+            <span className="font-medium text-success">Online</span>
+            <span aria-hidden> · </span>
+            Find, book and manage salons
           </p>
         </div>
 
@@ -441,13 +449,21 @@ const AssistantPanel = ({
     );
   }
 
+  // Phones: the sheet slides up from the bottom edge. From `sm`: the window
+  // rises a little out of the launcher's corner, like any chat widget.
   const enter = reduceMotion
     ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
-    : {
-        initial: { x: "100%" },
-        animate: { x: 0 },
-        exit: { x: "100%" },
-      };
+    : isDesktop
+      ? {
+          initial: { opacity: 0, y: 16, scale: 0.98 },
+          animate: { opacity: 1, y: 0, scale: 1 },
+          exit: { opacity: 0, y: 16, scale: 0.98 },
+        }
+      : {
+          initial: { y: "100%" },
+          animate: { y: 0 },
+          exit: { y: "100%" },
+        };
 
   return createPortal(
     <div className="fixed inset-0 z-50">
@@ -467,13 +483,15 @@ const AssistantPanel = ({
         aria-labelledby={headingId}
         tabIndex={-1}
         {...enter}
-        transition={{ duration: 0.2 }}
+        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
         drag={false}
+        style={{ transformOrigin: "bottom right" }}
         className={cn(
-          // Full screen on phones; a right-side sheet from `sm`. The safe-area
-          // padding keeps the header and composer clear of notches and the
-          // home indicator.
-          "fixed inset-y-0 right-0 z-[100] flex h-dvh w-full flex-col bg-surface pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] outline-none sm:w-[420px] sm:border-l sm:border-border sm:shadow-card",
+          // Full screen on phones (safe-area padding keeps the header and
+          // composer clear of notches and the home indicator); from `sm` a
+          // floating window in the launcher's corner.
+          "fixed inset-0 z-[100] flex h-dvh w-full flex-col overflow-hidden bg-surface pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] outline-none",
+          "sm:inset-auto sm:right-6 sm:bottom-6 sm:h-[min(720px,calc(100dvh-3rem))] sm:w-[400px] sm:rounded-2xl sm:border sm:border-border sm:pt-0 sm:pb-0 sm:shadow-[0_24px_64px_-12px_rgb(0_0_0/0.35)]",
         )}
       >
         {body}

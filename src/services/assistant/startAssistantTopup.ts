@@ -11,7 +11,8 @@ import {
   assistantHeaders,
   normalizeTurn,
 } from "@/lib/assistant-request";
-import { setCookie } from "@/services/auth/cookiesHandler";
+import { BOOKING_RESUME_COOKIE } from "@/lib/booking-resume";
+import { deleteCookie, setCookie } from "@/services/auth/cookiesHandler";
 
 /**
  * Opens a wallet top-up from the chat and returns the gateway URL. The API
@@ -55,6 +56,7 @@ export const startAssistantTopup = async (
         conversationId,
         CHAT_RESUME_COOKIE_OPTIONS,
       );
+      await deleteCookie(BOOKING_RESUME_COOKIE);
     }
 
     return {

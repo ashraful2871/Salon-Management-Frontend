@@ -11,11 +11,17 @@ export type SiteAddress = {
   position?: [number, number];
 };
 
+/**
+ * The product name everywhere on the site. Change it with
+ * `NEXT_PUBLIC_SITE_NAME` (read at build time) and keep the backend's
+ * `SITE_NAME` the same, so emails and pages agree.
+ */
+const SITE_NAME = process.env.NEXT_PUBLIC_SITE_NAME || "Stylio";
+
 export const SITE = {
-  name: "SalonKhuji",
+  name: SITE_NAME,
   tagline: "Book trusted salons near you",
-  description:
-    "Find salons near you in Bangladesh, compare prices and open slots, and book in seconds. Pay from your SalonKhuji wallet.",
+  description: `Find salons near you in Bangladesh, compare prices and open slots, and book in seconds. Pay from your ${SITE_NAME} wallet.`,
   // `||`, not `??`: an empty env var would otherwise reach `new URL("")`.
   url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
   email: "salonkuji@gmail.com" as string,

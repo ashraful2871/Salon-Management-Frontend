@@ -41,6 +41,9 @@ import {
   WALLET_METHOD_ID,
 } from "@/lib/payment-methods";
 import { bookingAppointment } from "@/services/appoinments/book-appoiments";
+import TopUpModal from "@/components/Wallet/TopUpModal";
+import type { ProviderId } from "@/lib/payment-providers";
+import { SITE } from "@/lib/site";
 
 type SalonInfo = {
   id: string;
@@ -82,6 +85,9 @@ type WalletInfo = {
   loaded: boolean;
 };
 
+/** The smallest top-up the gateways take; the dialog re-checks the live limit. */
+const TOPUP_MIN_TAKA = 100;
+
 type BookingSummaryProps = {
   salon: SalonInfo;
   service: ServiceInfo;
@@ -94,6 +100,11 @@ type BookingSummaryProps = {
   prepayAllowed?: boolean;
   wallet: WalletInfo;
   editHref: string;
+  /** This page's own URL: a top-up opened here comes back to it. */
+  returnHref: string;
+  /** Open the top-up straight away (`?topup=1`, "Try again" after a failed
+   *  payment), with this method preselected when given. */
+  reopenTopup?: { method?: ProviderId };
 };
 
 const METHOD_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
@@ -197,8 +208,15 @@ const BookingSummary = ({
   prepayAllowed = false,
   wallet,
   editHref,
+  returnHref,
+  reopenTopup,
 }: BookingSummaryProps) => {
   const router = useRouter();
+  const [topupOpen, setTopupOpen] = useState(Boolean(reopenTopup));
+  // Drop `?topup=1` from the address bar, so a reload doesn't reopen it.
+  useEffect(() => {
+    if (reopenTopup) window.history.replaceState(null, "", returnHref);
+  }, [reopenTopup, returnHref]);
   const [state, formAction, isPending] = useActionState(
     bookingAppointment,
     null,
@@ -219,7 +237,12 @@ const BookingSummary = ({
   const shortfallMinor = Math.max(payNowMinor - wallet.available, 0);
   const hasShortfall = shortfallMinor > 0;
 
-  const blocker = useMemo(() => {
+  const blocker = useMemo((): {
+    title: string;
+    body: string;
+    /** `topup` opens the top-up here instead of following `href`. */
+    action: { label: string; href: string; topup?: boolean };
+  } | null => {
     if (slot.isTaken)
       return {
         title: "This time has just been taken",
@@ -238,7 +261,11 @@ const BookingSummary = ({
         body: paysInFull
           ? `Paying in full holds ${formatBDT(payNowMinor)}, and your available balance is ${formatBDT(wallet.available)}. Top up and come straight back, or pay only the deposit.`
           : `This booking holds a ${formatBDT(depositMinor)} deposit, and your available balance is ${formatBDT(wallet.available)}. Top up and come straight back.`,
-        action: { label: "Add money to wallet", href: "/dashboard/wallet" },
+        action: {
+          label: `Add ${formatBDT(shortfallMinor)} and continue`,
+          href: "/dashboard/wallet",
+          topup: true,
+        },
       };
     return null;
   }, [
@@ -710,15 +737,27 @@ const BookingSummary = ({
                         <p className="mt-1 text-sm text-warning">
                           {activeBlocker.body}
                         </p>
-                        <Button
-                          asChild
-                          size="sm"
-                          className="mt-3 w-full bg-warning text-white hover:bg-warning/90"
-                        >
-                          <Link href={activeBlocker.action.href}>
+                        {activeBlocker.action.topup ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="mt-3 w-full bg-warning text-white hover:bg-warning/90"
+                            onClick={() => setTopupOpen(true)}
+                          >
+                            <Wallet aria-hidden />
                             {activeBlocker.action.label}
-                          </Link>
-                        </Button>
+                          </Button>
+                        ) : (
+                          <Button
+                            asChild
+                            size="sm"
+                            className="mt-3 w-full bg-warning text-white hover:bg-warning/90"
+                          >
+                            <Link href={activeBlocker.action.href}>
+                              {activeBlocker.action.label}
+                            </Link>
+                          </Button>
+                        )}
                       </div>
                     ) : null}
 
@@ -743,7 +782,7 @@ const BookingSummary = ({
 
                     <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
                       <ShieldCheck className="h-3.5 w-3.5" />
-                      Secured by SalonKhuji. You can cancel free of charge until{" "}
+                      Secured by {SITE.name}. You can cancel free of charge until{" "}
                       {Math.round(salon.cancellationWindowMin / 60)}h before.
                     </p>
                   </CardContent>
@@ -768,16 +807,30 @@ const BookingSummary = ({
             className="fixed inset-x-0 bottom-0 z-30 lg:hidden border-t bg-surface/95 pb-[env(safe-area-inset-bottom)]"
           >
             <div className="container mx-auto px-4 py-3">
-              {activeBlocker && (
-                <Link
-                  href={activeBlocker.action.href}
-                  className="mb-2 flex items-center gap-1.5 text-sm font-medium text-warning"
-                >
-                  <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
-                  <span className="truncate">{activeBlocker.title}</span>
-                  <ChevronRight className="ml-auto h-4 w-4 shrink-0" aria-hidden />
-                </Link>
-              )}
+              {activeBlocker &&
+                (activeBlocker.action.topup ? (
+                  <button
+                    type="button"
+                    onClick={() => setTopupOpen(true)}
+                    className="mb-2 flex w-full items-center gap-1.5 text-left text-sm font-medium text-warning"
+                  >
+                    <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
+                    <span className="truncate">{activeBlocker.title}</span>
+                    <span className="ml-auto flex shrink-0 items-center gap-0.5 underline-offset-4">
+                      Add money
+                      <ChevronRight className="h-4 w-4" aria-hidden />
+                    </span>
+                  </button>
+                ) : (
+                  <Link
+                    href={activeBlocker.action.href}
+                    className="mb-2 flex items-center gap-1.5 text-sm font-medium text-warning"
+                  >
+                    <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
+                    <span className="truncate">{activeBlocker.title}</span>
+                    <ChevronRight className="ml-auto h-4 w-4 shrink-0" aria-hidden />
+                  </Link>
+                ))}
               <div className="flex items-center justify-between gap-4">
                 <div className="shrink-0">
                   <p className="text-xs text-muted-foreground">
@@ -800,6 +853,16 @@ const BookingSummary = ({
           </div>
         </form>
       </div>
+
+      {/* Outside the form, so nothing in it can submit the booking. Starts
+          at what is missing (whole taka, at least the gateway minimum). */}
+      <TopUpModal
+        open={topupOpen}
+        setOpen={setTopupOpen}
+        initialMethod={reopenTopup?.method}
+        defaultAmount={Math.max(Math.ceil(shortfallMinor / 100), TOPUP_MIN_TAKA)}
+        returnTo={returnHref}
+      />
     </div>
   );
 };

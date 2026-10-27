@@ -16,6 +16,7 @@ import {
   getPublicSettings,
   type FeaturedSalon,
 } from "@/services/settings/getPublicSettings";
+import { SITE } from "@/lib/site";
 
 // Too few to fill a row reads as broken, so below this the section is left out.
 const MIN_CARDS = 3;
@@ -77,7 +78,7 @@ export default async function TopRatedSalons() {
     const newest = await getAllSalon({ sort: "newest", limit: LIMIT });
     if (!newest.success) return null;
     cards = (newest.data ?? []).map(toSalonCardData);
-    header = { overline: "Just joined", title: "New on SalonKhuji", href: "/salons" };
+    header = { overline: "Just joined", title: `New on ${SITE.name}`, href: "/salons" };
   }
 
   if (cards.length < MIN_CARDS) return null;

@@ -33,6 +33,7 @@ import {
   type ProviderId,
 } from "@/lib/payment-providers";
 import { TONE_CLASSES, type Tone } from "@/lib/status-tone";
+import { bookingTopupHref } from "@/lib/booking-resume";
 import { cn } from "@/lib/utils";
 
 /** What the gateway sent the customer back to. */
@@ -127,16 +128,24 @@ const MonoValue = ({ value, label }: { value: string; label: string }) => (
   </>
 );
 
+/** Seconds on the success screen before it returns to the booking. */
+const RESUME_BOOKING_SECONDS = 3;
+
 export default function PaymentResult({
   outcome,
   transactionId,
   resumeChat = false,
+  resumeBooking = null,
 }: {
   outcome: Outcome;
   transactionId?: string;
   /** The top-up was started from the booking chat (`sm_chat_resume` is set):
    *  lead back there, where the booking finishes. */
   resumeChat?: boolean;
+  /** The booking review page the top-up was started from
+   *  (`sm_booking_resume`): success returns there on its own, a retry reopens
+   *  the top-up there. */
+  resumeBooking?: string | null;
 }) {
   const router = useRouter();
   const [intent, setIntent] = useState<TopupStatus | null>(null);
@@ -151,6 +160,10 @@ export default function PaymentResult({
   );
   // Bumping this re-runs the poll, which is what "Check again" does.
   const [attempt, setAttempt] = useState(0);
+  // Seconds left before returning to the booking; null = not counting. Started
+  // only on the ledger's "success" - never on the gateway's word alone - so
+  // the booking page it lands on already shows the new balance.
+  const [countdown, setCountdown] = useState<number | null>(null);
   // Where "Try another method" points: the gateway this attempt did not use.
   const otherProvider: ProviderId | null =
     intent?.provider === "BKASH"
@@ -181,6 +194,7 @@ export default function PaymentResult({
             // The dashboard shell is server-rendered, so it only picks the
             // top-up up when the route re-renders.
             router.refresh();
+            if (resumeBooking) setCountdown(RESUME_BOOKING_SECONDS);
           }
           return;
         }
@@ -207,16 +221,32 @@ export default function PaymentResult({
       stopped = true;
       if (timer) clearTimeout(timer);
     };
-  }, [transactionId, outcome, attempt, router]);
+  }, [transactionId, outcome, attempt, router, resumeBooking]);
 
   const checkAgain = useCallback(() => {
     setView("verifying");
     setAttempt((n) => n + 1);
   }, []);
 
+  useEffect(() => {
+    if (countdown === null || !resumeBooking) return;
+    if (countdown <= 0) {
+      router.replace(resumeBooking);
+      return;
+    }
+    const t = setTimeout(() => setCountdown((n) => (n === null ? null : n - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [countdown, resumeBooking, router]);
+
   const shown = VIEWS[view];
   const paidAt = intent?.completedAt ?? intent?.createdAt;
   const retry = view === "failed" || view === "cancelled";
+  // Where "Try again" / "Pay with … instead" open the top-up: on the booking
+  // page when it came from there, else on the wallet.
+  const retryHref = (method?: ProviderId | null) =>
+    resumeBooking
+      ? bookingTopupHref(resumeBooking, method)
+      : `/dashboard/wallet?add=1${method ? `&method=${method}` : ""}`;
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-6 py-2 sm:py-6">
@@ -309,10 +339,33 @@ export default function PaymentResult({
           </Button>
         ) : retry ? (
           <Button asChild className="w-full">
-            <Link href="/dashboard/wallet?add=1">
+            <Link href={retryHref(intent?.provider as ProviderId | undefined)}>
               <RotateCcw /> Try again
             </Link>
           </Button>
+        ) : resumeBooking ? (
+          <>
+            <Button asChild className="w-full">
+              <Link href={resumeBooking} replace>
+                <CalendarCheck /> Continue booking
+              </Link>
+            </Button>
+            {countdown !== null && (
+              <p
+                className="text-center text-xs text-muted-foreground"
+                aria-live="polite"
+              >
+                Taking you back to your booking in {Math.max(countdown, 0)}s ·{" "}
+                <button
+                  type="button"
+                  className="font-medium text-foreground underline-offset-4 hover:underline"
+                  onClick={() => setCountdown(null)}
+                >
+                  Stay here
+                </button>
+              </p>
+            )}
+          </>
         ) : resumeChat ? (
           <Button asChild className="w-full">
             <Link href="/assistant?resume=1">
@@ -329,14 +382,19 @@ export default function PaymentResult({
 
         {retry && otherProvider && (
           <Button asChild variant="outline" className="w-full">
-            <Link href={`/dashboard/wallet?add=1&method=${otherProvider}`}>
+            <Link href={retryHref(otherProvider)}>
               <ArrowLeftRight /> Pay with {providerLabel(otherProvider)} instead
             </Link>
           </Button>
         )}
 
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
-          {(view === "unresolved" || retry || resumeChat) && (
+          {resumeBooking && (view === "unresolved" || retry) && (
+            <Button asChild variant="link">
+              <Link href={resumeBooking}>Back to your booking</Link>
+            </Button>
+          )}
+          {(view === "unresolved" || retry || resumeChat || resumeBooking) && (
             <Button asChild variant="link">
               <Link href="/dashboard/wallet">Back to wallet</Link>
             </Button>

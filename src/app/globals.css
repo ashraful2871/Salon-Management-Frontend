@@ -234,6 +234,18 @@
   }
 }
 
+/* One ask at a time: the chat greeting waits for the first-visit location
+   card, and on phones (where the card takes the bottom edge) so does the chat
+   button. */
+:root:has([data-location-prompt]) [data-chat-greeting] {
+  display: none;
+}
+@media (width < 40rem) {
+  :root:has([data-location-prompt]) [data-chat-launcher] {
+    display: none;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

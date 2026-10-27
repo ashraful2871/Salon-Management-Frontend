@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import BookingSummary from "@/components/Salons/BookingSummary";
+import CustomerOnlyNotice from "@/components/Salons/CustomerOnlyNotice";
 import { Button } from "@/components/ui/button";
 import { getSingleSalon } from "@/services/salon/getSingleSalon";
 import { getSlots } from "@/services/slots/slot-api";
@@ -10,6 +11,10 @@ import { getMyWallet } from "@/services/wallet/getMyWallet";
 import { getPublicSettings } from "@/services/settings/getPublicSettings";
 import { getUserRoles } from "@/services/get-roles/getUserRoles";
 import { resolveDepositMinor } from "@/lib/deposit";
+import type { ProviderId } from "@/lib/payment-providers";
+
+const isProviderId = (value: string | undefined): value is ProviderId =>
+  value === "BKASH" || value === "SSLCOMMERZ";
 
 export const metadata = {
   title: "Review your booking",
@@ -69,6 +74,8 @@ const BookingSummaryPage = async ({
   const date = one(query.date);
   const staffId = one(query.staff);
   const notes = one(query.notes) || "";
+  // Set by the payment result's "Try again": reopen the top-up here.
+  const topupMethod = one(query.method);
 
   // Rebuild the URL we are standing on so login can send the customer straight
   // back to their half-finished booking.
@@ -84,6 +91,24 @@ const BookingSummaryPage = async ({
   const role = await getUserRoles();
   if (!role) {
     redirect(`/login?redirect=${encodeURIComponent(selfHref)}`);
+  }
+
+  // Owners, staff, admins and agents cannot book (the API refuses them with
+  // CUSTOMER_ONLY); say so before they fill anything in.
+  if (role !== "CUSTOMER") {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center px-4">
+        <CustomerOnlyNotice
+          role={role}
+          returnTo={selfHref}
+          secondary={
+            <Button variant="outline" asChild>
+              <Link href={`/salons/${id}`}>Back to the salon</Link>
+            </Button>
+          }
+        />
+      </div>
+    );
   }
 
   if (!serviceId || !counterId || !slotId || !date) {
@@ -217,6 +242,12 @@ const BookingSummaryPage = async ({
         loaded: Boolean(wallet),
       }}
       editHref={`/salons/${id}`}
+      returnHref={selfHref}
+      reopenTopup={
+        one(query.topup) === "1"
+          ? { method: isProviderId(topupMethod) ? topupMethod : undefined }
+          : undefined
+      }
     />
   );
 };

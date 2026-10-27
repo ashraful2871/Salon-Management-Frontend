@@ -24,11 +24,12 @@ import type {
   UtilisationReport,
 } from "@/services/owner/report-types";
 import { TrendLine, VolumeBars } from "./_charts";
+import { SITE } from "@/lib/site";
 
 export type TabProps<T> = { data: T; filters: ReportFilters; csv: string; compare: { from: string; to: string } | null };
 
 const CHANNEL_LABELS: Record<string, string> = { WEB: "Web", ASSISTANT: "Assistant", WALK_IN: "Walk-in" };
-const SOURCE_LABELS: Record<string, string> = { PLATFORM: "Found you on SalonKhuji", SALON_DIRECT: "Your own customers" };
+const SOURCE_LABELS: Record<string, string> = { PLATFORM: `Found you on ${SITE.name}`, SALON_DIRECT: "Your own customers" };
 const SOURCE_COLORS: Record<string, string> = { PLATFORM: "var(--chart-1)", SALON_DIRECT: "var(--chart-2)" };
 const TYPE_LABELS: Record<string, string> = {
   booking: "Deposits applied",
@@ -557,7 +558,7 @@ export function DiscoveryTab({ data, csv }: TabProps<DiscoveryReport>) {
       <div className="grid gap-4 lg:grid-cols-2">
         <ChartCard
           title="Who books"
-          definition="Customers who found you through SalonKhuji, against your own customers (no commission on those)."
+          definition={`Customers who found you through ${SITE.name}, against your own customers (no commission on those).`}
           chart={<StackedShare label="Bookings by source" parts={data.sources} labels={SOURCE_LABELS} colors={SOURCE_COLORS} />}
           table={shareTable(data.sources, SOURCE_LABELS, "Source")}
         />
@@ -640,7 +641,7 @@ export function MoneyTab({ data, csv }: TabProps<MoneyReport>) {
         />
         <ChartCard
           title="Platform balance movements"
-          definition="What moved your SalonKhuji balance, by type. Commission and goodwill are negative."
+          definition={`What moved your ${SITE.name} balance, by type. Commission and goodwill are negative.`}
           table={
             <DataTable<MoneyReport["platformByType"][number]>
               caption="Balance movements"

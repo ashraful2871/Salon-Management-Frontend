@@ -32,7 +32,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { OperatingHours, Salon, StaffMember } from "@/lib/api-types";
+import type {
+  OperatingHours,
+  Salon,
+  SalonAudience,
+  StaffMember,
+} from "@/lib/api-types";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { formatRating } from "@/lib/rating";
 import { updateSalon } from "@/services/salon/updateSalon";
 import { deleteStaff } from "@/services/staff/deleteStaff";
@@ -100,13 +106,22 @@ const DETAIL_KEYS = [
   "city",
   "state",
   "zipCode",
+  "audience",
 ] as const;
 type Details = Record<(typeof DETAIL_KEYS)[number], string>;
 
-const pickDetails = (salon: Partial<ManagedSalon>): Details =>
-  Object.fromEntries(
+const pickDetails = (salon: Partial<ManagedSalon>): Details => ({
+  ...(Object.fromEntries(
     DETAIL_KEYS.map((key) => [key, String(salon[key] ?? "")]),
-  ) as Details;
+  ) as Details),
+  audience: salon.audience ?? "UNISEX",
+});
+
+const AUDIENCE_LABEL: Record<SalonAudience, string> = {
+  UNISEX: "Unisex",
+  LADIES: "Ladies parlour",
+  GENTS: "Gents parlour",
+};
 
 // Days in week order and nothing but open/close, so two copies compare equal.
 const pickHours = (hours?: OperatingHours | null): OperatingHours => {
@@ -445,6 +460,37 @@ export default function ManageSalon({
                         placeholder="https://..."
                       />
                     </FormField>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label id={field("audience")}>Who you serve</Label>
+                      <ToggleGroup
+                        type="single"
+                        spacing={2}
+                        value={details.audience}
+                        onValueChange={(value) => {
+                          if (value) setDetail("audience", value);
+                        }}
+                        aria-labelledby={field("audience")}
+                        aria-describedby={`${field("audience")}-hint`}
+                        className="flex flex-wrap gap-2"
+                      >
+                        {(Object.keys(AUDIENCE_LABEL) as SalonAudience[]).map((a) => (
+                          <ToggleGroupItem
+                            key={a}
+                            value={a}
+                            className="h-9 rounded-full border border-border bg-surface px-4 text-sm font-medium data-[state=on]:border-primary/40 data-[state=on]:bg-primary-soft data-[state=on]:text-primary-hover"
+                          >
+                            {AUDIENCE_LABEL[a]}
+                          </ToggleGroupItem>
+                        ))}
+                      </ToggleGroup>
+                      <p
+                        id={`${field("audience")}-hint`}
+                        className="text-xs text-muted-foreground"
+                      >
+                        Customers browsing ladies or gents parlours find you
+                        here. Unisex salons show up in both.
+                      </p>
+                    </div>
                     <FormField
                       id={field("description")}
                       label="Description"

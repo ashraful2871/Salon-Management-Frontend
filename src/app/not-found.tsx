@@ -1,6 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { SITE } from "@/lib/site";
+import { BrandLogo } from "@/components/Shared/BrandLogo";
 
 // Renders outside the public layout (no navbar), so it brings its own way home.
 export default function NotFound() {
@@ -9,17 +10,10 @@ export default function NotFound() {
       <div className="w-full max-w-md text-center">
         <Link
           href="/"
-          aria-label="SalonKhuji home"
+          aria-label={`${SITE.name} home`}
           className="inline-block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
-          <Image
-            src="/salon-logo.png"
-            alt="SalonKhuji"
-            width={1534}
-            height={326}
-            sizes="160px"
-            className="h-8 w-auto"
-          />
+          <BrandLogo className="text-2xl" />
         </Link>
         <p className="mt-10 text-overline font-semibold uppercase tracking-[0.06em] text-primary">
           404

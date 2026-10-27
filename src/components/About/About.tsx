@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { FeatureCard } from "@/components/Shared/FeatureCard";
 import { PublicPageHero } from "@/components/Shared/PublicPageHero";
 import { Section, SectionHeader } from "@/components/Shared/Section";
+import { SITE } from "@/lib/site";
 
 const HOW_IT_WORKS = [
   {
@@ -72,7 +73,7 @@ export default function About() {
   return (
     <>
       <PublicPageHero
-        overline="About SalonKhuji"
+        overline={`About ${SITE.name}`}
         title="Making salon booking simple in Bangladesh"
         description="Find a salon near you, see real prices and open slots, and book without a phone call. For salons, one place to take bookings and run the day."
         actions={
@@ -101,7 +102,7 @@ export default function About() {
           <div className="max-w-2xl space-y-4 text-base leading-relaxed text-muted-foreground">
             <p>
               Booking a salon usually means calling around and hoping
-              there&apos;s a free chair when you arrive. SalonKhuji shows
+              there&apos;s a free chair when you arrive. {SITE.name} shows
               what&apos;s open, what it costs and how far it is, before you
               leave home.
             </p>
@@ -178,7 +179,7 @@ export default function About() {
         <SectionHeader
           align="center"
           overline="Our team"
-          title="The people behind SalonKhuji"
+          title={`The people behind ${SITE.name}`}
           titleId="team-heading"
         />
         <ul className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">

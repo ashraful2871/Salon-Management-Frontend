@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { verifyTwoFactor } from "@/services/auth/verifyTwoFactor";
 import TotpCodeInput from "./TotpCodeInput";
+import { SITE } from "@/lib/site";
 
 /**
  * The second step of an admin or agent sign-in: a 6-digit code from the
@@ -35,7 +36,7 @@ export default function TwoFactorStep({ onBack }: { onBack?: () => void }) {
         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
         <p className="text-sm text-muted-foreground">
           {mode === "code"
-            ? "Open your authenticator app and enter the 6-digit code for SalonKhuji."
+            ? `Open your authenticator app and enter the 6-digit code for ${SITE.name}.`
             : "Enter one of the recovery codes you saved when you set up two-factor sign-in. Each code works once."}
         </p>
       </div>

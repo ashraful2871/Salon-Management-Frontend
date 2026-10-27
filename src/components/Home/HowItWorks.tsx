@@ -5,6 +5,7 @@ import { Button } from "../ui/button";
 import { IconTile } from "../Shared/FeatureCard";
 import { Section, SectionHeader } from "../Shared/Section";
 import { NEARBY_RADIUS_KM } from "@/lib/geo";
+import { SITE } from "@/lib/site";
 
 const STEPS = [
   {
@@ -20,7 +21,7 @@ const STEPS = [
   {
     icon: Ticket,
     title: "Pay and get your token",
-    body: "Pay from your SalonKhuji wallet and show your booking token at the salon.",
+    body: `Pay from your ${SITE.name} wallet and show your booking token at the salon.`,
   },
 ];
 

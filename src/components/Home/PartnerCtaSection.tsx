@@ -3,6 +3,7 @@ import { CalendarCheck, ChartColumn, Users } from "lucide-react";
 
 import { Button } from "../ui/button";
 import { Section, SectionHeader } from "../Shared/Section";
+import { SITE } from "@/lib/site";
 
 const PERKS = [
   { icon: CalendarCheck, label: "Online bookings with live slots" },
@@ -21,7 +22,7 @@ const PartnerCtaSection = () => {
         <SectionHeader
           tone="dark"
           overline="For salon owners"
-          title="Fill your chairs with SalonKhuji"
+          title={`Fill your chairs with ${SITE.name}`}
           titleId="owners-heading"
           description="Take bookings with live slots, run today's queue at the counter, and see your earnings in one dashboard."
         />

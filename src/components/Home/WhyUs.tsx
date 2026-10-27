@@ -4,6 +4,7 @@ import { CalendarClock, ShieldCheck, Sparkles, Ticket, Wallet } from "lucide-rea
 import { Button } from "../ui/button";
 import { FeatureCard, IconTile } from "../Shared/FeatureCard";
 import { Section, SectionHeader } from "../Shared/Section";
+import { SITE } from "@/lib/site";
 
 // Every claim here is something the product does today; add one only when it ships.
 const REASONS = [
@@ -29,11 +30,11 @@ const REASONS = [
   },
 ] as const;
 
-export default function WhySalonKhuji() {
+export default function WhyUs() {
   return (
     <Section tone="subtle" labelledBy="why-heading">
       <SectionHeader
-        overline="Why SalonKhuji"
+        overline={`Why ${SITE.name}`}
         title="Booking a salon, without the phone calls"
         titleId="why-heading"
       />

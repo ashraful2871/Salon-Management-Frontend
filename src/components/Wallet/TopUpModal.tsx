@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useId, useState, useTransition } from "react";
+import { FlaskConical, Lock } from "lucide-react";
 import { ResponsiveDialog } from "@/components/Shared/ResponsiveDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ import {
   type ProviderId,
 } from "@/lib/payment-providers";
 import { formatBDT, toMinor } from "@/lib/money";
+import { cn } from "@/lib/utils";
 
 const PRESET_AMOUNTS = [200, 500, 1000, 2000];
 /** Used only if the backend's method omits its limits. */
@@ -49,13 +51,28 @@ export default function TopUpModal({
   open,
   setOpen,
   initialMethod,
+  defaultAmount,
+  returnTo,
 }: {
   open: boolean;
   setOpen: (val: boolean) => void;
   /** Preselects this method if it is switched on ("Try another method"). */
   initialMethod?: ProviderId;
+  /** Taka to start from on each open, e.g. what a booking is short by. */
+  defaultAmount?: number;
+  /** The booking review page this was opened from; the result page leads back. */
+  returnTo?: string;
 }) {
-  const [amount, setAmount] = useState<string>("500");
+  const [amount, setAmount] = useState<string>(
+    defaultAmount ? String(defaultAmount) : "500"
+  );
+  // Each open starts from the caller's amount again (it can change while the
+  // dialog is closed, e.g. switching between deposit and paying in full).
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open && defaultAmount) setAmount(String(defaultAmount));
+  }
   const [isPending, startTransition] = useTransition();
   const [methodsState, setMethodsState] = useState<MethodsState>({
     status: "loading",
@@ -126,7 +143,7 @@ export default function TopUpModal({
     const provider = selected.id;
     startTransition(async () => {
       saveMethod(provider);
-      const res = await initiateTopup(val, provider);
+      const res = await initiateTopup(val, provider, returnTo);
       if (res.success && res.data?.redirectUrl) {
         window.location.href = res.data.redirectUrl;
       } else {
@@ -140,7 +157,11 @@ export default function TopUpModal({
       open={open}
       onOpenChange={(val) => !isPending && handleOpenChange(val)}
       title="Top up your wallet"
-      description="Book instantly from your balance, with no gateway on the way."
+      description={
+        returnTo
+          ? "Once it's paid, you come straight back here to confirm your booking."
+          : "Book instantly from your balance, with no gateway on the way."
+      }
       className="sm:max-w-[440px]"
       footer={
         <>
@@ -165,52 +186,68 @@ export default function TopUpModal({
         </>
       }
     >
-      <div className="min-w-0 space-y-5">
-        <div
-          className="grid grid-cols-4 gap-2"
-          role="group"
-          aria-label="Quick amounts"
-        >
-          {PRESET_AMOUNTS.map((amt) => (
-            <Button
-              key={amt}
-              type="button"
-              variant={amount === amt.toString() ? "default" : "outline"}
-              aria-pressed={amount === amt.toString()}
-              className="px-0 tabular-nums"
-              onClick={() => setAmount(amt.toString())}
+      <div className="min-w-0 space-y-6">
+        <div className="space-y-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <label htmlFor={amountId} className="text-sm font-semibold text-charcoal">
+              Amount
+            </label>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {formatBDT(toMinor(min))} – {formatBDT(toMinor(max))}
+            </span>
+          </div>
+
+          <div className="relative">
+            <span
+              className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-xl font-semibold text-muted-foreground"
+              aria-hidden
             >
-              ৳{amt}
-            </Button>
-          ))}
+              ৳
+            </span>
+            <Input
+              id={amountId}
+              type="number"
+              inputMode="numeric"
+              min={min}
+              max={max}
+              placeholder="0"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="h-14 rounded-xl pl-10 text-2xl font-semibold tabular-nums [appearance:textfield] md:text-2xl [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Quick amounts">
+            {PRESET_AMOUNTS.map((amt) => {
+              const active = amount === amt.toString();
+              return (
+                <button
+                  key={amt}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setAmount(amt.toString())}
+                  className={cn(
+                    "h-8 rounded-full border px-3.5 text-[13px] font-medium tabular-nums transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    active
+                      ? "border-primary bg-primary-soft text-primary"
+                      : "border-border text-muted-foreground hover:border-foreground/25 hover:text-foreground"
+                  )}
+                >
+                  {formatBDT(toMinor(amt))}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <label htmlFor={amountId} className="text-sm font-medium">
-            Amount (৳)
-          </label>
-          <Input
-            id={amountId}
-            type="number"
-            inputMode="numeric"
-            min={min}
-            max={max}
-            placeholder="e.g. 1500"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-          />
-          <p className="text-xs text-muted-foreground tabular-nums">
-            {formatBDT(toMinor(min))} to {formatBDT(toMinor(max))}
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Pay with</p>
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-charcoal">Payment method</p>
 
           {methodsState.status === "loading" && (
-            <div className="grid gap-2" aria-busy="true">
-              <Skeleton className="h-[66px] w-full rounded-lg" />
-              <Skeleton className="h-[66px] w-full rounded-lg" />
+            <div className="grid grid-cols-2 gap-3" aria-busy="true">
+              <Skeleton className="h-[72px] w-full rounded-xl" />
+              <Skeleton className="h-[72px] w-full rounded-xl" />
             </div>
           )}
 
@@ -229,28 +266,25 @@ export default function TopUpModal({
                 disabled={isPending}
               />
 
-              {selected?.id === "BKASH" && (
-                <p className="text-xs text-muted-foreground">
-                  You&apos;ll go to bKash to approve {amountLabel || "the amount"}.
-                  Your wallet is credited as soon as bKash confirms.
-                </p>
-              )}
-              {selected?.id === "SSLCOMMERZ" && (
-                <p className="text-xs text-muted-foreground">
-                  You&apos;ll go to SSLCommerz to pay by card, Nagad, Rocket and more.
-                </p>
-              )}
-
               {selected?.testMode && (
-                <p className="text-[11px] leading-snug text-muted-foreground/80">
-                  {selected.id === "BKASH"
-                    ? "Test mode: no real money moves. Use test wallet 01770618575, OTP 123456, PIN 12121."
-                    : "Test mode: use SSLCommerz test cards."}
-                </p>
+                <div className="flex gap-2.5 rounded-xl border border-warning/25 bg-warning-soft/70 px-3 py-2.5 text-xs leading-relaxed text-warning">
+                  <FlaskConical className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
+                  <p>
+                    <span className="font-semibold">Test mode</span> · no real money moves.{" "}
+                    {selected.id === "BKASH"
+                      ? "Wallet 01770618575, OTP 123456, PIN 12121."
+                      : "Use SSLCommerz test cards."}
+                  </p>
+                </div>
               )}
             </>
           )}
         </div>
+
+        <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
+          <Lock className="h-3 w-3" aria-hidden />
+          Secure checkout · we never see your PIN or card number
+        </p>
       </div>
     </ResponsiveDialog>
   );

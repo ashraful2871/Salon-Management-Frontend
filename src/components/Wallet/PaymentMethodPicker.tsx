@@ -1,48 +1,46 @@
 "use client";
 
 import React, { useRef } from "react";
-import { CreditCard } from "lucide-react";
+import Image from "next/image";
+import { Check } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { BKASH_PINK, type ProviderId } from "@/lib/payment-providers";
+import type { ProviderId } from "@/lib/payment-providers";
 import type { PaymentMethodOption } from "@/services/payments/getPaymentMethods";
 
 /**
- * Stand-in for the bKash logo. The official artwork, once we have it, goes at
- * `public/payments/bkash.svg` and replaces this tile.
+ * The gateways' own artwork, trimmed to the mark (`public/payments/`, cut from
+ * the full-size files in `public/`). The heights are optical, not equal: the
+ * squarish bKash mark and the wide SSLCommerz wordmark read the same size at
+ * these. Display only: which gateways are on comes from `GET /payments/methods`.
  */
-const BkashMark = ({ compact }: { compact?: boolean }) => (
-  <span
-    className={cn(
-      "flex shrink-0 items-center justify-center rounded-md font-bold tracking-tight text-white",
-      compact ? "h-8 w-11 text-[11px]" : "h-10 w-14 text-sm",
-    )}
-    style={{ backgroundColor: BKASH_PINK }}
-    aria-hidden
-  >
-    bKash
-  </span>
-);
-
-const CardMark = ({ compact }: { compact?: boolean }) => (
-  <span
-    className={cn(
-      "flex shrink-0 items-center justify-center rounded-md bg-muted text-charcoal",
-      compact ? "h-8 w-11" : "h-10 w-14",
-    )}
-    aria-hidden
-  >
-    <CreditCard className={compact ? "h-4 w-4" : "h-5 w-5"} />
-  </span>
-);
+const GATEWAYS: Record<
+  ProviderId,
+  { logo: string; width: number; height: number; size: string; compactSize: string }
+> = {
+  BKASH: {
+    logo: "/payments/bkash.png",
+    width: 350,
+    height: 160,
+    size: "h-10",
+    compactSize: "h-7",
+  },
+  SSLCOMMERZ: {
+    logo: "/payments/sslcommerz.png",
+    width: 448,
+    height: 86,
+    size: "h-6",
+    compactSize: "h-[18px]",
+  },
+};
 
 /**
- * A radio group of the gateways that are switched on. Arrow keys move the
- * selection like native radios do; only the selected card is a tab stop.
+ * A radio group of the gateways that are switched on, one logo tile each; the
+ * gateway's name is the tile's accessible name. Arrow keys move the selection
+ * like native radios do; only the selected tile is a tab stop.
  *
- * `compact` is the chat's version: tighter cards, no description line, so two
- * methods fit the narrow panel without pushing the pay button off screen.
+ * `compact` is the chat's version: shorter tiles for the narrow panel.
+ * Test mode is not marked here; each caller says it once under the picker.
  */
 export default function PaymentMethodPicker({
   methods,
@@ -84,11 +82,12 @@ export default function PaymentMethodPicker({
       role="radiogroup"
       aria-label="Payment method"
       aria-disabled={disabled || undefined}
-      className="grid gap-2"
+      className="grid grid-cols-2 gap-3"
       onKeyDown={handleKeyDown}
     >
       {enabled.map((m, i) => {
         const selected = m.id === value;
+        const gateway = GATEWAYS[m.id];
         return (
           <button
             key={m.id}
@@ -98,57 +97,46 @@ export default function PaymentMethodPicker({
             type="button"
             role="radio"
             aria-checked={selected}
+            aria-label={m.name}
+            title={m.name}
             tabIndex={i === tabStop ? 0 : -1}
             disabled={disabled}
             onClick={() => onChange(m.id)}
             className={cn(
-              "flex w-full min-w-0 cursor-pointer items-center rounded-lg border bg-background text-left transition-colors",
-              compact ? "gap-2.5 p-2" : "gap-3 p-3",
+              "relative flex w-full min-w-0 cursor-pointer items-center justify-center rounded-xl border bg-surface transition-[border-color,box-shadow,background-color] duration-150",
+              compact ? "h-14 px-3" : "h-[72px] px-4",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
               "disabled:cursor-not-allowed disabled:opacity-60",
               selected
-                ? "border-primary bg-primary-soft/40 ring-2 ring-primary/30"
-                : "hover:border-primary/50 hover:bg-muted/40"
+                ? "border-primary shadow-[0_0_0_1px_var(--primary),0_4px_14px_-6px_rgb(0_0_0/0.18)]"
+                : "border-border shadow-[0_1px_2px_rgb(0_0_0/0.04)] hover:border-foreground/25 hover:shadow-[0_2px_8px_-2px_rgb(0_0_0/0.10)]"
             )}
           >
-            {m.id === "BKASH" ? (
-              <BkashMark compact={compact} />
+            {gateway ? (
+              <Image
+                src={gateway.logo}
+                alt=""
+                width={gateway.width}
+                height={gateway.height}
+                sizes="140px"
+                className={cn(
+                  "w-auto max-w-[85%] object-contain transition-opacity",
+                  compact ? gateway.compactSize : gateway.size,
+                  !selected && value !== null && "opacity-80"
+                )}
+              />
             ) : (
-              <CardMark compact={compact} />
+              <span className="text-sm font-semibold">{m.name}</span>
             )}
 
-            <span className="min-w-0 flex-1">
-              <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                <span
-                  className={cn("font-medium", compact && "text-sm leading-tight")}
-                >
-                  {m.name}
-                </span>
-                {m.testMode && (
-                  <Badge
-                    variant="secondary"
-                    className="px-1.5 py-0 text-[10px] tracking-wide"
-                  >
-                    SANDBOX
-                  </Badge>
-                )}
+            {selected && (
+              <span
+                className="absolute right-2 top-2 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-primary text-primary-foreground"
+                aria-hidden
+              >
+                <Check className="h-3 w-3" strokeWidth={3} />
               </span>
-              {!compact && (
-                <span className="mt-0.5 block text-xs text-muted-foreground">
-                  {m.description}
-                </span>
-              )}
-            </span>
-
-            <span
-              className={cn(
-                "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border",
-                selected ? "border-primary" : "border-muted-foreground/40"
-              )}
-              aria-hidden
-            >
-              {selected && <span className="h-2 w-2 rounded-full bg-primary" />}
-            </span>
+            )}
           </button>
         );
       })}

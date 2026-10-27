@@ -4,11 +4,12 @@ import OwnerSteps from "@/components/BecomeASalonWoner/OwnerSteps";
 import PageFeatures from "@/components/BecomeASalonWoner/PageFeatures";
 import ApplyForm from "@/components/BecomeASalonWoner/ApplyForm";
 import { getUserRoles } from "@/services/get-roles/getUserRoles";
+import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "List your salon",
   description:
-    "Put your salon on SalonKhuji: take bookings online and manage your slots, services and staff in one place.",
+    `Put your salon on ${SITE.name}: take bookings online and manage your slots, services and staff in one place.`,
 };
 
 export default async function BecomeSalonOwnerPage() {

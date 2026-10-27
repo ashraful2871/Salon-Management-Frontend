@@ -45,6 +45,7 @@ import type {
   AdminBookingListMeta,
   AdminBookingRow,
 } from "@/services/admin/bookings/types";
+import { SITE } from "@/lib/site";
 
 const ALL = "ALL";
 const ANY = "ANY";
@@ -228,7 +229,7 @@ function BookingsList({ response, filters, canExport }: Props) {
     <div className="min-w-0 space-y-6">
       <PageHeader
         title="Bookings"
-        description="Every booking on SalonKhuji. Search by TKN- token, customer email or phone; open one for its timeline and money."
+        description={`Every booking on ${SITE.name}. Search by TKN- token, customer email or phone; open one for its timeline and money.`}
         actions={
           canExport ? (
             <ExportButton
