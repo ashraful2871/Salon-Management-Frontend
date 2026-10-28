@@ -15,14 +15,14 @@ const MIN_REVIEWS = 3;
 const MONTH = new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric" });
 
 /** "Nusrat Jahan Rahman" → "Nusrat R." — enough to be real, not enough to find someone. */
-function shortName(name?: string | null) {
+export function shortName(name?: string | null) {
   const parts = name?.trim().split(/\s+/).filter(Boolean) ?? [];
   if (parts.length === 0) return "A customer";
   if (parts.length === 1) return parts[0];
   return `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`;
 }
 
-function initials(name: string) {
+export function initials(name: string) {
   return name
     .split(/\s+/)
     .map((part) => part[0])
@@ -31,7 +31,7 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-function Stars({ rating }: { rating: number }) {
+export function Stars({ rating }: { rating: number }) {
   const rounded = Math.round(rating);
   return (
     <div role="img" aria-label={`Rated ${rounded} out of 5`} className="flex gap-0.5">

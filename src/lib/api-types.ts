@@ -438,8 +438,9 @@ export type SalonQuery = {
   radiusKm?: number;
   sort?: "distance" | "rating" | "newest";
   category?: string;
-  /** LADIES / GENTS also return UNISEX salons. */
+  /** LADIES / GENTS also return UNISEX salons, unless `includeUnisex` is false. */
   audience?: "LADIES" | "GENTS";
+  includeUnisex?: boolean;
   page?: number;
   limit?: number;
 };

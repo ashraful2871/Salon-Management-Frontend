@@ -43,11 +43,16 @@ const AUDIENCE_OPTIONS = [
 ] as const;
 
 /**
- * The /salons search, area and service filters. It sticks under the navbar
- * and never waits for the list: every change is a URL navigation, and the
- * results below dim until the new list is ready.
+ * The salon list's search, area and service filters. It sticks under the
+ * navbar and never waits for the list: every change is a URL navigation, and
+ * the results below dim until the new list is ready.
  */
-export default function SalonsFilterBar() {
+export default function SalonsFilterBar({
+  audience: pinnedAudience,
+}: {
+  /** The page lists one audience only (the gents parlour page): no Ladies / Gents switch. */
+  audience?: (typeof AUDIENCE_OPTIONS)[number]["value"];
+}) {
   const { searchParams, navigate } = useSalonsUrl();
   const barRef = useRef<HTMLDivElement>(null);
 
@@ -97,9 +102,10 @@ export default function SalonsFilterBar() {
   const category = searchParams.get("category");
   const setCategory = (value: string | null) => navigate({ category: value });
 
-  const audience = AUDIENCE_OPTIONS.find(
-    (o) => o.value === searchParams.get("audience"),
-  )?.value ?? null;
+  const audience = pinnedAudience
+    ? null
+    : (AUDIENCE_OPTIONS.find((o) => o.value === searchParams.get("audience"))
+        ?.value ?? null);
   const setAudience = (value: string | null) => navigate({ audience: value });
 
   const clearFilters = () => {
@@ -192,7 +198,7 @@ export default function SalonsFilterBar() {
         {/* Row 2: the Filters sheet on phones and Ladies / Gents, then the
             service chips (their own swipeable row on phones). */}
         <div className="flex flex-col gap-2 md:flex-row md:items-center">
-          <div className="flex items-center gap-2">
+          <div className={cn("flex items-center gap-2", pinnedAudience && "md:hidden")}>
             <Button
               type="button"
               variant="outline"
@@ -209,30 +215,34 @@ export default function SalonsFilterBar() {
               )}
             </Button>
 
-            <div
-              role="group"
-              aria-label="Ladies or gents"
-              className="inline-flex shrink-0 rounded-full border border-border bg-surface p-1"
-            >
-              {[{ value: null, label: "All" }, ...AUDIENCE_OPTIONS].map((o) => (
-                <button
-                  key={o.label}
-                  type="button"
-                  onClick={() => setAudience(o.value)}
-                  aria-pressed={audience === o.value}
-                  className={cn(
-                    "h-8 cursor-pointer rounded-full px-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:h-9",
-                    audience === o.value
-                      ? "bg-foreground text-background"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
+            {!pinnedAudience && (
+              <>
+                <div
+                  role="group"
+                  aria-label="Ladies or gents"
+                  className="inline-flex shrink-0 rounded-full border border-border bg-surface p-1"
                 >
-                  {o.label}
-                </button>
-              ))}
-            </div>
+                  {[{ value: null, label: "All" }, ...AUDIENCE_OPTIONS].map((o) => (
+                    <button
+                      key={o.label}
+                      type="button"
+                      onClick={() => setAudience(o.value)}
+                      aria-pressed={audience === o.value}
+                      className={cn(
+                        "h-8 cursor-pointer rounded-full px-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:h-9",
+                        audience === o.value
+                          ? "bg-foreground text-background"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
 
-            <span aria-hidden="true" className="hidden h-6 w-px shrink-0 bg-border md:block" />
+                <span aria-hidden="true" className="hidden h-6 w-px shrink-0 bg-border md:block" />
+              </>
+            )}
           </div>
 
           <div

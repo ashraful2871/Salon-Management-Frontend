@@ -16,16 +16,20 @@ export type RecentReview = {
 };
 
 /**
- * The newest reviews across all salons, for the home page.
+ * The newest reviews across all salons (the home page), or of one salon (the
+ * ladies parlour page quotes its top-rated parlours).
  *
  * Bare `fetch`, no cookie: the answer is the same for every visitor, so they
  * all share one cached copy.
  */
 export const getRecentReviews = async (
   limit = 12,
+  salonId?: string,
 ): Promise<ApiResponse<RecentReview[]>> => {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (salonId) params.set("salonId", salonId);
   try {
-    const response = await fetch(`${BACKEND_API_URL}/reviews?limit=${limit}`, {
+    const response = await fetch(`${BACKEND_API_URL}/reviews?${params}`, {
       next: { revalidate: 300, tags: [TAGS.reviews] },
     });
     return (await response.json()) as ApiResponse<RecentReview[]>;

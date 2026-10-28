@@ -37,6 +37,7 @@ import {
 import { GEOLOCATION_MESSAGES, useGeolocation } from "@/hooks/useGeolocation";
 import { useSavedLocation } from "@/hooks/useSavedLocation";
 import { cn } from "@/lib/utils";
+import { isSalonListPath } from "@/lib/salon-list-paths";
 import {
   DHAKA_CENTER,
   isInBangladesh,
@@ -184,9 +185,9 @@ const LocationPicker = ({
       return;
     }
     onDone();
-    if (pathname === "/salons") {
+    if (isSalonListPath(pathname)) {
       router.push(
-        `/salons?lat=${stored.lat}&lng=${stored.lng}&r=5&sort=distance`,
+        `${pathname}?lat=${stored.lat}&lng=${stored.lng}&r=5&sort=distance`,
       );
     } else {
       // The location is a cookie the server components read, not a cache tag.
@@ -288,7 +289,7 @@ const LocationPicker = ({
   const clearSaved = () => {
     clearLocation();
     onDone();
-    if (pathname === "/salons") router.push("/salons");
+    if (isSalonListPath(pathname)) router.push(pathname);
     // The cookie is gone; the server components have to read that again.
     else router.refresh();
   };

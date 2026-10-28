@@ -234,15 +234,115 @@
   }
 }
 
-/* One ask at a time: the chat greeting waits for the first-visit location
-   card, and on phones (where the card takes the bottom edge) so does the chat
-   button. */
-:root:has([data-location-prompt]) [data-chat-greeting] {
+/* One ask at a time: the chat button and its greeting wait for the
+   first-visit location dialog. */
+:root:has([data-location-prompt]) [data-chat-launcher] {
   display: none;
 }
-@media (width < 40rem) {
-  :root:has([data-location-prompt]) [data-chat-launcher] {
-    display: none;
+
+/* The assistant overlay (AssistantPanel), opened and closed by `data-state`.
+   CSS keyframes rather than JS: they run on the compositor, so the panel's
+   first render cannot stall the slide on a phone, and `both` holds the last
+   frame until the panel unmounts, so a closed panel never flashes back open
+   for a frame. Phones: a sheet from the bottom edge; from `sm`, a window
+   rising out of the launcher's corner. */
+[data-chat-panel] {
+  animation: chat-sheet-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[data-chat-panel][data-state="closed"] {
+  animation: chat-sheet-out 220ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+[data-chat-backdrop] {
+  animation: chat-fade-in 200ms ease-out both;
+}
+[data-chat-backdrop][data-state="closed"] {
+  animation: chat-fade-out 200ms ease-in both;
+}
+@media (width >= 40rem) {
+  [data-chat-panel] {
+    animation-name: chat-window-in;
+    animation-duration: 220ms;
+    transform-origin: bottom right;
+  }
+  [data-chat-panel][data-state="closed"] {
+    animation-name: chat-window-out;
+    animation-duration: 160ms;
+  }
+}
+/* The launcher comes back once the panel has gone, not underneath it. */
+[data-chat-launcher] {
+  animation: chat-launcher-in 200ms 140ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-chat-panel][data-state],
+  [data-chat-launcher] {
+    animation-name: chat-fade-in;
+    animation-duration: 150ms;
+  }
+  [data-chat-panel][data-state="closed"] {
+    animation-name: chat-fade-out;
+  }
+}
+@keyframes chat-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes chat-sheet-out {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes chat-window-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes chat-window-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+}
+@keyframes chat-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes chat-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes chat-launcher-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -297,6 +397,18 @@
 }
 @utility bg-glow-soft {
   background-image: radial-gradient(55% 60% at 90% 0%, oklch(0.95 0.04 85 / 0.5), transparent 70%);
+}
+/* Gold only, no rose: the ladies parlour hero. */
+@utility bg-glow-gold {
+  background-image:
+    radial-gradient(55% 60% at 88% 10%, oklch(0.93 0.06 85 / 0.6), transparent 70%),
+    radial-gradient(45% 50% at 0% 100%, oklch(0.95 0.04 85 / 0.55), transparent 70%);
+}
+/* For a charcoal band: brand gold light from the corners. */
+@utility bg-glow-dark {
+  background-image:
+    radial-gradient(55% 75% at 100% 0%, oklch(0.55 0.12 78 / 0.3), transparent 70%),
+    radial-gradient(45% 60% at 0% 100%, oklch(0.55 0.12 78 / 0.16), transparent 70%);
 }
 
 /* Bangla text. The chat marks a Bangla message (or the composer while Bangla
