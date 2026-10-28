@@ -35,7 +35,7 @@ export default function NearMeButton({
   iconClassName?: string;
   size?: "lg" | "xl";
   label?: string;
-  /** The ladies / gents parlour pages keep their filter on the list. */
+  /** The ladies parlour page keeps its filter on the list. */
   audience?: "LADIES" | "GENTS";
 }) {
   const router = useRouter();

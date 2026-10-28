@@ -125,8 +125,10 @@ const AssistantLauncher = () => {
         aria-haspopup="dialog"
         aria-expanded={isOpen}
         className={cn(
-          // A labelled pill: the icon says "chat", the words say what for.
-          "group relative inline-flex h-14 cursor-pointer items-center gap-2.5 rounded-full bg-primary pl-4 pr-5 text-primary-foreground shadow-[0_8px_24px_-6px_rgb(0_0_0/0.35)] md:h-15 md:pl-5 md:pr-6",
+          // Phones: a round icon button that keeps out of the page's way.
+          // From `sm`, a labelled pill: the icon says "chat", the words say
+          // what for.
+          "group relative inline-flex size-13 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_8px_24px_-6px_rgb(0_0_0/0.35)] sm:h-14 sm:w-auto sm:justify-start sm:gap-2.5 sm:pl-4 sm:pr-5 md:h-15 md:pl-5 md:pr-6",
           "transition-[background-color,transform,box-shadow] duration-200 hover:bg-primary-hover motion-safe:hover:-translate-y-0.5 motion-safe:active:scale-95",
           "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2",
         )}
@@ -139,7 +141,8 @@ const AssistantLauncher = () => {
             className="absolute -right-1 -top-1 size-3 rounded-full border-2 border-primary bg-success group-hover:border-primary-hover"
           />
         </span>
-        <span className="text-[15px] font-semibold whitespace-nowrap">
+        {/* Still the button's name on phones, where only the icon shows. */}
+        <span className="sr-only text-[15px] font-semibold whitespace-nowrap sm:not-sr-only">
           Book with AI
         </span>
       </button>

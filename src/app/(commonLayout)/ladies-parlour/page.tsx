@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 
-import ParlourPage from "@/components/Parlour/ParlourPage";
-import { LADIES } from "@/components/Parlour/parlour-content";
+import LadiesParlourPage from "@/components/LadiesParlour/LadiesParlourPage";
 
-// The parlour list is read per request (serverFetch reads the session cookie).
+// The parlours are read per request (serverFetch reads the session cookie).
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: LADIES.meta.title,
-  description: LADIES.meta.description,
+  title: "Ladies parlours near you",
+  description:
+    "Book trusted ladies parlours for haircuts, facials, keratin, threading and bridal makeup. See prices, real reviews and open times.",
 };
 
-export default function LadiesParlourPage() {
-  return <ParlourPage content={LADIES} />;
+export default function LadiesParlourRoute() {
+  return <LadiesParlourPage />;
 }

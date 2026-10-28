@@ -25,7 +25,13 @@ import { isInBangladesh, roundCoord } from "@/lib/geo";
 import { toSalonCardData } from "@/lib/salon-card";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import type { PaginationMeta, Salon } from "@/lib/api-types";
-import { salonGridClass, type NearbyContext, type SalonSort } from "./types";
+import {
+  SALON_NOUN,
+  salonGridClass,
+  type ListNoun,
+  type NearbyContext,
+  type SalonSort,
+} from "./types";
 import { useSalonsUrl } from "./useSalonsUrl";
 
 const SORT_LABELS: Record<SalonSort, string> = {
@@ -34,8 +40,10 @@ const SORT_LABELS: Record<SalonSort, string> = {
   newest: "Newest",
 };
 
-const plural = (n: number, word: string) =>
-  `${n.toLocaleString("en-US")} ${word}${n === 1 ? "" : "s"}`;
+const countOf = (n: number, noun: ListNoun) =>
+  `${n.toLocaleString("en-US")} ${n === 1 ? noun.one : noun.many}`;
+
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const cardId = (salonId: string) => `salon-card-${salonId}`;
 
@@ -49,6 +57,7 @@ type SalonsProps = {
   nearby: NearbyContext | null;
   sort: SalonSort;
   error?: string;
+  noun?: ListNoun;
 };
 
 export default function SalonsResults({
@@ -57,6 +66,7 @@ export default function SalonsResults({
   nearby,
   sort,
   error,
+  noun = SALON_NOUN,
 }: SalonsProps) {
   const router = useRouter();
   const { searchParams, navigate, isPending: isNavigating } = useSalonsUrl();
@@ -175,8 +185,9 @@ export default function SalonsResults({
     searchParams.get("division");
 
   const countText = nearby
-    ? `${plural(total, "salon")} within ${nearby.radiusKm} km`
-    : `${plural(total, "salon")} found`;
+    ? `${countOf(total, noun)} within ${nearby.radiusKm} km`
+    : `${countOf(total, noun)} found`;
+  const showAllLabel = `Show all ${noun.many}`;
 
   const gridClass = salonGridClass(nearby !== null);
 
@@ -189,7 +200,7 @@ export default function SalonsResults({
         >
           {/* A retry of the failed read, not a mutation: re-render the route. */}
           <ErrorState
-            title="We couldn't load salons"
+            title={`We couldn't load ${noun.many}`}
             message={error}
             onRetry={() => startRetry(() => router.refresh())}
           />
@@ -200,18 +211,18 @@ export default function SalonsResults({
       return (
         <EmptyState
           icon={SearchX}
-          title={`No salons match “${matchTerm}”`}
+          title={`No ${noun.many} match “${matchTerm}”`}
           description={
             nearby
               ? `Nothing within ${nearby.radiusKm} km of ${nearby.label}. Clear the filters or look further away.`
-              : "Try another word or clear the filters to see every salon."
+              : `Try another word or clear the filters to see every ${noun.one}.`
           }
           action={
             <div className="flex flex-wrap justify-center gap-2">
               <Button onClick={clearFilters}>Clear filters</Button>
               {nearby && (
                 <Button variant="outline" onClick={showAllSalons}>
-                  Show all salons
+                  {showAllLabel}
                 </Button>
               )}
             </div>
@@ -223,11 +234,11 @@ export default function SalonsResults({
       return (
         <EmptyState
           icon={MapPin}
-          title={`No salons within ${nearby.radiusKm} km of ${nearby.label}`}
-          description="Try a nearby spot on the map, or browse every salon."
+          title={`No ${noun.many} within ${nearby.radiusKm} km of ${nearby.label}`}
+          description={`Try a nearby spot on the map, or browse every ${noun.one}.`}
           action={
             <div className="flex flex-wrap justify-center gap-2">
-              <Button onClick={showAllSalons}>Show all salons</Button>
+              <Button onClick={showAllSalons}>{showAllLabel}</Button>
               <Button
                 variant="outline"
                 onClick={() => setLocationOpen(true)}
@@ -244,8 +255,8 @@ export default function SalonsResults({
       return (
         <EmptyState
           icon={Store}
-          title="No salons yet"
-          description="Salons appear here once they are approved."
+          title={`No ${noun.many} yet`}
+          description={`${capitalize(noun.many)} appear here once they are approved.`}
         />
       );
     }
@@ -253,7 +264,7 @@ export default function SalonsResults({
       return (
         <EmptyState
           icon={SearchX}
-          title="There are no salons on this page"
+          title={`There are no ${noun.many} on this page`}
           action={
             <Button variant="outline" onClick={() => goToPage(1)}>
               Go to the first page
@@ -303,7 +314,7 @@ export default function SalonsResults({
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 space-y-2">
           <p aria-live="polite" className="text-lg font-semibold text-foreground">
-            {error ? "Salons" : countText}
+            {error ? capitalize(noun.many) : countText}
           </p>
           {nearby ? (
             <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -323,7 +334,7 @@ export default function SalonsResults({
               </span>
               <Button variant="ghost" size="sm" onClick={showAllSalons}>
                 <X aria-hidden="true" />
-                Show all salons
+                {showAllLabel}
               </Button>
             </div>
           ) : (
@@ -334,7 +345,7 @@ export default function SalonsResults({
               aria-haspopup="dialog"
             >
               <Navigation aria-hidden="true" />
-              Show salons near you
+              Show {noun.many} near you
             </Button>
           )}
         </div>
@@ -347,7 +358,7 @@ export default function SalonsResults({
             onValueChange={(value) => setSort(value as SalonSort)}
           >
             <SelectTrigger
-              aria-label="Sort salons"
+              aria-label={`Sort ${noun.many}`}
               className="w-36 rounded-xl data-[size=default]:h-10 md:data-[size=default]:h-10"
             >
               <SelectValue />
@@ -386,7 +397,7 @@ export default function SalonsResults({
               disabled={isPending}
               total={total}
               pageSize={pageSize}
-              itemLabel="salons"
+              itemLabel={noun.many}
             />
           )}
         </div>

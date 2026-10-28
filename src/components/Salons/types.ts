@@ -1,5 +1,9 @@
 export type SalonSort = "distance" | "rating" | "newest";
 
+/** What a list page calls its salons, in its counts and empty states. */
+export type ListNoun = { one: string; many: string };
+export const SALON_NOUN: ListNoun = { one: "salon", many: "salons" };
+
 export type NearbyContext = {
   lat: number;
   lng: number;

@@ -10,10 +10,6 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import {
-  motion,
-  useReducedMotion,
-} from "framer-motion";
-import {
   ArrowDown,
   Loader2,
   PlusCircleIcon,
@@ -39,6 +35,10 @@ type AssistantPanelProps = {
   variant?: "overlay" | "page";
   resume?: boolean;
   resumeId?: string | null;
+  /** Overlay only: closed, and playing its exit animation before unmount. */
+  closing?: boolean;
+  /** Overlay only: the exit animation has finished. */
+  onExited?: () => void;
 };
 
 const FOCUSABLE =
@@ -51,6 +51,8 @@ const AssistantPanel = ({
   variant = "overlay",
   resume = false,
   resumeId = null,
+  closing = false,
+  onExited,
 }: AssistantPanelProps) => {
   const { chat, close, access } = useAssistantChat();
   const {
@@ -74,8 +76,7 @@ const AssistantPanel = ({
   } = chat;
 
   const headingId = useId();
-  const isMobile = !useMediaQuery("(min-width: 768px)");
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   // The overlay's breakpoint (`sm`): a floating window from here up.
   const isDesktop = useMediaQuery("(min-width: 640px)");
 
@@ -195,11 +196,14 @@ const AssistantPanel = ({
 
   /* ------------------------------------------- dialog focus and keyboard */
 
+  // Released as soon as the close starts, not after the exit animation.
   useEffect(() => {
-    if (!isOverlay) return;
+    if (!isOverlay || closing) return;
 
     const opener = document.activeElement as HTMLElement | null;
-    panelRef.current?.focus();
+    // Without preventScroll a phone scrolls toward the still-offscreen sheet,
+    // which jolts the slide-up.
+    panelRef.current?.focus({ preventScroll: true });
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -233,20 +237,22 @@ const AssistantPanel = ({
     document.addEventListener("keydown", onKeyDown, true);
     return () => {
       document.removeEventListener("keydown", onKeyDown, true);
-      opener?.focus?.();
+      opener?.focus?.({ preventScroll: true });
     };
-  }, [close, isOverlay]);
+  }, [close, closing, isOverlay]);
 
-  // The bottom sheet covers the page; letting the page scroll behind it is how
-  // a customer loses their place.
+  // The full-screen sheet covers the page; letting the page scroll behind it
+  // is how a customer loses their place. Only below `sm`, where the sheet is
+  // full screen: the floating window leaves the page usable, and hiding a
+  // desktop scrollbar shifts the whole page sideways on open and close.
   useEffect(() => {
-    if (!isOverlay || !isMobile) return;
+    if (!isOverlay || isDesktop || closing) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = previous;
     };
-  }, [isMobile, isOverlay]);
+  }, [closing, isDesktop, isOverlay]);
 
   /* ---------------------------------------------------------- composing */
 
@@ -449,43 +455,34 @@ const AssistantPanel = ({
     );
   }
 
-  // Phones: the sheet slides up from the bottom edge. From `sm`: the window
-  // rises a little out of the launcher's corner, like any chat widget.
-  const enter = reduceMotion
-    ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
-    : isDesktop
-      ? {
-          initial: { opacity: 0, y: 16, scale: 0.98 },
-          animate: { opacity: 1, y: 0, scale: 1 },
-          exit: { opacity: 0, y: 16, scale: 0.98 },
-        }
-      : {
-          initial: { y: "100%" },
-          animate: { y: 0 },
-          exit: { y: "100%" },
-        };
+  // The open and close animations are CSS keyframes keyed on `data-state`
+  // (globals.css, `data-chat-panel`).
+  const dataState = closing ? "closed" : "open";
 
   return createPortal(
-    <div className="fixed inset-0 z-50">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
+    <div
+      className={cn("fixed inset-0 z-50", closing && "pointer-events-none")}
+    >
+      <div
+        data-chat-backdrop
+        data-state={dataState}
         onClick={close}
         className="absolute inset-0 bg-black/30 sm:bg-transparent"
       />
 
-      <motion.div
+      <div
         ref={panelRef}
+        data-chat-panel
+        data-state={dataState}
         role="dialog"
         aria-modal="true"
         aria-labelledby={headingId}
+        aria-hidden={closing || undefined}
         tabIndex={-1}
-        {...enter}
-        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-        drag={false}
-        style={{ transformOrigin: "bottom right" }}
+        onAnimationEnd={(event) => {
+          // Only the panel's own exit; spinners and pings inside bubble too.
+          if (closing && event.target === event.currentTarget) onExited?.();
+        }}
         className={cn(
           // Full screen on phones (safe-area padding keeps the header and
           // composer clear of notches and the home indicator); from `sm` a
@@ -495,7 +492,7 @@ const AssistantPanel = ({
         )}
       >
         {body}
-      </motion.div>
+      </div>
     </div>,
     document.body,
   );

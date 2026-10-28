@@ -88,7 +88,7 @@ export default function NearbySalons() {
 
   if (mounted && !saved) {
     return (
-      <Section labelledBy="nearby-salons-heading">
+      <Section id="nearby" labelledBy="nearby-salons-heading">
         <SectionHeader
           overline="Near you"
           title="Salons near you"
@@ -135,7 +135,7 @@ export default function NearbySalons() {
   );
 
   return (
-    <Section labelledBy="nearby-salons-heading">
+    <Section id="nearby" labelledBy="nearby-salons-heading">
       <SectionHeader
         overline="Near you"
         titleId="nearby-salons-heading"

@@ -1,10 +1,14 @@
 "use client";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import { useFilterNavigation } from "@/hooks/useFilterNavigation";
 
-/** The /salons URL as the filter bar and the results both change it. */
+/**
+ * The list page's URL as the filter bar and the results both change it. It
+ * stays on the page it is on: /salons, or /gents-parlour (lib/salon-list-paths).
+ */
 export function useSalonsUrl() {
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { navigate: pushUrl, isPending } = useFilterNavigation();
 
@@ -23,7 +27,7 @@ export function useSalonsUrl() {
     const qs = params.toString();
     // A page turn keeps the reader where the list starts rather than
     // throwing them back up to the search box.
-    pushUrl(qs ? `/salons?${qs}` : "/salons", { scroll: !keepPage });
+    pushUrl(qs ? `${pathname}?${qs}` : pathname, { scroll: !keepPage });
   };
 
   return { searchParams, navigate, isPending };
