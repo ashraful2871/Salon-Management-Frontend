@@ -42,7 +42,11 @@ export type Permission =
   | "system.operate"
   | "audit.view"
   | "agents.manage"
-  | "team.manage";
+  | "team.manage"
+  | "homeservice.view"
+  | "homeservice.manage"
+  | "homeservice.experts_verify"
+  | "homeservice.policy";
 
 /** True when `perms` (from `getAdminMe`) holds `p`. A missing list holds nothing. */
 export const can = (

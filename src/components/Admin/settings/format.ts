@@ -13,6 +13,7 @@ export const GROUP_LABELS: Record<SettingGroup, { title: string; description: st
   retention: { title: "Retention", description: "How long records are kept." },
   system: { title: "System", description: "Hosting limits the health checks compare against." },
   content: { title: "Content", description: "What visitors see on the public site." },
+  homeService: { title: "Home Service", description: "Fees, cancellation policy and limits for home visits. Amounts are in poisha (100 = ৳1)." },
 };
 
 export const SOURCE_LABELS: Record<SettingSource, { label: string; tone: Tone }> = {

@@ -5,6 +5,7 @@ import { Lock } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ReasonDialog } from "@/components/Admin/ReasonDialog";
 import { formatDhaka } from "@/components/Admin/Timeline";
@@ -232,6 +233,19 @@ function SettingField({
         disabled={!canEdit}
         aria-describedby={`${id}-help`}
       />
+    ) : setting.kind === "choice" ? (
+      <Select value={String(draft)} onValueChange={onChange} disabled={!canEdit}>
+        <SelectTrigger id={id} aria-describedby={`${id}-help`} className="sm:w-56">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {(setting.options ?? []).map((option) => (
+            <SelectItem key={option} value={option}>
+              {option}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     ) : (
       <Input
         id={id}
