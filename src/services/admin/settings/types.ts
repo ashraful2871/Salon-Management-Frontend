@@ -6,9 +6,10 @@ export type SettingGroup =
   | "approvals"
   | "retention"
   | "system"
-  | "content";
+  | "content"
+  | "homeService";
 
-export type SettingKind = "int" | "number" | "boolean" | "announcement" | "list" | "text";
+export type SettingKind = "int" | "number" | "boolean" | "announcement" | "list" | "text" | "choice";
 
 export type SettingSource = "db" | "env" | "default";
 
@@ -28,8 +29,10 @@ export type AdminSetting = {
   public: boolean;
   approval: boolean;
   tier: 2 | 3;
-  /** What a change needs: flags.manage, content.manage or settings.manage. */
-  permission: "flags.manage" | "content.manage" | "settings.manage";
+  /** What a change needs: flags.manage, content.manage, homeservice.policy or settings.manage. */
+  permission: "flags.manage" | "content.manage" | "homeservice.policy" | "settings.manage";
+  /** The allowed values of a `choice`; null for every other kind. */
+  options: string[] | null;
   version: number;
   updatedAt: string | null;
   updatedBy: SettingPerson | null;
