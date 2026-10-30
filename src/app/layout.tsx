@@ -10,7 +10,6 @@ import { SITE } from "@/lib/site";
 
 const outfit = Outfit({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
   variable: "--font-display",
   display: "swap",
 });
