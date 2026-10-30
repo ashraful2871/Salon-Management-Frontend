@@ -1,3 +1,5 @@
+"use server";
+
 import type { ApiResponse } from "@/lib/api-types";
 import { enc, homeGet } from "./request";
 import type { HomeCancelQuote } from "./types";

@@ -112,7 +112,7 @@ export default function ExpertMenu({ expertId, menu }: { expertId: string; menu:
 
       {/* Phones and tablets: a bar over the bottom of the screen, with room left for it below. */}
       <div className="h-20 lg:hidden" aria-hidden />
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-card lg:hidden">
+      <div data-bottom-bar className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-card lg:hidden">
         <div className="container mx-auto flex items-center justify-between gap-4">
           <div className="min-w-0">
             {picked.length > 0 && (

@@ -1,3 +1,5 @@
+"use server";
+
 import type { ApiResponse } from "@/lib/api-types";
 import { clientIpHeaders } from "@/lib/client-ip-headers";
 import { homeGet, toQuery } from "./request";

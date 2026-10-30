@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import type { HomeCatalogOffering, HomeExpertCard } from "@/services/home-service/types";
 import { CATEGORY_ICON, CATEGORY_LABEL, durationText, initialsOf } from "./content";
 
-export const HOME_GRID = "grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 2xl:grid-cols-4";
+export const HOME_GRID = "grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 2xl:grid-cols-4";
 
 const CARD =
   "group flex flex-col rounded-3xl border border-border bg-surface p-5 shadow-soft transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:hover:translate-y-0";
