@@ -94,6 +94,8 @@ export type Salon = {
     endTime: string | null;
     reason: string;
   }>;
+  /** Home Service sides this branch can be booked for now (`GET /salons/:id` only). */
+  homeService?: { ladies: boolean; gents: boolean };
   // Only present in nearby mode (lat/lng in the query).
   distanceMeters?: number;
   createdAt?: string;

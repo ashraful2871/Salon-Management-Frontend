@@ -48,6 +48,64 @@ export type PublicSettings = {
   "content.homeChips"?: HomeChip[];
   "content.categoryTiles"?: CategoryTile[];
   featuredSalons?: FeaturedSalon[];
+  // Home Service (registry group `homeService`, public keys only). Read them
+  // through `homeSettingsOf`, which fills the launch defaults.
+  "homeService.enabled"?: boolean;
+  "homeService.ladiesEnabled"?: boolean;
+  "homeService.gentsEnabled"?: boolean;
+  "homeService.customerCancelPolicy"?: "FREE" | "WINDOW" | "NON_REFUNDABLE";
+  "homeService.nonRefundableGraceMinutes"?: number;
+  "homeService.disclaimer.free"?: string;
+  "homeService.disclaimer.window"?: string;
+  "homeService.disclaimer.nonRefundable"?: string;
+  "homeService.lateCancelPercent"?: number;
+  "homeService.noShowPercent"?: number;
+  "homeService.salonCancelCreditMinor"?: number;
+  "homeService.advancePercent"?: number;
+  "homeService.freeCancelHours"?: number;
+  "homeService.appealWindowHours"?: number;
+  "homeService.bookingWindowDays"?: number;
+  "homeService.minLeadMinutes"?: number;
+  "homeService.rescheduleCutoffHours"?: number;
+  "homeService.maxRescheduleCount"?: number;
+  "homeService.ladiesLastStart"?: string;
+};
+
+type HomeServiceKey = Extract<keyof PublicSettings, `homeService.${string}`>;
+
+/** The launch defaults (the API registry's), used when the settings call fails or a key is missing. */
+export const HOME_SERVICE_DEFAULTS = {
+  "homeService.enabled": true,
+  "homeService.ladiesEnabled": true,
+  "homeService.gentsEnabled": true,
+  "homeService.customerCancelPolicy": "FREE",
+  "homeService.nonRefundableGraceMinutes": 0,
+  "homeService.disclaimer.free": "",
+  "homeService.disclaimer.window": "",
+  "homeService.disclaimer.nonRefundable": "",
+  "homeService.lateCancelPercent": 0,
+  "homeService.noShowPercent": 0,
+  "homeService.salonCancelCreditMinor": 0,
+  "homeService.advancePercent": 50,
+  "homeService.freeCancelHours": 3,
+  "homeService.appealWindowHours": 48,
+  "homeService.bookingWindowDays": 7,
+  "homeService.minLeadMinutes": 120,
+  "homeService.rescheduleCutoffHours": 3,
+  "homeService.maxRescheduleCount": 1,
+  "homeService.ladiesLastStart": "19:30",
+} as const satisfies Required<Pick<PublicSettings, HomeServiceKey>>;
+
+export type HomeServiceSettings = { -readonly [K in HomeServiceKey]-?: NonNullable<PublicSettings[K]> };
+
+/** Every public `homeService.*` value, the default standing in for any the API didn't send. */
+export const homeSettingsOf = (settings?: Partial<PublicSettings> | null): HomeServiceSettings => {
+  const out = { ...HOME_SERVICE_DEFAULTS } as HomeServiceSettings;
+  for (const key of Object.keys(HOME_SERVICE_DEFAULTS) as HomeServiceKey[]) {
+    const value = settings?.[key];
+    if (value !== undefined && value !== null) (out as Record<string, unknown>)[key] = value;
+  }
+  return out;
 };
 
 /**

@@ -23,7 +23,17 @@ export type TrackEvents = {
   assistant_opened: `entry:${"launcher" | "other"}`;
   hair_tryon_opened: "";
   signup_started: `method:${"email" | "google"}`;
+  // Home Service: the landing is "all", every later step names its side.
+  home_view: `audience:${"all" | HomeSide}`;
+  home_side_select: `audience:${HomeSide}`;
+  home_expert_view: `audience:${HomeSide}`;
+  home_quote: `audience:${HomeSide}`;
+  home_booking_created: `audience:${HomeSide}`;
+  home_booking_paid: `audience:${HomeSide},method:${"wallet" | "bkash" | "sslcommerz"}`;
+  home_out_of_area: `audience:${HomeSide}`;
 };
+
+type HomeSide = "ladies" | "gents";
 
 export type TrackEvent = keyof TrackEvents;
 type WithoutDim = { [K in TrackEvent]: TrackEvents[K] extends "" ? K : never }[TrackEvent];

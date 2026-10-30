@@ -13,6 +13,8 @@ export type AuthMe = {
   email: string;
   name?: string;
   profilePhoto?: string | null;
+  /** The profile mobile number; a home visit needs one (`PHONE_REQUIRED`). */
+  phone?: string | null;
   hasPassword: boolean;
   signInMethods: SignInMethod[];
 };

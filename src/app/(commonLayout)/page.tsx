@@ -12,6 +12,7 @@ import WhyUs from "@/components/Home/WhyUs";
 import RecentReviews from "@/components/Home/RecentReviews";
 import PartnerCtaSection from "@/components/Home/PartnerCtaSection";
 import CtaSection from "@/components/Home/CtaSection";
+import BeautyAtHomeSection from "@/components/HomeService/BeautyAtHomeSection";
 
 export default function Home() {
   return (
@@ -20,6 +21,8 @@ export default function Home() {
       {/* Client-side: reads the location cookie itself so this page stays static. */}
       <NearbySalons />
       <ServiceCategories />
+      {/* Public settings only (60 s cache): keeps / static. */}
+      <BeautyAtHomeSection />
       <Suspense fallback={<TopRatedSkeleton />}>
         <TopRatedSalons />
       </Suspense>

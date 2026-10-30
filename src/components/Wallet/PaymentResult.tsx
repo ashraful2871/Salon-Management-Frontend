@@ -33,7 +33,7 @@ import {
   type ProviderId,
 } from "@/lib/payment-providers";
 import { TONE_CLASSES, type Tone } from "@/lib/status-tone";
-import { bookingTopupHref } from "@/lib/booking-resume";
+import { bookingRetryPath, bookingTopupHref } from "@/lib/booking-resume";
 import { cn } from "@/lib/utils";
 
 /** What the gateway sent the customer back to. */
@@ -245,7 +245,7 @@ export default function PaymentResult({
   // page when it came from there, else on the wallet.
   const retryHref = (method?: ProviderId | null) =>
     resumeBooking
-      ? bookingTopupHref(resumeBooking, method)
+      ? bookingTopupHref(bookingRetryPath(resumeBooking), method)
       : `/dashboard/wallet?add=1${method ? `&method=${method}` : ""}`;
 
   return (
@@ -391,7 +391,7 @@ export default function PaymentResult({
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
           {resumeBooking && (view === "unresolved" || retry) && (
             <Button asChild variant="link">
-              <Link href={resumeBooking}>Back to your booking</Link>
+              <Link href={retry ? bookingRetryPath(resumeBooking) : resumeBooking}>Back to your booking</Link>
             </Button>
           )}
           {(view === "unresolved" || retry || resumeChat || resumeBooking) && (
