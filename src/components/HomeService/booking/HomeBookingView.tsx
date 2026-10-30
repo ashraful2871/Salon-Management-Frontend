@@ -32,6 +32,7 @@ import type { HomeBooking, HomeBookingStatus, HomeHelpResult } from "@/services/
 import type { PaymentMethodOption } from "@/services/payments/getPaymentMethods";
 import { SIDES, trackSide } from "../content";
 import { ExpertAvatar, RatingLine } from "../HomeCards";
+import { ReportButton, VisitAftercare } from "./Aftercare";
 import { CancelDialog, RescheduleDialog } from "./ManageDialogs";
 import { DisclaimerBox, PaymentCountdown } from "./Disclaimer";
 import { homeErrorMessage } from "./errors";
@@ -108,7 +109,7 @@ const rebookHref = (b: HomeBooking) =>
  * One visit as its customer sees it: pay (with the window's countdown), then
  * the code, the live status, the start code, the accepted terms and the ways
  * to change it. While active it re-reads itself every 30 s with the tab
- * visible, and on focus.
+ * visible, and on focus. `embedded` lays it out for the dashboard's detail sheet.
  */
 export default function HomeBookingView({
   initial,
@@ -116,6 +117,8 @@ export default function HomeBookingView({
   methods,
   via,
   retryMethod,
+  embedded = false,
+  ask = null,
 }: {
   initial: HomeBooking;
   walletMinor: number;
@@ -123,6 +126,9 @@ export default function HomeBookingView({
   /** Back from a gateway trip for this visit's advance. */
   via: "bkash" | "sslcommerz" | null;
   retryMethod: ProviderId | null;
+  embedded?: boolean;
+  /** From an email's link: go straight to the review or the appeal. */
+  ask?: "review" | "appeal" | null;
 }) {
   const [b, setB] = useState(initial);
   const [checkingPayment, setCheckingPayment] = useState(via !== null && initial.status === "PENDING_PAYMENT");
@@ -215,13 +221,14 @@ export default function HomeBookingView({
   const stepIndex = STATUS_STEPS.findIndex((s) => s.status === b.status);
   const confirmedLike = stepIndex >= 0;
   const when = `${dayText(b.serviceDate)} · ${timeText(b.startAt)}–${timeText(b.endAt)}`;
+  const Title = embedded ? "h2" : "h1";
 
   return (
-    <div className="container mx-auto max-w-3xl space-y-6 px-4 py-6 sm:px-6 md:py-10">
+    <div className={embedded ? "space-y-5" : "container mx-auto max-w-3xl space-y-6 px-4 py-6 sm:px-6 md:py-10"}>
       <header className="space-y-2">
         <p className="text-overline font-semibold uppercase tracking-[0.06em] text-primary">{SIDES[b.audience].title}</p>
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="font-display text-title-lg text-foreground">{STATUS_TITLE[b.status]}</h1>
+          <Title className="font-display text-title-lg text-foreground">{STATUS_TITLE[b.status]}</Title>
           <span className={cn("rounded-full px-3 py-1 font-mono text-sm font-semibold", TONE_CLASSES[tone].soft, TONE_CLASSES[tone].text)}>
             {b.code}
           </span>
@@ -342,6 +349,8 @@ export default function HomeBookingView({
         </>
       )}
 
+      <VisitAftercare booking={b} ask={ask} onChanged={setB} refresh={refresh} />
+
       <Card>
         <div className="flex items-center gap-3">
           <ExpertAvatar name={b.expert.name} photo={b.expert.photo} className="size-12" />
@@ -456,11 +465,15 @@ export default function HomeBookingView({
         </section>
       )}
 
-      <p className="text-center text-sm">
-        <Link href="/dashboard/home-bookings" className="text-primary hover:underline">
-          All my home bookings
-        </Link>
-      </p>
+      <ReportButton booking={b} />
+
+      {!embedded && (
+        <p className="text-center text-sm">
+          <Link href="/dashboard/home-bookings" className="text-primary hover:underline">
+            All my home bookings
+          </Link>
+        </p>
+      )}
 
       <CancelDialog
         open={dialog === "cancel"}

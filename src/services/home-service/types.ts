@@ -394,6 +394,10 @@ export type HomeBookingSummary = {
   advanceMinor: number;
   balanceMinor: number;
   advanceStatus: AdvanceStatus;
+  /** Kept under the cancellation rule. */
+  feeMinor: number;
+  /** Back in the wallet; null until the visit ended early. */
+  refundedMinor: number | null;
   createdAt: string;
   salon: { id: string; name: string; area: string | null; image: string | null };
   expert: HomeExpertSummary;
@@ -435,11 +439,10 @@ export type HomeBooking = HomeBookingSummary & {
   cancelledBy: HomeCancelledBy | null;
   cancelReason: string | null;
   noShowParty: HomeNoShowParty | null;
-  feeMinor: number;
-  refundedMinor: number | null;
   rescheduleCount: number;
   appealStatus: HomeAppealStatus | null;
   appealedAt: string | null;
+  review: { rating: number; comment: string | null; createdAt: string } | null;
   timeline: HomeTimelineEvent[];
   /** The 4 digits the customer reads to the expert; null outside CONFIRMED … ARRIVED. */
   startCode: string | null;
@@ -552,6 +555,8 @@ export type HomeJob = {
   startCodeTriesLeft: number;
   canSetOffFrom: string;
   addressRevealAt: string;
+  /** While ARRIVED: from when "Customer not here" opens. */
+  noShowFrom: string | null;
   address: {
     addressLine: string;
     landmark: string | null;
@@ -563,7 +568,13 @@ export type HomeJob = {
 };
 
 /** `GET /jobs?date` */
-export type HomeJobList = { from: string; to: string; jobs: HomeJob[] };
+export type HomeJobList = {
+  from: string;
+  to: string;
+  /** False for staff who were never set up as a home expert. */
+  isExpert: boolean;
+  jobs: HomeJob[];
+};
 
 export type HomeJobCompleteInput = {
   balanceMethod: BalanceMethod;
@@ -614,6 +625,14 @@ export type HomePlatformCaps = {
   dayStartBound: string;
   dayEndBound: string;
   ladiesLastStart: string;
+  commissionPercent: number;
+};
+
+/** The policy in force as the owner's Policy tab quotes it. */
+export type OwnerHomePolicy = HomePolicy & {
+  /** The advance the sample disclaimer names. */
+  sampleAdvanceMinor: number;
+  disclaimer: { en: string; bn: string };
 };
 
 /** `GET /home-service/owner/profile?salonId` */
@@ -624,6 +643,7 @@ export type OwnerHomeProfile = {
   checklist: HomeChecklistItem[];
   platform: HomePlatformCaps;
   policyInForce: HomePolicyInForce;
+  policy: OwnerHomePolicy;
   bookable: Record<HomeAudience, boolean>;
   /** Turn on / off / pause are the business owner's alone. */
   canSwitch: boolean;
@@ -793,8 +813,20 @@ export type OwnerHomeBooking = {
   createdAt: string;
 };
 
+export type OwnerHomeBookingTab = "today" | "upcoming" | "past";
+
+/** `GET /home-service/owner/bookings/:id/eligible-experts`: free at that time and able to do every service. */
+export type HomeReassignCandidate = {
+  id: string;
+  name: string;
+  photo: string | null;
+  rating: number;
+  completedJobs: number;
+};
+
 export type OwnerHomeBookingQuery = {
   salonId?: string;
+  tab?: OwnerHomeBookingTab;
   status?: HomeBookingStatus;
   audience?: HomeAudience;
   expertId?: string;
@@ -984,4 +1016,6 @@ export type HomePageMeta = {
   totalPages?: number;
   /** Safety reports only. */
   statusCounts?: Partial<Record<HomeReportStatus, number>>;
+  /** The owner's board only: advances held for the branch's open visits, whatever the filters. */
+  heldMinor?: number;
 };

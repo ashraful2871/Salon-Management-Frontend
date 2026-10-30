@@ -68,6 +68,7 @@ export default async function HomeBookingPage({
       methods={methodsRes?.success && methodsRes.data ? methodsRes.data : []}
       via={via === "bkash" || via === "sslcommerz" ? via : null}
       retryMethod={method === "BKASH" || method === "SSLCOMMERZ" ? (method as ProviderId) : null}
+      ask={one(sp.review) ? "review" : one(sp.appeal) ? "appeal" : null}
     />
   );
 }
