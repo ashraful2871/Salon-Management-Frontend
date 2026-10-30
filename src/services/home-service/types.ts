@@ -173,13 +173,18 @@ export type HomeCatalogOffering = {
   durationMin: number;
   image: string | null;
   salonCount: number;
+  /** Verified experts who offer it within reach. */
+  expertCount: number;
 };
 
 /** `GET /home-service/catalog?audience&lat&lng` */
 export type HomeCatalog = {
   audience: HomeAudience;
   outOfArea: boolean;
-  categories: Array<{ category: HomeCategory; count: number; minPriceMinor: number }>;
+  /** Distinct experts who reach this point (what the unfiltered experts list totals). */
+  expertCount: number;
+  /** `count` = services in the category, `expertCount` = distinct experts offering one of them. */
+  categories: Array<{ category: HomeCategory; count: number; expertCount: number; minPriceMinor: number }>;
   offerings: HomeCatalogOffering[];
 };
 

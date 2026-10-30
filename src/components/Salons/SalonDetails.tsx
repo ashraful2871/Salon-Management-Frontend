@@ -31,6 +31,7 @@ import { useSavedLocation } from "@/hooks/useSavedLocation";
 import { useAssistantLauncher } from "@/components/Assistant/AssistantContext";
 import SafeImage from "@/components/Shared/SafeImage";
 import { ReportReviewButton } from "./ReportReviewButton";
+import SalonHomeBand from "@/components/HomeService/SalonHomeBand";
 
 type OperatingHour = { open: string; close: string };
 type OperatingHours = Partial<
@@ -400,6 +401,9 @@ const SalonDetails = ({
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-12 gap-8 items-start">
             <div className="lg:col-span-8 space-y-10 min-w-0">
+              {(salon?.homeService?.ladies || salon?.homeService?.gents) && (
+                <SalonHomeBand sides={salon.homeService} />
+              )}
               {salon?.description && (
                 <div id="about">
                   <SectionTitle>About</SectionTitle>

@@ -80,6 +80,18 @@ const generated = (p: HomePolicy, advanceMinor: number, lang: DisclaimerLang): s
 export const buildDisclaimer = (p: HomePolicyWithText, advanceMinor: number, lang: DisclaimerLang): string =>
   p.overrides?.[p.policy] || generated(p, advanceMinor, lang);
 
+/**
+ * The disclaimer's short form, for badges and the landing (no amounts, so it
+ * needs no cart). Frontend only: the API has no short form to mirror.
+ */
+export const policyShortLine = (p: Pick<HomePolicy, "policy" | "freeCancelHours" | "maxRescheduleCount">) => {
+  if (p.policy === "FREE") return "Free cancellation";
+  if (p.policy === "WINDOW") return `Free cancellation until ${p.freeCancelHours} h before`;
+  const n = p.maxRescheduleCount;
+  if (n <= 0) return "Advance is non-refundable";
+  return `Advance is non-refundable — reschedule ${n === 1 ? "once" : `up to ${n} times`} for free`;
+};
+
 /** Nothing to agree to only when the advance always comes back. */
 export const requiresAcceptance = (p: Pick<HomePolicy, "policy" | "noShowPercent">) =>
   !(p.policy === "FREE" && p.noShowPercent === 0);

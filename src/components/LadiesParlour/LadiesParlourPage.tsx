@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 
+import { LadiesAtHomeBand } from "@/components/HomeService/BeautyAtHomeSection";
 import BeautyMenu from "./BeautyMenu";
 import Faq from "./Faq";
 import Hero from "./Hero";
@@ -24,6 +25,7 @@ export default function LadiesParlourPage() {
         <TopParlours />
       </Suspense>
       <Occasions />
+      <LadiesAtHomeBand />
       {/* Renders nothing below three good reviews, so no skeleton to collapse. */}
       <Suspense fallback={null}>
         <Reviews />
