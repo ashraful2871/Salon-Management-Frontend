@@ -25,6 +25,7 @@ import {
   Briefcase,
   FileBadge,
   House,
+  HousePlus,
   UserCheck,
   SlidersHorizontal,
   Store,
@@ -69,7 +70,7 @@ export type NavItem = {
 export type NavGroup = { title?: string; items: NavItem[] };
 
 /** Shell state some links depend on: `GET /admin/me`, and `GET /home-service/jobs` for experts. */
-export type NavFlags = { approvals?: boolean; homeExpert?: boolean };
+export type NavFlags = { approvals?: boolean; homeExpert?: boolean; homeBranch?: boolean };
 
 // Admin items carry the permission their page checks, so an admin role that
 // lacks it never sees the link. Each later admin phase adds its own items
@@ -140,6 +141,12 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: Briefcase,
         label: "My jobs",
         onlyWhen: "homeExpert",
+      },
+      {
+        path: "/dashboard/home-service",
+        icon: HousePlus,
+        label: "Home Service",
+        onlyWhen: "homeBranch",
       },
     ],
   },

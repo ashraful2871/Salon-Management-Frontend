@@ -238,6 +238,7 @@ export const DashboardShell = ({
   branches,
   notifications = false,
   homeExpert = false,
+  homeBranch = false,
   children,
 }: {
   user: ShellUser;
@@ -250,6 +251,8 @@ export const DashboardShell = ({
   notifications?: boolean;
   /** Staff and managers set up as a home expert: the My jobs link. */
   homeExpert?: boolean;
+  /** The owner, and a manager once the branch has Home Service: its page. */
+  homeBranch?: boolean;
   children: ReactNode;
 }) => {
   const pathname = usePathname();
@@ -258,7 +261,7 @@ export const DashboardShell = ({
   const closeRef = useRef<HTMLButtonElement>(null);
   const moreRef = useRef<HTMLButtonElement>(null);
 
-  const groups = navGroupsFor(user.role, admin?.permissions, { approvals: admin?.approvals, homeExpert });
+  const groups = navGroupsFor(user.role, admin?.permissions, { approvals: admin?.approvals, homeExpert, homeBranch });
   const items = groups.flatMap((g) => g.items);
   const active = activeItem(pathname, items)?.path;
   const { trail, title } = pageTrail(pathname, items, user.role);

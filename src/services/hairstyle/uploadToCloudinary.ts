@@ -8,7 +8,7 @@ import type { UploadTicket } from "./types";
  */
 export const uploadToCloudinary = (
   file: Blob,
-  ticket: UploadTicket,
+  ticket: Pick<UploadTicket, "apiKey" | "uploadUrl" | "params">,
   onProgress?: (percent: number) => void,
 ): Promise<ApiResponse<{ version: number | string; signature: string }>> =>
   new Promise((resolve) => {
