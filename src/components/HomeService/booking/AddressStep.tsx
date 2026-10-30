@@ -123,6 +123,7 @@ export default function AddressStep({
             <MapPin className="size-4 text-primary" aria-hidden /> Put the pin on your home
           </p>
           <LocationPicker
+            place="home"
             value={draft.lat != null && draft.lng != null ? { lat: draft.lat, lng: draft.lng } : null}
             fallbackCenter={fallbackCenter}
             onChange={(lat, lng) => onChange({ lat, lng })}

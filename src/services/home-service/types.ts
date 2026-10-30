@@ -394,6 +394,10 @@ export type HomeBookingSummary = {
   advanceMinor: number;
   balanceMinor: number;
   advanceStatus: AdvanceStatus;
+  /** Kept under the cancellation rule. */
+  feeMinor: number;
+  /** Back in the wallet; null until the visit ended early. */
+  refundedMinor: number | null;
   createdAt: string;
   salon: { id: string; name: string; area: string | null; image: string | null };
   expert: HomeExpertSummary;
@@ -435,11 +439,10 @@ export type HomeBooking = HomeBookingSummary & {
   cancelledBy: HomeCancelledBy | null;
   cancelReason: string | null;
   noShowParty: HomeNoShowParty | null;
-  feeMinor: number;
-  refundedMinor: number | null;
   rescheduleCount: number;
   appealStatus: HomeAppealStatus | null;
   appealedAt: string | null;
+  review: { rating: number; comment: string | null; createdAt: string } | null;
   timeline: HomeTimelineEvent[];
   /** The 4 digits the customer reads to the expert; null outside CONFIRMED … ARRIVED. */
   startCode: string | null;
@@ -552,6 +555,8 @@ export type HomeJob = {
   startCodeTriesLeft: number;
   canSetOffFrom: string;
   addressRevealAt: string;
+  /** While ARRIVED: from when "Customer not here" opens. */
+  noShowFrom: string | null;
   address: {
     addressLine: string;
     landmark: string | null;
@@ -563,7 +568,13 @@ export type HomeJob = {
 };
 
 /** `GET /jobs?date` */
-export type HomeJobList = { from: string; to: string; jobs: HomeJob[] };
+export type HomeJobList = {
+  from: string;
+  to: string;
+  /** False for staff who were never set up as a home expert. */
+  isExpert: boolean;
+  jobs: HomeJob[];
+};
 
 export type HomeJobCompleteInput = {
   balanceMethod: BalanceMethod;

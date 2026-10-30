@@ -7,6 +7,7 @@ import { ADMIN_SECURITY_PATH, PATHNAME_HEADER } from "@/lib/route-access";
 import { getAdminMe } from "@/services/admin/getAdminMe";
 import { getAdminInbox } from "@/services/admin/getAdminInbox";
 import type { AdminShellData } from "@/components/Admin/AdminTopBar";
+import { getMyJobs } from "@/services/home-service/getMyJobs";
 import { getMyAccess } from "@/services/owner/getMyAccess";
 import { getSelectedBranch } from "@/lib/branch-cookie";
 import { cookies, headers } from "next/headers";
@@ -67,6 +68,11 @@ const CommonDashboardLayout = async ({
       selected,
     };
   }
+  // Staff and managers who are home experts get My jobs in their nav.
+  const homeExpert =
+    user.role === "STAFF" || user.role === "BRANCH_MANAGER"
+      ? (await getMyJobs()).data?.isExpert === true
+      : false;
   // Same session, with the real name filled in for the top bar.
   const display = (await getDisplayUser()) ?? user;
   // The sidebar's collapse toggle writes this, so a reload renders it as left.
@@ -78,6 +84,7 @@ const CommonDashboardLayout = async ({
       initialCollapsed={collapsed}
       admin={admin}
       branches={branches}
+      homeExpert={homeExpert}
       notifications={user.role === "SALON_OWNER" || user.role === "BRANCH_MANAGER" || user.role === "STAFF"}
     >
       <SessionKeeper />

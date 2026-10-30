@@ -22,7 +22,9 @@ import {
   Banknote,
   WalletCards,
   BookOpenCheck,
+  Briefcase,
   FileBadge,
+  House,
   UserCheck,
   SlidersHorizontal,
   Store,
@@ -66,8 +68,8 @@ export type NavItem = {
 
 export type NavGroup = { title?: string; items: NavItem[] };
 
-/** Shell state some links depend on, from `GET /admin/me`. */
-export type NavFlags = { approvals?: boolean };
+/** Shell state some links depend on: `GET /admin/me`, and `GET /home-service/jobs` for experts. */
+export type NavFlags = { approvals?: boolean; homeExpert?: boolean };
 
 // Admin items carry the permission their page checks, so an admin role that
 // lacks it never sees the link. Each later admin phase adds its own items
@@ -121,6 +123,23 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "My salon",
         // Opens their branch's profile; the salon list is the owner's.
         labelByRole: { BRANCH_MANAGER: "My branch" },
+      },
+    ],
+  },
+  {
+    title: "Home Service",
+    items: [
+      {
+        path: "/dashboard/home-bookings",
+        icon: House,
+        label: "Home bookings",
+        short: "At home",
+      },
+      {
+        path: "/dashboard/my-jobs",
+        icon: Briefcase,
+        label: "My jobs",
+        onlyWhen: "homeExpert",
       },
     ],
   },
@@ -300,11 +319,13 @@ export const NAV_GROUPS: NavGroup[] = [
 
 /** The pages one tap away on a phone, in tab order. "More" is added after them. */
 export const TABS_BY_ROLE: Record<UserRole, ProtectedRoute[]> = {
-  CUSTOMER: ["/dashboard", "/dashboard/appointments", "/dashboard/wallet"],
+  CUSTOMER: ["/dashboard", "/dashboard/appointments", "/dashboard/home-bookings", "/dashboard/wallet"],
   SALON_OWNER: ["/dashboard", "/dashboard/appointments", "/dashboard/slots", "/dashboard/services"],
-  STAFF: ["/dashboard", "/dashboard/appointments", "/dashboard/customers"],
+  STAFF: ["/dashboard", "/dashboard/my-jobs", "/dashboard/appointments", "/dashboard/customers"],
+  // An expert's day starts at My jobs; `tabsFor` keeps the first four.
   BRANCH_MANAGER: [
     "/dashboard",
+    "/dashboard/my-jobs",
     "/dashboard/calendar",
     "/dashboard/appointments",
     "/dashboard/customers",
@@ -318,6 +339,9 @@ export const TABS_BY_ROLE: Record<UserRole, ProtectedRoute[]> = {
   AGENT: ["/dashboard/admin", "/dashboard/admin/salons"],
   GUEST: [],
 };
+
+/** More takes the fifth place on the bar. */
+const MAX_TABS = 4;
 
 /** The bottom-tab label: per role, then `short`, then the full label. */
 export const tabLabelFor = (item: NavItem, role: UserRole) =>
@@ -355,10 +379,15 @@ export const navGroupsFor = (
 
 const ALL_ITEMS = NAV_GROUPS.flatMap((group) => group.items);
 
-export const tabsFor = (role: UserRole, permissions?: readonly string[]): NavItem[] =>
+export const tabsFor = (
+  role: UserRole,
+  permissions?: readonly string[],
+  flags?: NavFlags,
+): NavItem[] =>
   TABS_BY_ROLE[role]
     .map((path) => ALL_ITEMS.find((item) => item.path === path))
-    .filter((item): item is NavItem => !!item && canSee(item, role, permissions));
+    .filter((item): item is NavItem => !!item && canSee(item, role, permissions, flags))
+    .slice(0, MAX_TABS);
 
 /** The item whose path is the longest prefix of the current one. */
 export const activeItem = (pathname: string, items: NavItem[]) =>

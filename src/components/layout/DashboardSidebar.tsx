@@ -237,6 +237,7 @@ export const DashboardShell = ({
   admin,
   branches,
   notifications = false,
+  homeExpert = false,
   children,
 }: {
   user: ShellUser;
@@ -247,6 +248,8 @@ export const DashboardShell = ({
   branches?: { options: BranchOption[]; selected: string; allowAll?: boolean };
   /** Business accounts (owner, manager, staff): the notification bell. */
   notifications?: boolean;
+  /** Staff and managers set up as a home expert: the My jobs link. */
+  homeExpert?: boolean;
   children: ReactNode;
 }) => {
   const pathname = usePathname();
@@ -255,11 +258,11 @@ export const DashboardShell = ({
   const closeRef = useRef<HTMLButtonElement>(null);
   const moreRef = useRef<HTMLButtonElement>(null);
 
-  const groups = navGroupsFor(user.role, admin?.permissions, { approvals: admin?.approvals });
+  const groups = navGroupsFor(user.role, admin?.permissions, { approvals: admin?.approvals, homeExpert });
   const items = groups.flatMap((g) => g.items);
   const active = activeItem(pathname, items)?.path;
   const { trail, title } = pageTrail(pathname, items, user.role);
-  const tabs = tabsFor(user.role, admin?.permissions);
+  const tabs = tabsFor(user.role, admin?.permissions, { homeExpert });
   const home = ROLE_HOME[user.role];
 
   const toggleCollapsed = () => {

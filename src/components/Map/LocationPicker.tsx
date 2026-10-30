@@ -39,7 +39,22 @@ export type LocationPickerProps = {
   // Shows [Use this address] on the "Looks like" card. The parent decides what
   // to fill; nothing is overwritten unless the owner clicks it.
   onAddressSuggestion?: (place: GeoPlace) => void;
+  // What the pin marks, for the wording: an owner's salon or a customer's home.
+  place?: "salon" | "home";
   className?: string;
+};
+
+const PLACE_COPY = {
+  salon: {
+    here: "I'm at the salon now",
+    hint: "Drag the pin onto your salon's entrance.",
+    outside: "That spot is outside Bangladesh. Please place the pin on your salon.",
+  },
+  home: {
+    here: "I'm at home now",
+    hint: "Drag the pin onto your front door.",
+    outside: "That spot is outside Bangladesh. Please place the pin on your home.",
+  },
 };
 
 type Notice = { tone: "info" | "warn"; text: string };
@@ -62,8 +77,10 @@ export default function LocationPicker({
   fallbackCenter,
   onChange,
   onAddressSuggestion,
+  place = "salon",
   className,
 }: LocationPickerProps) {
+  const copy = PLACE_COPY[place];
   const [view, setView] = useState<View>(() => ({
     center: value
       ? toLatLng(value)
@@ -164,7 +181,7 @@ export default function LocationPicker({
     if (!isInBangladesh(lat, lng)) {
       setNotice({
         tone: "warn",
-        text: "That spot is outside Bangladesh. Please place the pin on your salon.",
+        text: copy.outside,
       });
       return false;
     }
@@ -357,7 +374,7 @@ export default function LocationPicker({
         ) : (
           <Crosshair className="mr-2 h-4 w-4" />
         )}
-        I&apos;m at the salon now
+        {copy.here}
       </Button>
 
       {/* Map */}
@@ -371,7 +388,7 @@ export default function LocationPicker({
 
       <div className="space-y-1">
         <p className="text-xs text-muted-foreground">
-          Drag the pin onto your salon&apos;s entrance.
+          {copy.hint}
         </p>
         {value && (
           <p className="font-mono text-xs text-muted-foreground">
