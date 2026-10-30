@@ -116,6 +116,7 @@ export const ROUTE_ROLES = {
   "/dashboard/admin/reviews": ["ADMIN"],
   "/dashboard/admin/support": ["ADMIN"],
   "/dashboard/admin/analytics": ["ADMIN"],
+  "/dashboard/admin/home-service": ["ADMIN"],
   // Old admin URLs: the proxy sends admins on (`ADMIN_MOVED`), and nobody
   // else has a page here.
   "/dashboard/become-a-salon-owner-request": [],
@@ -123,6 +124,12 @@ export const ROUTE_ROLES = {
   "/dashboard/applications-status": ["SALON_OWNER", "CUSTOMER"],
   "/dashboard/settings": SIGNED_IN_ROLES,
   "/dashboard/wallet": ["CUSTOMER"],
+  // Home Service. Only a customer books a home visit; the expert's jobs are
+  // a staff member's (a manager can be an expert too, the page says if not);
+  // the branch's home settings, menu, experts and board are the business's.
+  "/dashboard/home-bookings": ["CUSTOMER"],
+  "/dashboard/my-jobs": ["STAFF", "BRANCH_MANAGER"],
+  "/dashboard/home-service": ["SALON_OWNER", "BRANCH_MANAGER"],
   "/my-profile": SIGNED_IN_ROLES,
 } as const satisfies Record<string, readonly UserRole[]>;
 

@@ -8,3 +8,13 @@ export const SALON_LIST_PATHS = ["/salons", "/gents-parlour"] as const;
 
 export const isSalonListPath = (pathname: string) =>
   (SALON_LIST_PATHS as readonly string[]).includes(pathname);
+
+/**
+ * The Home Service lists (experts and services that reach a point). They need
+ * a point to show anything, so a new location restarts them at it with
+ * `?lat&lng` only: the radius and sort belong to the salon lists.
+ */
+export const HOME_LIST_PATHS = ["/home-service/ladies", "/home-service/gents"] as const;
+
+export const isHomeListPath = (pathname: string) =>
+  (HOME_LIST_PATHS as readonly string[]).includes(pathname);

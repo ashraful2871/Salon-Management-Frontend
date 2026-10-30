@@ -49,6 +49,18 @@ const STATUS_TONE: Record<string, Tone> = {
   SUBMITTED: "warning",
   VERIFIED: "success",
   DISABLED: "neutral",
+  // Home Service visits (CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED, NO_SHOW
+  // and EXPIRED are above), expert verification (PENDING, VERIFIED, REJECTED,
+  // SUSPENDED above) and branch status (ACTIVE, REJECTED, SUSPENDED above).
+  PENDING_PAYMENT: "warning",
+  EN_ROUTE: "primary",
+  ARRIVED: "primary",
+  DRAFT: "neutral",
+  PENDING_REVIEW: "warning",
+  // Safety reports.
+  REVIEWING: "info",
+  ACTIONED: "success",
+  DISMISSED: "neutral",
 };
 
 export const toneOf = (status?: string | null): Tone =>

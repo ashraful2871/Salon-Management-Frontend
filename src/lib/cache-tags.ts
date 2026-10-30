@@ -60,6 +60,23 @@ export const TAGS = {
   ownerActivity: "owner-activity",
   /** Daily close history (`GET /owner/daily-close/history`); the day itself is never cached. */
   ownerDailyClose: "owner-daily-close",
+  // Home Service (`/home-service/*`).
+  /** Public catalog and expert lists (both sides, every point). */
+  homeCatalog: "home-catalog",
+  homeExpert: (id: string) => `home-expert-${id}`,
+  /** Read no-store; the tag lets a booking write expire anything that did cache. */
+  homeAvailability: (expertId: string) => `home-availability-${expertId}`,
+  myHomeBookings: "my-home-bookings",
+  /** The customer's saved home-visit addresses. */
+  homeAddresses: "home-addresses",
+  homeBooking: (id: string) => `home-booking-${id}`,
+  /** The expert's My jobs. */
+  homeJobs: "home-jobs",
+  /** A branch's profile, menu and experts as its owner sees them. (`ownerHome` is the owner dashboard's Home page.) */
+  ownerHomeService: (salonId: string) => `owner-home-service-${salonId}`,
+  ownerHomeServiceBookings: (salonId: string) => `owner-home-service-bookings-${salonId}`,
+  /** Every back-office Home Service queue. */
+  adminHome: "admin-home-service",
   // Back office (`/admin/*`).
   adminMe: "admin-me",
   adminInbox: "admin-inbox",
