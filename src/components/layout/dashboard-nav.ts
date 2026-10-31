@@ -17,7 +17,9 @@ import {
   Scissors,
   Settings,
   Shield,
+  ShieldAlert,
   ShieldCheck,
+  Percent,
   Landmark,
   Banknote,
   WalletCards,
@@ -65,6 +67,8 @@ export type NavItem = {
   onlyWhen?: keyof NavFlags;
   /** Roles the route admits but that should not get this link. */
   hiddenFor?: UserRole[];
+  /** The `GET /admin/inbox` item whose count shows as this link's badge. */
+  inboxKey?: string;
 };
 
 export type NavGroup = { title?: string; items: NavItem[] };
@@ -263,6 +267,47 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    title: "Home Service",
+    items: [
+      {
+        path: "/dashboard/admin/home-service/approvals",
+        icon: ClipboardCheck,
+        label: "Approvals",
+        permission: "homeservice.view",
+        inboxKey: "home.branches.pending",
+      },
+      {
+        path: "/dashboard/admin/home-service/experts",
+        icon: UserCheck,
+        label: "Experts",
+        permission: "homeservice.view",
+        inboxKey: "home.experts.pending",
+      },
+      {
+        path: "/dashboard/admin/home-service/bookings",
+        icon: BookOpenCheck,
+        label: "Home bookings",
+        short: "Bookings",
+        permission: "homeservice.view",
+      },
+      {
+        // The reports API is homeservice.manage, unlike the rest of this group.
+        path: "/dashboard/admin/home-service/safety",
+        icon: ShieldAlert,
+        label: "Safety",
+        permission: "homeservice.manage",
+        inboxKey: "home.reports.open",
+      },
+      {
+        path: "/dashboard/admin/home-service/policy",
+        icon: Percent,
+        label: "Fees & policy",
+        short: "Fees",
+        permission: "homeservice.view",
+      },
+    ],
+  },
+  {
     title: "Trust & support",
     items: [
       {
@@ -409,6 +454,7 @@ const SUB_PAGES: Record<string, { crumb: string; title: string }> = {
   "/dashboard/admin/users": { crumb: "User", title: "User" },
   "/dashboard/admin/salons": { crumb: "Salon", title: "Salon" },
   "/dashboard/admin/bookings": { crumb: "Booking", title: "Booking" },
+  "/dashboard/admin/home-service/bookings": { crumb: "Visit", title: "Visit" },
   "/dashboard/admin/support": { crumb: "Ticket", title: "Ticket" },
 };
 

@@ -5,6 +5,7 @@ import { History, Loader2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDhaka } from "@/components/Admin/Timeline";
+import type { ApiResponse } from "@/lib/api-types";
 import { getSettingHistory } from "@/services/admin/settings/getSettingHistory";
 import type { AdminSetting, SettingChange } from "@/services/admin/settings/types";
 import { formatSettingValue } from "./format";
@@ -18,10 +19,12 @@ export function SettingHistory({
   setting,
   canRestore,
   onRestore,
+  load: loadChanges = getSettingHistory,
 }: {
   setting: AdminSetting;
   canRestore: boolean;
   onRestore: (value: unknown) => void;
+  load?: (key: string) => Promise<ApiResponse<SettingChange[]>>;
 }) {
   const [open, setOpen] = useState(false);
   const [changes, setChanges] = useState<SettingChange[] | null>(null);
@@ -33,7 +36,7 @@ export function SettingHistory({
     if (!next) return;
     setError(null);
     startTransition(async () => {
-      const result = await getSettingHistory(setting.key);
+      const result = await loadChanges(setting.key);
       if (result.success) setChanges(result.data ?? []);
       else setError(result.message);
     });

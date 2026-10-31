@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getAdminAppeals } from "@/services/admin/appeals/getAdminAppeals";
+import { getHomeAppeals } from "@/services/home-service/getHomeAppeals";
 import { AppealsClient } from "./AppealsClient";
 
 export const metadata: Metadata = {
@@ -8,6 +9,6 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminAppealsPage() {
-  const response = await getAdminAppeals();
-  return <AppealsClient response={response} />;
+  const [response, home] = await Promise.all([getAdminAppeals(), getHomeAppeals()]);
+  return <AppealsClient response={response} homeResponse={home} />;
 }

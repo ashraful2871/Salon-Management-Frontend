@@ -117,6 +117,11 @@ export const ROUTE_ROLES = {
   "/dashboard/admin/support": ["ADMIN"],
   "/dashboard/admin/analytics": ["ADMIN"],
   "/dashboard/admin/home-service": ["ADMIN"],
+  "/dashboard/admin/home-service/approvals": ["ADMIN"],
+  "/dashboard/admin/home-service/experts": ["ADMIN"],
+  "/dashboard/admin/home-service/bookings": ["ADMIN"],
+  "/dashboard/admin/home-service/safety": ["ADMIN"],
+  "/dashboard/admin/home-service/policy": ["ADMIN"],
   // Old admin URLs: the proxy sends admins on (`ADMIN_MOVED`), and nobody
   // else has a page here.
   "/dashboard/become-a-salon-owner-request": [],
