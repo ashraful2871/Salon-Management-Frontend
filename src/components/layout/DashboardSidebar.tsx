@@ -87,12 +87,15 @@ const SidebarNav = ({
   role,
   active,
   collapsed,
+  badges,
   onNavigate,
 }: {
   groups: NavGroup[];
   role: UserRole;
   active: string | undefined;
   collapsed: boolean;
+  /** Inbox counts by key, for the links that name one. */
+  badges?: Record<string, number>;
   onNavigate?: () => void;
 }) => (
   <nav aria-label="Dashboard" className="flex-1 overflow-y-auto px-3 pb-4 pt-3">
@@ -113,6 +116,7 @@ const SidebarNav = ({
           {group.items.map((item) => {
             const isActive = item.path === active;
             const label = labelFor(item, role);
+            const badge = (item.inboxKey && badges?.[item.inboxKey]) || 0;
             const link = (
               <Link
                 href={item.path}
@@ -136,13 +140,25 @@ const SidebarNav = ({
                 <item.icon aria-hidden="true" className="size-[18px] shrink-0" />
                 {collapsed ? (
                   <>
-                    <span className="sr-only">{label}</span>
+                    <span className="sr-only">
+                      {label}
+                      {badge > 0 && `, ${badge} waiting`}
+                    </span>
+                    {badge > 0 && (
+                      <span aria-hidden="true" className="absolute left-2.5 top-2 size-2 rounded-full bg-danger" />
+                    )}
                     <NavLinkPending className="absolute right-1.5 top-1.5" />
                   </>
                 ) : (
                   <>
                     <span className="truncate">{label}</span>
-                    <NavLinkPending className="ml-auto" />
+                    {badge > 0 && (
+                      <span className="ml-auto shrink-0 rounded-full bg-primary-soft px-2 text-xs font-semibold tabular-nums text-primary-hover">
+                        {badge > 99 ? "99+" : badge}
+                        <span className="sr-only"> waiting</span>
+                      </span>
+                    )}
+                    <NavLinkPending className={badge > 0 ? undefined : "ml-auto"} />
                   </>
                 )}
               </Link>
@@ -266,6 +282,7 @@ export const DashboardShell = ({
   const active = activeItem(pathname, items)?.path;
   const { trail, title } = pageTrail(pathname, items, user.role);
   const tabs = tabsFor(user.role, admin?.permissions, { homeExpert });
+  const badges = Object.fromEntries((admin?.inbox ?? []).map((item) => [item.key, item.count]));
   const home = ROLE_HOME[user.role];
 
   const toggleCollapsed = () => {
@@ -330,6 +347,7 @@ export const DashboardShell = ({
             role={user.role}
             active={active}
             collapsed={collapsed}
+            badges={badges}
           />
         </TooltipProvider>
         <SidebarFooter user={user} collapsed={collapsed} />
@@ -383,6 +401,7 @@ export const DashboardShell = ({
             role={user.role}
             active={active}
             collapsed={false}
+            badges={badges}
             onNavigate={() => setMobileOpen(false)}
           />
           <div className="border-t border-border px-3 pt-3">

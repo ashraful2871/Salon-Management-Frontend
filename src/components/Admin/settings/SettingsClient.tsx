@@ -1,14 +1,8 @@
 "use client";
 
 import { useId, useState } from "react";
-import { Lock } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { ReasonDialog } from "@/components/Admin/ReasonDialog";
-import { formatDhaka } from "@/components/Admin/Timeline";
 import { reasonText } from "@/components/Admin/users/labels";
 import { ErrorState } from "@/components/Shared/ErrorState";
 import { PageHeader } from "@/components/Shared/PageHeader";
@@ -16,33 +10,13 @@ import { SaveBar } from "@/components/Shared/SaveBar";
 import { ToneBadge } from "@/components/Shared/ToneBadge";
 import { showResultToast } from "@/components/Shared/showResultToast";
 import type { ApiResponse } from "@/lib/api-types";
-import { updateSetting, type SavedSetting } from "@/services/admin/settings/updateSetting";
-import { isApprovalRequired } from "@/services/admin/finance/types";
+import type { SavedSetting } from "@/services/admin/settings/updateSetting";
 import type { AdminSetting, AdminSettings, SettingGroup } from "@/services/admin/settings/types";
-import {
-  boundsText,
-  formatSettingValue,
-  GROUP_LABELS,
-  parseNumberDraft,
-  SETTING_REASONS,
-  SOURCE_LABELS,
-} from "./format";
-import { SettingHistory } from "./SettingHistory";
+import { formatSettingValue, GROUP_LABELS, SETTING_REASONS } from "./format";
+import { saveSettings } from "./saveSettings";
+import { fromDraft, same, SettingField, toDraft } from "./SettingField";
 
-/** Numbers are drafted as the text typed; booleans as is. */
 type Draft = Record<string, unknown>;
-
-const toDraft = (setting: AdminSetting, value: unknown): unknown =>
-  setting.kind === "int" || setting.kind === "number" ? String(value ?? "") : value;
-
-const fromDraft = (setting: AdminSetting, draft: unknown): { value: unknown } | { error: string } => {
-  if (setting.kind === "int" || setting.kind === "number") {
-    return parseNumberDraft(setting, String(draft));
-  }
-  return { value: draft };
-};
-
-const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 export function SettingsClient({
   response,
@@ -103,32 +77,11 @@ function SettingsSection({
   const needsStepUp = dirty.some((c) => c.setting.tier === 3);
   const { title, description } = GROUP_LABELS[group];
 
-  const save = async (reason: string): Promise<ApiResponse<SavedSetting>> => {
-    // Tier 3 first: a step-up prompt then comes before anything is written.
-    const ordered = [...dirty].sort((a, b) => b.setting.tier - a.setting.tier);
-    let last: ApiResponse<SavedSetting> = { success: false, message: "Nothing to save" };
-    // Money settings answer APPROVAL_REQUIRED while four-eyes is on.
-    let queued = 0;
-    for (const [i, { setting, parsed }] of ordered.entries()) {
-      last = await updateSetting(setting.key, (parsed as { value: unknown }).value, reason);
-      if (!last.success) {
-        return i === 0 ? last : { ...last, message: `Saved ${i} of ${ordered.length}. ${last.message}` };
-      }
-      if (isApprovalRequired(last.data)) queued += 1;
-    }
-    const saved = ordered.length - queued;
-    return {
-      ...last,
-      message:
-        queued === 0
-          ? ordered.length === 1
-            ? `${ordered[0].setting.label} saved`
-            : `${ordered.length} settings saved`
-          : saved === 0
-            ? "Sent for approval"
-            : `${saved} saved, ${queued} sent for approval`,
-    };
-  };
+  const save = (reason: string): Promise<ApiResponse<SavedSetting>> =>
+    saveSettings(
+      dirty.map(({ setting, parsed }) => ({ setting, value: (parsed as { value: unknown }).value })),
+      reason,
+    );
 
   return (
     <Card>
@@ -198,113 +151,6 @@ function SettingsSection({
         />
       )}
     </Card>
-  );
-}
-
-function SettingField({
-  setting,
-  draft,
-  error,
-  canEdit,
-  onChange,
-}: {
-  setting: AdminSetting;
-  draft: unknown;
-  error: string | null;
-  canEdit: boolean;
-  onChange: (value: unknown) => void;
-}) {
-  const id = useId();
-  const source = SOURCE_LABELS[setting.source];
-  const range = boundsText(setting);
-
-  const meta = [
-    `Default ${formatSettingValue(setting, setting.default)}`,
-    range && `Range ${range}`,
-    setting.envName && `env ${setting.envName}`,
-  ].filter(Boolean);
-
-  const input =
-    setting.kind === "boolean" ? (
-      <Switch
-        id={id}
-        checked={Boolean(draft)}
-        onCheckedChange={onChange}
-        disabled={!canEdit}
-        aria-describedby={`${id}-help`}
-      />
-    ) : setting.kind === "choice" ? (
-      <Select value={String(draft)} onValueChange={onChange} disabled={!canEdit}>
-        <SelectTrigger id={id} aria-describedby={`${id}-help`} className="sm:w-56">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {(setting.options ?? []).map((option) => (
-            <SelectItem key={option} value={option}>
-              {option}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    ) : (
-      <Input
-        id={id}
-        type={setting.kind === "text" ? "text" : "number"}
-        inputMode={setting.kind === "text" ? "text" : setting.kind === "int" ? "numeric" : "decimal"}
-        step={setting.kind === "text" ? undefined : setting.kind === "int" ? 1 : "any"}
-        min={setting.bounds.min ?? undefined}
-        max={setting.bounds.max ?? undefined}
-        value={String(draft)}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={!canEdit}
-        aria-invalid={!!error}
-        aria-describedby={`${id}-help`}
-        className={setting.kind === "text" ? "sm:w-72" : "sm:w-48"}
-      />
-    );
-
-  return (
-    <div className="space-y-3 py-4 first:pt-0 last:pb-0">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-        <div className="min-w-0 space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <Label htmlFor={id} className="text-sm font-semibold">
-              {setting.label}
-            </Label>
-            <ToneBadge status={setting.source} tone={source.tone}>
-              {source.label}
-            </ToneBadge>
-            {setting.public && <ToneBadge status="public" tone="neutral">Public</ToneBadge>}
-            {setting.approval && <ToneBadge status="approval" tone="warning">Needs approval</ToneBadge>}
-            {!canEdit && (
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                <Lock className="h-3 w-3" aria-hidden /> Read only
-              </span>
-            )}
-          </div>
-          <p id={`${id}-help`} className="text-sm text-muted-foreground">
-            {setting.help}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {meta.join(" · ")}
-            {setting.updatedAt && (
-              <>
-                {" · "}Last changed by {setting.updatedBy?.name ?? "Unknown"} at {formatDhaka(setting.updatedAt)}
-              </>
-            )}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2 sm:flex-col sm:items-end">
-          {input}
-          <SettingHistory
-            setting={setting}
-            canRestore={canEdit}
-            onRestore={(value) => onChange(toDraft(setting, value))}
-          />
-        </div>
-      </div>
-      {error && <p className="text-sm text-danger">{error}</p>}
-    </div>
   );
 }
 

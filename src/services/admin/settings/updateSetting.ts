@@ -9,7 +9,8 @@ export type SavedSetting = { key: string; value: unknown; version: number; updat
 
 /**
  * `PATCH /admin/settings/:key`. Flags need flags.manage, content.* needs
- * content.manage (tier 2); everything else settings.manage (tier 3: step-up).
+ * content.manage (tier 2); homeService.* homeservice.policy and everything
+ * else settings.manage (tier 3: step-up).
  */
 export const updateSetting = async (
   key: string,
@@ -26,6 +27,7 @@ export const updateSetting = async (
     updateTag(TAGS.adminSettings);
     updateTag(TAGS.adminApprovals);
     revalidateTag(TAGS.publicSettings, "max");
+    if (key.startsWith("homeService.")) revalidateTag(TAGS.homeCatalog, "max");
   }
   return result;
 };
