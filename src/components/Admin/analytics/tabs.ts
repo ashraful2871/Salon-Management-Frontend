@@ -7,6 +7,7 @@ export const ANALYTICS_TABS = [
   { key: "discovery", label: "Discovery" },
   { key: "assistant", label: "AI & assistant" },
   { key: "tryon", label: "Try-on" },
+  { key: "home", label: "Home Service" },
 ] as const;
 
 export type AnalyticsTab = (typeof ANALYTICS_TABS)[number]["key"];

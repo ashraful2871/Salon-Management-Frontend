@@ -15,6 +15,7 @@ import { SalonsTab } from "./_tabs/salons";
 import { DiscoveryTab } from "./_tabs/discovery";
 import { AssistantTab } from "./_tabs/assistant";
 import { TryOnTab } from "./_tabs/tryon";
+import { HomeServiceTab } from "./_tabs/home";
 
 export const metadata: Metadata = { title: "Analytics | Admin" };
 
@@ -30,6 +31,7 @@ const TABS = {
   discovery: DiscoveryTab,
   assistant: AssistantTab,
   tryon: TryOnTab,
+  home: HomeServiceTab,
 } satisfies Record<AnalyticsTab, unknown>;
 
 /**
