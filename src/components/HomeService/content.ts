@@ -78,12 +78,16 @@ export const initialsOf = (name: string) =>
     .join("");
 
 export const SORT_LABEL: Record<HomeExpertSort, string> = {
+  relevance: "Best match",
   rating: "Top rated",
   distance: "Nearest",
   soonest: "Soonest free",
 };
 
-export const STEPS: { icon: LucideIcon; title: string; text: string }[] = [
+/** The sort a list gets with no `sort` in the URL: best match while searching. */
+export const defaultSortFor = (searching: boolean): HomeExpertSort => (searching ? "relevance" : "rating");
+
+export const STEPS:{ icon: LucideIcon; title: string; text: string }[] = [
   { icon: MapPin, title: "Set your location", text: "See the experts whose salon reaches your home." },
   { icon: Sparkles, title: "Pick services and an expert", text: "Compare ratings, jobs done and prices." },
   { icon: CalendarCheck, title: "Choose a time", text: "Any open slot in the next 7 days." },

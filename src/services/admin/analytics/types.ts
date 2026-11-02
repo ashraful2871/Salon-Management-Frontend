@@ -11,7 +11,8 @@ export type AnalyticsReportName =
   | "funnel"
   | "search"
   | "assistant"
-  | "tryon";
+  | "tryon"
+  | "home";
 
 export type AnalyticsKpi = {
   id: string;
@@ -52,6 +53,20 @@ export type FunnelStep = { id: string; label: string; value: number; fromPreviou
 
 export type SearchTerm = { term: string; surface: string; count: number; zero: number };
 
+export type HomeSupplyRow = { area: string; ladies: number; gents: number; pending: number };
+
+export type HomeOutcome = {
+  side: string;
+  policy: string;
+  visits: number;
+  keptVisits: number;
+  feeMinor: number;
+  refundedMinor: number;
+};
+
+/** `since` is null while no policy setting has ever been saved. */
+export type HomePolicyOutcomes = { since: string | null; key: string | null; outcomes: HomeOutcome[] };
+
 export type AssistantLive = {
   window: { days: number; from: string; to: string; timeZone: string };
   daily: Array<{ date: string; conversations: number; bookings: number }>;
@@ -80,7 +95,11 @@ export type AnalyticsTables = {
   signupsByRole?: Breakdown;
   topSalons?: SalonMoneyRow[];
   areas?: AreaRow[];
-  steps?: FunnelStep[];
+  /** The Home Service report's steps also carry `ladies` and `gents`. */
+  steps?: Array<FunnelStep & { ladies?: number; gents?: number }>;
+  gaps?: Breakdown;
+  supply?: HomeSupplyRow[];
+  policy?: HomePolicyOutcomes;
   pages?: Breakdown;
   referrers?: Breakdown;
   surfaces?: Breakdown;

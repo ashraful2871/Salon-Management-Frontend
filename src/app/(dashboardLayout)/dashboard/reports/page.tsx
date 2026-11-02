@@ -17,6 +17,7 @@ import {
   BookingsTab,
   CustomersTab,
   DiscoveryTab,
+  HomeTab,
   MoneyTab,
   OverviewTab,
   ServicesTab,
@@ -37,6 +38,7 @@ const TABS: { [K in OwnerReportName]: (props: TabProps<ReportData[K]>) => React.
   customers: CustomersTab,
   utilisation: UtilisationTab,
   discovery: DiscoveryTab,
+  home: HomeTab,
   money: MoneyTab,
 };
 
@@ -52,7 +54,7 @@ async function ReportBody<K extends OwnerReportName>({ tab, filters, salonId }: 
 
 /**
  * Owner and manager reports: one filter row (all in the URL), the branch from
- * the switcher, eight tabs, each one cached server fetch (5 min).
+ * the switcher, nine tabs, each one cached server fetch (5 min).
  */
 export default async function ReportsPage({ searchParams }: { searchParams: SearchParams }) {
   const [params, access, selected] = await Promise.all([searchParams, getMyAccess(), getSelectedSalonId()]);

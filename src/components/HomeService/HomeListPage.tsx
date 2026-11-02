@@ -15,7 +15,16 @@ import { getHomeCatalog } from "@/services/home-service/getHomeCatalog";
 import { getHomeExperts } from "@/services/home-service/getHomeExperts";
 import type { HomeAudience, HomeCategory, HomeExpertSort } from "@/services/home-service/types";
 import { getPublicSettings, homeSettingsOf } from "@/services/settings/getPublicSettings";
-import { CATEGORY_LABEL, SIDES, SORT_LABEL, isHomeCategory, policyLineOf, sideEnabled, trackSide } from "./content";
+import {
+  CATEGORY_LABEL,
+  SIDES,
+  SORT_LABEL,
+  defaultSortFor,
+  isHomeCategory,
+  policyLineOf,
+  sideEnabled,
+  trackSide,
+} from "./content";
 import { ChipsSkeleton, ExpertCard, HOME_GRID, HomeGridSkeleton, OfferingCard } from "./HomeCards";
 import {
   ChangeLocationButton,
@@ -25,14 +34,35 @@ import {
   HomeViewControls,
   type HomeView,
 } from "./HomeListControls";
+import { HomeSearchBox } from "./HomeSearchBox";
 import { HomeTrack } from "./HomeTrack";
 
 const PAGE_SIZE = 20;
+const MAX_QUERY = 60;
 
 type Point = { lat: number; lng: number };
 type Params = { [key: string]: string | undefined };
 
 const toNumber = (v?: string) => (v == null || v.trim() === "" ? NaN : Number(v));
+
+/** This list's URL with `changes` applied (null removes a key), back on page 1. */
+const listHref = (audience: HomeAudience, params: Params, changes: Record<string, string | null>) => {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v) p.set(k, v);
+  p.delete("page");
+  for (const [k, v] of Object.entries(changes)) {
+    if (v) p.set(k, v);
+    else p.delete(k);
+  }
+  const qs = p.toString();
+  return qs ? `${SIDES[audience].href}?${qs}` : SIDES[audience].href;
+};
+
+/** Leaving a search: no `q`, and its best-match sort goes with it. */
+const clearSearchHref = (audience: HomeAudience, params: Params) =>
+  listHref(audience, params, { q: null, sort: params.sort === "relevance" ? null : (params.sort ?? null) });
+
+const quoted = (q: string) => `“${q}”`;
 
 const COPY: Record<HomeAudience, { title: string; description: string }> = {
   LADIES: {
@@ -71,7 +101,10 @@ export default async function HomeListPage({ searchParams, audience }: { searchP
 
   const view: HomeView = searchParams.view === "expert" ? "expert" : "service";
   const category = isHomeCategory(searchParams.category) ? searchParams.category : undefined;
-  const sort = (Object.keys(SORT_LABEL) as HomeExpertSort[]).find((s) => s === searchParams.sort) ?? "rating";
+  const q = (searchParams.q ?? "").trim().slice(0, MAX_QUERY) || undefined;
+  const picked = (Object.keys(SORT_LABEL) as HomeExpertSort[]).find((s) => s === searchParams.sort);
+  // "Best match" means nothing without a search.
+  const sort = picked && !(picked === "relevance" && !q) ? picked : defaultSortFor(!!q);
   const requestedPage = Math.floor(toNumber(searchParams.page));
   const page = requestedPage > 1 ? requestedPage : 1;
   const open = sideEnabled(settings, audience);
@@ -91,9 +124,16 @@ export default async function HomeListPage({ searchParams, audience }: { searchP
               {point ? (
                 <>
                   <div className="space-y-4 rounded-3xl border border-border bg-surface p-3 shadow-soft sm:p-4">
-                    <HomeViewControls view={view} sort={sort} />
+                    {/* Keyed on the point: suggestions cached for one place are wrong for another. */}
+                    <HomeSearchBox
+                      key={`${point.lat},${point.lng}`}
+                      audience={audience}
+                      point={point}
+                      initialQuery={q ?? ""}
+                    />
+                    <HomeViewControls view={view} sort={sort} searching={!!q} />
                     <Suspense fallback={<ChipsSkeleton />}>
-                      <ChipsLoader audience={audience} point={point} category={category} view={view} />
+                      <ChipsLoader audience={audience} point={point} category={category} view={view} q={q} />
                     </Suspense>
                   </div>
                   <PendingRegion className="pt-2">
@@ -104,6 +144,7 @@ export default async function HomeListPage({ searchParams, audience }: { searchP
                           point={point}
                           place={label}
                           category={category}
+                          q={q}
                           searchParams={searchParams}
                         />
                       ) : (
@@ -114,6 +155,8 @@ export default async function HomeListPage({ searchParams, audience }: { searchP
                           category={category}
                           sort={sort}
                           page={page}
+                          q={q}
+                          searchParams={searchParams}
                           policyLine={policyLineOf(settings)}
                         />
                       )}
@@ -211,14 +254,16 @@ async function ChipsLoader({
   point,
   category,
   view,
+  q,
 }: {
   audience: HomeAudience;
   point: Point;
   category?: HomeCategory;
   view: HomeView;
+  q?: string;
 }) {
   // Same request as the service grid, so Next serves both from one fetch.
-  const res = await getHomeCatalog({ audience, ...point });
+  const res = await getHomeCatalog({ audience, ...point, q });
   if (!res.success || !res.data || res.data.outOfArea) return null;
   return (
     <HomeCategoryChips
@@ -231,18 +276,76 @@ async function ChipsLoader({
 }
 
 /** "11 services · come to Banasree, Dhaka" above a grid. */
-function ResultsHeading({ count, noun, place, note }: { count: number; noun: string; place: string | null; note?: string }) {
+function ResultsHeading({
+  count,
+  noun,
+  place,
+  note,
+  search,
+}: {
+  count: number;
+  noun: string;
+  place: string | null;
+  note?: string;
+  /** The search the API applied, and whether these are close matches only. */
+  search?: { q: string; fuzzy: boolean; clearHref: string };
+}) {
   return (
-    <div className="mb-5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-      <h2 className="font-display text-xl font-semibold text-foreground sm:text-2xl">
-        {count} {noun}
-        {count === 1 ? "" : "s"}
-        <span className="font-sans text-base font-normal text-muted-foreground">
-          {place ? ` come to ${place}` : " near you"}
-        </span>
-      </h2>
-      {note && <p className="text-sm text-muted-foreground">{note}</p>}
+    <div className="mb-5 space-y-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2 className="font-display text-xl font-semibold text-foreground sm:text-2xl">
+          {count} {noun}
+          {count === 1 ? "" : "s"}
+          <span className="font-sans text-base font-normal text-muted-foreground">
+            {search ? ` for ${quoted(search.q)}` : place ? ` come to ${place}` : " near you"}
+          </span>
+        </h2>
+        {note && <p className="text-sm text-muted-foreground">{note}</p>}
+      </div>
+      {search && (
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+          {search.fuzzy && <span>No exact matches, so these are the closest.</span>}
+          <Link href={search.clearHref} scroll={false} className="font-semibold text-primary hover:underline">
+            Clear search
+          </Link>
+        </p>
+      )}
     </div>
+  );
+}
+
+/** Nothing matched the search: say so, and offer the other view when it has results. */
+function NoMatches({
+  q,
+  clearHref,
+  other,
+}: {
+  q: string;
+  clearHref: string;
+  other?: { label: string; href: string };
+}) {
+  return (
+    <EmptyState
+      icon={SearchX}
+      title={`No matches for ${quoted(q)}`}
+      description="Check the spelling, try a shorter word, or search for a service like facial, haircut or mehedi."
+      action={
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {other && (
+            <Button asChild>
+              <Link href={other.href} scroll={false}>
+                {other.label}
+              </Link>
+            </Button>
+          )}
+          <Button variant="outline" asChild>
+            <Link href={clearHref} scroll={false}>
+              Clear search
+            </Link>
+          </Button>
+        </div>
+      }
+    />
   );
 }
 
@@ -251,19 +354,44 @@ async function ServiceResults({
   point,
   place,
   category,
+  q,
   searchParams,
 }: {
   audience: HomeAudience;
   point: Point;
   place: string | null;
   category?: HomeCategory;
+  q?: string;
   searchParams: Params;
 }) {
-  const res = await getHomeCatalog({ audience, ...point });
+  const res = await getHomeCatalog({ audience, ...point, q });
   if (!res.success || !res.data) return <LoadFailed message={res.message} />;
   if (res.data.outOfArea) return <OutOfArea audience={audience} />;
 
+  // `data.q` is null when the words were all filler ("home service"): an unfiltered list.
+  const searched = res.data.q;
+  const clearHref = clearSearchHref(audience, searchParams);
   const offerings = res.data.offerings.filter((o) => !category || o.category === category);
+  if (!offerings.length && searched) {
+    // A name search finds people, not services: point there.
+    const experts = category
+      ? (res.data.categories.find((c) => c.category === category)?.expertCount ?? 0)
+      : res.data.expertCount;
+    return (
+      <NoMatches
+        q={searched}
+        clearHref={clearHref}
+        other={
+          experts
+            ? {
+                label: `See ${experts} matching expert${experts === 1 ? "" : "s"}`,
+                href: listHref(audience, searchParams, { view: "expert" }),
+              }
+            : undefined
+        }
+      />
+    );
+  }
   if (!offerings.length) {
     return (
       <EmptyState
@@ -274,7 +402,8 @@ async function ServiceResults({
     );
   }
 
-  // A service opens its experts: the same point, filtered to its category.
+  // A service opens its experts: the same point, filtered to its category
+  // (and to the search, so "bridal" stays bridal among the experts).
   const hrefFor = (c: HomeCategory) => {
     const p = new URLSearchParams();
     if (searchParams.lat && searchParams.lng) {
@@ -283,6 +412,7 @@ async function ServiceResults({
     }
     p.set("view", "expert");
     p.set("category", c);
+    if (searched) p.set("q", searched);
     return `${SIDES[audience].href}?${p}`;
   };
 
@@ -293,6 +423,7 @@ async function ServiceResults({
         noun={category ? `${CATEGORY_LABEL[category].toLowerCase()} service` : "service"}
         place={place}
         note="Tap a service to see who does it"
+        search={searched ? { q: searched, fuzzy: res.data.fuzzy, clearHref } : undefined}
       />
       <div className={HOME_GRID}>
         {offerings.map((o) => (
@@ -310,6 +441,8 @@ async function ExpertResults({
   category,
   sort,
   page,
+  q,
+  searchParams,
   policyLine,
 }: {
   audience: HomeAudience;
@@ -318,14 +451,31 @@ async function ExpertResults({
   category?: HomeCategory;
   sort: HomeExpertSort;
   page: number;
+  q?: string;
+  searchParams: Params;
   policyLine: string;
 }) {
-  const res = await getHomeExperts({ audience, ...point, category, sort, page });
+  const res = await getHomeExperts({ audience, ...point, category, sort, page, q });
   if (!res.success || !res.data) return <LoadFailed message={res.message} />;
   if (res.data.outOfArea) return <OutOfArea audience={audience} />;
 
   const { experts } = res.data;
+  const searched = res.data.q;
+  const clearHref = clearSearchHref(audience, searchParams);
   const total = res.meta?.total ?? experts.length;
+  if (!experts.length && searched) {
+    return (
+      <NoMatches
+        q={searched}
+        clearHref={clearHref}
+        other={
+          category
+            ? { label: "Search all categories", href: listHref(audience, searchParams, { category: null }) }
+            : undefined
+        }
+      />
+    );
+  }
   if (!experts.length) {
     return (
       <EmptyState
@@ -343,7 +493,8 @@ async function ExpertResults({
         count={total}
         noun={`${category ? `${CATEGORY_LABEL[category].toLowerCase()} ` : ""}${audience === "LADIES" ? "female " : ""}expert`}
         place={place}
-        note={`${SORT_LABEL[sort]} first`}
+        note={`${SORT_LABEL[res.data.sort] ?? SORT_LABEL[sort]} first`}
+        search={searched ? { q: searched, fuzzy: res.data.fuzzy, clearHref } : undefined}
       />
       <div className={HOME_GRID}>
         {experts.map((e) => (

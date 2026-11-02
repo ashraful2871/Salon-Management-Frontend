@@ -16,7 +16,7 @@ type Ref = "search" | "social" | "direct" | "internal" | "other";
 export type TrackEvents = {
   page_view: `page:${Page},ref:${Ref}`;
   salon_list_viewed: `mode:${"list" | "map"}`;
-  search_submitted: `source:${"hero" | "navbar" | "salons_page"}`;
+  search_submitted: `source:${"hero" | "navbar" | "salons_page" | "home_service"}`;
   salon_viewed: `salon:${string}`;
   booking_started: "";
   slot_selected: "";

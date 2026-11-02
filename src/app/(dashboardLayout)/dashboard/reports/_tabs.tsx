@@ -15,6 +15,9 @@ import type {
   BookingsReport,
   CustomersReport,
   DiscoveryReport,
+  HomeExpertRow,
+  HomeOutcomeRow,
+  HomeReport,
   MoneyReport,
   OverviewReport,
   ReportKpi,
@@ -708,6 +711,140 @@ export function MoneyTab({ data, csv }: TabProps<MoneyReport>) {
                   </span>
                 ),
               },
+            ]}
+          />
+        }
+      />
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------ Home service
+
+const AUDIENCE_LABELS: Record<string, string> = { LADIES: "Ladies at Home", GENTS: "Gents at Home" };
+const AUDIENCE_COLORS: Record<string, string> = { LADIES: "var(--chart-1)", GENTS: "var(--chart-2)" };
+const OUTCOME_LABELS: Record<string, string> = {
+  CUSTOMER: "Customer cancelled",
+  CUSTOMER_NO_SHOW: "Customer no-show",
+  SALON: "You cancelled",
+  EXPERT_NO_SHOW: "Expert no-show",
+  MISMATCH: "Stopped at the door: details didn't match",
+  SAFETY: "Stopped at the door: safety",
+  ADMIN: "Admin cancelled",
+  SYSTEM: "System cancelled",
+};
+
+type MoneyLine = { key: string; label: string; valueMinor: number };
+
+function moneyLines(caption: string, rows: MoneyLine[]) {
+  return (
+    <DataTable<MoneyLine>
+      caption={caption}
+      rows={rows}
+      rowKey={(r) => r.key}
+      columns={[
+        { key: "l", label: "Line", render: (r) => r.label },
+        { key: "v", label: "Amount", numeric: true, render: (r) => formatMetric(r.valueMinor, "minor") },
+      ]}
+    />
+  );
+}
+
+export function HomeTab({ data, csv, compare }: TabProps<HomeReport>) {
+  const visits = pts(data.series, (r) => r.visits);
+  const { revenue, advances } = data;
+  return (
+    <div className="space-y-4">
+      <KpiRow kpis={data.kpis} compare={!!compare} sparks={{ visits }} />
+      <ChartCard
+        title="Visits per day"
+        definition="Home visits completed, by the day they were completed."
+        csvHref={csv}
+        chart={<VolumeBars label="Visits per day" unit="count" points={visits} />}
+        table={
+          <DataTable<HomeReport["series"][number]>
+            caption="Visits per day"
+            rows={data.series}
+            rowKey={(r) => r.day}
+            columns={[
+              { key: "d", label: "Day", render: (r) => formatDayFull(r.day) },
+              { key: "v", label: "Visits", numeric: true, render: (r) => formatMetric(r.visits, "count") },
+              { key: "s", label: "Subtotal", numeric: true, render: (r) => formatMetric(r.subtotalMinor, "minor") },
+              { key: "t", label: "Travel fee", numeric: true, render: (r) => formatMetric(r.travelFeeMinor, "minor") },
+              { key: "c", label: "Commission", numeric: true, render: (r) => formatMetric(r.commissionMinor, "minor") },
+            ]}
+          />
+        }
+      />
+      <div className="grid gap-4 lg:grid-cols-3">
+        <ChartCard
+          title="Visit revenue"
+          definition="Completed visits. Commission is charged on the subtotal only, never on the travel fee."
+          table={moneyLines("Visit revenue", [
+            { key: "s", label: "Subtotal", valueMinor: revenue.subtotalMinor },
+            { key: "t", label: "Travel fee", valueMinor: revenue.travelFeeMinor },
+            { key: "c", label: "Commission", valueMinor: revenue.commissionMinor ? -revenue.commissionMinor : 0 },
+            { key: "n", label: "Yours", valueMinor: revenue.netMinor },
+          ])}
+        />
+        <ChartCard
+          title="Advances"
+          definition="The platform holds each advance until the visit is completed, then it moves to your balance. Held is today's figure, whatever the range."
+          table={moneyLines("Advances", [
+            { key: "h", label: `Held now (${advances.heldVisits} visits)`, valueMinor: advances.heldMinor },
+            { key: "s", label: `Settled in range (${advances.settledVisits} visits)`, valueMinor: advances.settledMinor },
+          ])}
+        />
+        <ChartCard
+          title="Ladies vs Gents"
+          chart={<StackedShare label="Visits by side" parts={data.audience} labels={AUDIENCE_LABELS} colors={AUDIENCE_COLORS} />}
+          table={shareTable(data.audience, AUDIENCE_LABELS, "Side")}
+        />
+      </div>
+      <ChartCard
+        title="Experts"
+        definition="Visits dated in the range. Late means arrived more than 45 minutes after the start, or flagged as not arrived by then. Rating is all time."
+        table={
+          <DataTable<HomeExpertRow>
+            caption="Experts"
+            rows={data.experts}
+            rowKey={(r) => r.id}
+            empty="No experts at this branch yet."
+            columns={[
+              { key: "n", label: "Expert", render: (r) => r.name },
+              { key: "b", label: "Branch", render: (r) => r.salonName },
+              { key: "a", label: "Side", render: (r) => (r.audience === "LADIES" ? "Ladies" : "Gents") },
+              { key: "j", label: "Jobs", numeric: true, render: (r) => formatMetric(r.jobs, "count") },
+              {
+                key: "r",
+                label: "Rating",
+                numeric: true,
+                render: (r) => (r.totalReviews ? `${r.rating.toFixed(1)} ★ (${r.totalReviews})` : "—"),
+              },
+              { key: "l", label: "Late", numeric: true, render: (r) => formatMetric(r.late, "count") },
+              { key: "s", label: "No-shows", numeric: true, render: (r) => formatMetric(r.noShows, "count") },
+              { key: "c", label: "You cancelled", numeric: true, render: (r) => formatMetric(r.salonCancels, "count") },
+            ]}
+          />
+        }
+      />
+      <ChartCard
+        title="Cancellations and no-shows"
+        definition="Paid visits that ended without happening, by who ended them. Refunded went back to the customer; kept is the fee the booking's policy allowed. Salon, admin and system cancels are always refunded in full."
+        note={`Fees kept ${formatMetric(data.feeMinor, "minor")}`}
+        table={
+          <DataTable<HomeOutcomeRow>
+            caption="Cancellations and no-shows"
+            rows={data.outcomes}
+            rowKey={(r) => r.side}
+            empty="No paid visit was cancelled in this range."
+            columns={[
+              { key: "s", label: "Ended by", render: (r) => OUTCOME_LABELS[r.side] ?? humanize(r.side) },
+              { key: "v", label: "Visits", numeric: true, render: (r) => formatMetric(r.visits, "count") },
+              { key: "r", label: "Fully refunded", numeric: true, render: (r) => formatMetric(r.visits - r.keptVisits, "count") },
+              { key: "k", label: "Fee kept", numeric: true, render: (r) => formatMetric(r.keptVisits, "count") },
+              { key: "m", label: "Refunded", numeric: true, render: (r) => formatMetric(r.refundedMinor, "minor") },
+              { key: "f", label: "Kept", numeric: true, render: (r) => formatMetric(r.feeMinor, "minor") },
             ]}
           />
         }

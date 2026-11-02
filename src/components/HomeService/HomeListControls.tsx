@@ -10,12 +10,12 @@ import { Button } from "@/components/ui/button";
 import { useFilterNavigation } from "@/hooks/useFilterNavigation";
 import { cn } from "@/lib/utils";
 import type { HomeCategory, HomeExpertSort } from "@/services/home-service/types";
-import { CATEGORY_ICON, CATEGORY_LABEL, SORT_LABEL } from "./content";
+import { CATEGORY_ICON, CATEGORY_LABEL, SORT_LABEL, defaultSortFor } from "./content";
 
 export type HomeView = "service" | "expert";
 
 /** The list's URL as every control changes it; anything but a page turn drops `page`. */
-function useHomeUrl() {
+export function useHomeUrl() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { navigate: push } = useFilterNavigation();
@@ -86,9 +86,11 @@ const VIEWS = [
   { value: "expert", label: "By expert", icon: UsersRound },
 ] as const;
 
-/** By service | By expert, and the expert sort. */
-export function HomeViewControls({ view, sort }: { view: HomeView; sort: HomeExpertSort }) {
+/** By service | By expert, and the expert sort ("Best match" only while searching). */
+export function HomeViewControls({ view, sort, searching }: { view: HomeView; sort: HomeExpertSort; searching: boolean }) {
   const navigate = useHomeUrl();
+  const sorts = (Object.keys(SORT_LABEL) as HomeExpertSort[]).filter((s) => searching || s !== "relevance");
+  const fallback = defaultSortFor(searching);
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div role="group" aria-label="Show" className="grid grid-cols-2 rounded-full border border-border bg-muted/70 p-1 sm:inline-grid">
@@ -113,12 +115,12 @@ export function HomeViewControls({ view, sort }: { view: HomeView; sort: HomeExp
         <div className="flex min-w-0 items-center gap-2">
           <span className="shrink-0 text-sm text-muted-foreground">Sort</span>
           <div role="group" aria-label="Sort experts" className="flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
-            {(Object.keys(SORT_LABEL) as HomeExpertSort[]).map((s) => (
+            {sorts.map((s) => (
               <button
                 key={s}
                 type="button"
                 aria-pressed={sort === s}
-                onClick={() => navigate({ sort: s === "rating" ? null : s })}
+                onClick={() => navigate({ sort: s === fallback ? null : s })}
                 className={cn(pill(sort === s), "h-8 px-3 pointer-coarse:h-9")}
               >
                 {SORT_LABEL[s]}
@@ -157,7 +159,10 @@ export function HomeCategoryChips({
       icon: CATEGORY_ICON[c.category],
       n: view === "expert" ? c.expertCount : c.count,
     })),
-  ];
+    // While searching, a category can match experts by name but no service (or
+    // the other way round): hide what would open an empty list in this view.
+  ].filter((c) => c.key === null || c.n > 0 || c.key === active);
+  if (chips.length <= 1) return null;
   return (
     <div
       role="group"

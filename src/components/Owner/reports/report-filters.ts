@@ -25,6 +25,7 @@ export const REPORT_TABS: Array<{ key: OwnerReportName; label: string; ownerOnly
   { key: "customers", label: "Customers" },
   { key: "utilisation", label: "Utilisation" },
   { key: "discovery", label: "Discovery" },
+  { key: "home", label: "Home service" },
   { key: "money", label: "Money", ownerOnly: true },
 ];
 

@@ -10,6 +10,7 @@ export const OWNER_REPORTS = [
   "customers",
   "utilisation",
   "discovery",
+  "home",
   "money",
 ] as const;
 export type OwnerReportName = (typeof OWNER_REPORTS)[number];
@@ -131,7 +132,43 @@ export type MoneyReport = {
   series: Array<{ day: string; counter: number; platform: number }>;
 };
 
+export type HomeExpertRow = {
+  id: string;
+  name: string;
+  salonName: string;
+  audience: "LADIES" | "GENTS";
+  /** All time, like the expert's public profile. */
+  rating: number;
+  totalReviews: number;
+  jobs: number;
+  late: number;
+  noShows: number;
+  salonCancels: number;
+};
+
+export type HomeOutcomeRow = { side: string; visits: number; keptVisits: number; feeMinor: number; refundedMinor: number };
+
+export type HomeReport = {
+  kpis: ReportKpi[];
+  revenue: { subtotalMinor: number; travelFeeMinor: number; commissionMinor: number; netMinor: number };
+  advances: { heldMinor: number; heldVisits: number; settledMinor: number; settledVisits: number };
+  audience: Array<{ key: string; value: number }>;
+  series: Array<{
+    day: string;
+    visits: number;
+    ladies: number;
+    gents: number;
+    subtotalMinor: number;
+    travelFeeMinor: number;
+    commissionMinor: number;
+  }>;
+  experts: HomeExpertRow[];
+  outcomes: HomeOutcomeRow[];
+  feeMinor: number;
+};
+
 export type ReportData = {
+  home: HomeReport;
   overview: OverviewReport;
   bookings: BookingsReport;
   services: ServicesReport;
