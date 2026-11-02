@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, Briefcase, Clock, MapPin, ShieldCheck, Star, Users } from "lucide-react";
+import { ArrowRight, BadgeCheck, Briefcase, Clock, MapPin, Search, ShieldCheck, Star, Users } from "lucide-react";
 
 import SafeImage from "@/components/Shared/SafeImage";
 import { Badge } from "@/components/ui/badge";
@@ -143,6 +143,15 @@ export function ExpertCard({ expert, href, policyLine }: { expert: HomeExpertCar
             ? `${expert.completedJobs} home visit${expert.completedJobs === 1 ? "" : "s"} done`
             : "No home visits yet"}
         </li>
+        {!!expert.matchedServices?.length && (
+          <li className="flex min-w-0 items-center gap-2 text-foreground">
+            <Search className="size-4 shrink-0 text-primary" aria-hidden />
+            <span className="truncate">
+              <span className="sr-only">Matches your search: </span>
+              {expert.matchedServices.join(", ")}
+            </span>
+          </li>
+        )}
         {expert.soonestLabel && (
           <li className="flex items-center gap-2 font-semibold text-success">
             <Clock className="size-4 shrink-0" aria-hidden />

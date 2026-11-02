@@ -177,10 +177,14 @@ export type HomeCatalogOffering = {
   expertCount: number;
 };
 
-/** `GET /home-service/catalog?audience&lat&lng` */
+/** `GET /home-service/catalog?audience&lat&lng[&q]` */
 export type HomeCatalog = {
   audience: HomeAudience;
   outOfArea: boolean;
+  /** The search as the API read it; null when there was none (or only filler words like "home service"). */
+  q: string | null;
+  /** True when nothing matched as typed and these are close (typo) matches. */
+  fuzzy: boolean;
   /** Distinct experts who reach this point (what the unfiltered experts list totals). */
   expertCount: number;
   /** `count` = services in the category, `expertCount` = distinct experts offering one of them. */
@@ -188,7 +192,8 @@ export type HomeCatalog = {
   offerings: HomeCatalogOffering[];
 };
 
-export type HomeExpertSort = "rating" | "distance" | "soonest";
+/** `relevance` (best match) only means something with `q`; it is the default then. */
+export type HomeExpertSort = "relevance" | "rating" | "distance" | "soonest";
 
 /** One card of `GET /home-service/experts`. */
 export type HomeExpertCard = {
@@ -203,7 +208,10 @@ export type HomeExpertCard = {
   verified: true;
   salon: { id: string; name: string; area: string | null };
   distanceKm: number;
+  /** With `q`, the cheapest of the services the search matched; else of all (in the category). */
   fromPriceMinor: number;
+  /** Only with `q`: up to 3 services the search found on this expert; empty for a name match. */
+  matchedServices?: string[];
   /** Only with `sort=soonest`. */
   soonestAt?: string | null;
   soonestLabel?: string | null;
@@ -213,6 +221,8 @@ export type HomeExpertList = {
   audience: HomeAudience;
   outOfArea: boolean;
   sort: HomeExpertSort;
+  q: string | null;
+  fuzzy: boolean;
   experts: HomeExpertCard[];
 };
 
@@ -223,6 +233,31 @@ export type HomeExpertQuery = {
   category?: HomeCategory;
   sort?: HomeExpertSort;
   page?: number;
+  /** Service, expert, headline or salon name; at most 60 characters. */
+  q?: string;
+};
+
+/** `GET /home-service/search?audience&lat&lng&q`: typeahead suggestions. */
+export type HomeSearchSuggestions = {
+  audience: HomeAudience;
+  q: string | null;
+  outOfArea: boolean;
+  /** Every suggestion is a close (typo) match. */
+  fuzzy: boolean;
+  /** How many the full lists would show. */
+  totals: { services: number; experts: number };
+  services: Array<{ name: string; category: HomeCategory; minPriceMinor: number; expertCount: number }>;
+  experts: Array<{
+    id: string;
+    name: string;
+    photo: string | null;
+    rating: number;
+    totalReviews: number;
+    salon: { name: string; area: string | null };
+    distanceKm: number;
+    /** The service the search found on them; null for a name match. */
+    matchedService: string | null;
+  }>;
 };
 
 export type HomeMenuItem = {

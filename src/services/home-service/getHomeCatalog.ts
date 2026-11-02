@@ -4,11 +4,16 @@ import { clientIpHeaders } from "@/lib/client-ip-headers";
 import { homeGet, toQuery } from "./request";
 import type { HomeAudience, HomeCatalog } from "./types";
 
-/** `GET /home-service/catalog`: the services offered at this point, cheapest price per name. */
+/**
+ * `GET /home-service/catalog`: the services offered at this point, cheapest
+ * price per name. With `q`, only the matching services, and the expert counts
+ * are the experts `getHomeExperts` would find for the same `q`.
+ */
 export const getHomeCatalog = async (q: {
   audience: HomeAudience;
   lat: number;
   lng: number;
+  q?: string;
 }): Promise<ApiResponse<HomeCatalog>> =>
   homeGet<HomeCatalog>(
     `/home-service/catalog${toQuery(q)}`,
