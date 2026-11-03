@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useId, useOptimistic, useState, useTransition } from "react";
+import React, { useEffect, useId, useOptimistic, useRef, useState, useTransition } from "react";
 import {
   MapPin,
   MonitorSmartphone,
@@ -49,6 +49,12 @@ import { ClosuresTab } from "@/components/Owner/schedule/ClosuresTab";
 import { BookingStatusCard } from "@/components/Owner/schedule/BookingStatusCard";
 import { CopyHoursButton } from "@/components/Owner/catalogue/CopyHoursDialog";
 import type { BookingPauseState, SalonClosure } from "@/services/schedule/schedule-types";
+import { updateSalonPhotos } from "@/services/salon/updateSalonPhotos";
+import { discardSalonPhotoUploads } from "@/services/salon/discardSalonPhotoUploads";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
+import { SalonPhotoManager } from "@/components/Owner/salon/SalonPhotoManager";
+import { DeleteSalonCard } from "@/components/Owner/salon/DeleteSalonCard";
+import { BANGLADESH_LOCATIONS } from "@/constants/bangladesh-locations";
 
 /* ---------------- Types ---------------- */
 
@@ -84,7 +90,7 @@ const DAY_LABEL: Record<Day, string> = {
   sunday: "Sunday",
 };
 
-const TABS = ["details", "hours", "closures", "staff", "counters", "location"] as const;
+const TABS = ["details", "photos", "hours", "closures", "staff", "counters", "location"] as const;
 type Tab = (typeof TABS)[number];
 
 // `?tab=location` comes from the "needs an exact map pin" notice; `overview`
@@ -103,6 +109,9 @@ const DETAIL_KEYS = [
   "phone",
   "email",
   "address",
+  "division",
+  "district",
+  "area",
   "city",
   "state",
   "zipCode",
@@ -137,8 +146,18 @@ const sameDetails = (a: Details, b: Details) =>
   DETAIL_KEYS.every((key) => a[key] === b[key]);
 const sameHours = (a: OperatingHours, b: OperatingHours) =>
   JSON.stringify(pickHours(a)) === JSON.stringify(pickHours(b));
+// Order matters: the first photo is the cover.
+const samePhotos = (a: string[], b: string[]) =>
+  a.length === b.length && a.every((url, i) => url === b[i]);
 
 const DEFAULT_DAY = { open: "09:00", close: "21:00" };
+
+const selectClass =
+  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base md:text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+
+/** The list's options, plus the saved value when the list doesn't have it (older salons). */
+const withCurrent = (options: string[], current: string) =>
+  current && !options.includes(current) ? [current, ...options] : options;
 
 /* ---------------- Main Component ---------------- */
 
@@ -149,8 +168,11 @@ export default function ManageSalon({
   closures,
   pause,
   otherBranches = [],
+  isOwner = false,
 }: {
   initialData: ManagedSalon;
+  /** The caller owns this branch: shows the Delete salon danger zone. */
+  isOwner?: boolean;
   initialTab?: string;
   /** The caller's permissions here (`GET /owner/access`); undefined shows everything. Cosmetic: the API decides. */
   permissions?: string[];
@@ -181,12 +203,15 @@ export default function ManageSalon({
   const [saved, setSaved] = useState(() => ({
     details: pickDetails(initialData),
     hours: pickHours(initialData.operatingHours),
+    photos: initialData.images ?? [],
   }));
   const [details, setDetails] = useState(saved.details);
   const [hours, setHours] = useState(saved.hours);
+  const [photos, setPhotos] = useState(saved.photos);
 
   const detailsDirty = !sameDetails(details, saved.details);
   const hoursDirty = !sameHours(hours, saved.hours);
+  const photosDirty = !samePhotos(photos, saved.photos);
 
   // A save (or an add-staff/counter) sends a fresh page back. A section with
   // no unsaved edits takes the server's values; one being edited keeps them.
@@ -196,9 +221,11 @@ export default function ManageSalon({
     const server = {
       details: pickDetails(initialData),
       hours: pickHours(initialData.operatingHours),
+      photos: initialData.images ?? [],
     };
     if (!detailsDirty) setDetails(server.details);
     if (!hoursDirty) setHours(server.hours);
+    if (!photosDirty) setPhotos(server.photos);
     setSaved(server);
   }
 
@@ -255,6 +282,72 @@ export default function ManageSalon({
     const h = hours[day];
     return h && (!h.open || !h.close || h.open >= h.close);
   });
+
+  /* ---- Location selects (division → district → area) ---- */
+
+  const districtOptions =
+    BANGLADESH_LOCATIONS.find((l) => l.division === details.division)?.districts ?? [];
+  const areaOptions =
+    districtOptions.find((d) => d.district === details.district)?.areas ?? [];
+
+  /* ---- Photos: a draft like the other sections; nothing is live until Save ---- */
+
+  const canEditProfile = can("branch.profile");
+  const [savingPhotos, startSavingPhotos] = useTransition();
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  // Every photo added to the draft this visit, so the ones never saved can be
+  // deleted from Cloudinary on Discard or after a save that left them out.
+  const draftAdded = useRef(new Set<string>());
+
+  const editPhotos = (next: string[]) => {
+    for (const url of next) {
+      if (!saved.photos.includes(url)) draftAdded.current.add(url);
+    }
+    setPhotos(next);
+    return true;
+  };
+
+  /** Drops draft photos that aren't in `keep` from Cloudinary (own uploads only; the API checks). */
+  const cleanUpDraft = (keep: string[]) => {
+    const orphans = [...draftAdded.current].filter((url) => !keep.includes(url));
+    draftAdded.current = new Set();
+    if (orphans.length) void discardSalonPhotoUploads(salonId, orphans);
+  };
+
+  const savePhotos = () => {
+    if (!photosDirty || uploadingPhotos) return;
+    const sent = photos;
+    startSavingPhotos(async () => {
+      const result = await updateSalonPhotos(salonId, sent);
+      showResultToast(result, "Photos saved", "Couldn't save the photos. Please try again.");
+      if (!result.success) return;
+      cleanUpDraft(sent);
+      startSavingPhotos(() => setSaved((prev) => ({ ...prev, photos: sent })));
+    });
+  };
+
+  const discardPhotos = () => {
+    cleanUpDraft(saved.photos);
+    setPhotos(saved.photos);
+  };
+
+  // Leaving with unsaved uploads (after "Leave without saving"): the API
+  // deletes the ones the salon doesn't list, so saved photos are safe to send.
+  useEffect(() => {
+    const added = draftAdded;
+    return () => {
+      const urls = [...added.current];
+      added.current = new Set();
+      if (urls.length) void discardSalonPhotoUploads(salonId, urls);
+    };
+  }, [salonId]);
+
+  /* ---- Leaving with unsaved edits asks first ---- */
+
+  const { dialog: leaveDialog } = useUnsavedChangesGuard(
+    detailsDirty || hoursDirty || photosDirty || uploadingPhotos,
+    { fallbackHref: "/dashboard/store" },
+  );
 
   /* ---- Staff: removed rows leave at once and come back if the API says no ---- */
 
@@ -350,8 +443,9 @@ export default function ManageSalon({
     <div className="space-y-6">
       {/* --- Cover --- */}
       <div className="relative h-40 overflow-hidden rounded-2xl bg-muted sm:h-56">
+        {/* What's live: the saved cover, not the draft. */}
         <SafeImage
-          src={initialData.images?.[0]}
+          src={saved.photos[0]}
           alt=""
           fill
           sizes="(min-width: 1024px) calc(100vw - 20rem), 100vw"
@@ -408,6 +502,9 @@ export default function ManageSalon({
           <TabsList className="w-max rounded-full bg-muted p-1 group-data-[orientation=horizontal]/tabs:h-11">
             <PillTab value="details" unsaved={detailsDirty}>
               Details
+            </PillTab>
+            <PillTab value="photos" count={photos.length} unsaved={photosDirty || uploadingPhotos}>
+              Photos
             </PillTab>
             <PillTab value="hours" unsaved={hoursDirty}>
               Hours
@@ -535,6 +632,70 @@ export default function ManageSalon({
                         onChange={(e) => setDetail("address", e.target.value)}
                       />
                     </FormField>
+                    <div className="grid gap-4 sm:grid-cols-3 md:col-span-2">
+                      <FormField id={field("division")} label="Division">
+                        <select
+                          id={field("division")}
+                          className={selectClass}
+                          value={details.division}
+                          onChange={(e) =>
+                            setDetails((prev) => ({
+                              ...prev,
+                              division: e.target.value,
+                              district: "",
+                              area: "",
+                            }))
+                          }
+                        >
+                          <option value="">Select division</option>
+                          {withCurrent(
+                            BANGLADESH_LOCATIONS.map((l) => l.division),
+                            details.division,
+                          ).map((d) => (
+                            <option key={d} value={d}>
+                              {d}
+                            </option>
+                          ))}
+                        </select>
+                      </FormField>
+                      <FormField id={field("district")} label="District">
+                        <select
+                          id={field("district")}
+                          className={selectClass}
+                          disabled={!details.division}
+                          value={details.district}
+                          onChange={(e) =>
+                            setDetails((prev) => ({ ...prev, district: e.target.value, area: "" }))
+                          }
+                        >
+                          <option value="">Select district</option>
+                          {withCurrent(
+                            districtOptions.map((d) => d.district),
+                            details.district,
+                          ).map((d) => (
+                            <option key={d} value={d}>
+                              {d}
+                            </option>
+                          ))}
+                        </select>
+                      </FormField>
+                      <FormField id={field("area")} label="Area">
+                        <select
+                          id={field("area")}
+                          className={selectClass}
+                          disabled={!details.district}
+                          value={details.area}
+                          onChange={(e) => setDetail("area", e.target.value)}
+                        >
+                          <option value="">Select area</option>
+                          {withCurrent(areaOptions, details.area).map((a) => (
+                            <option key={a} value={a}>
+                              {a}
+                            </option>
+                          ))}
+                        </select>
+                      </FormField>
+                    </div>
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:col-span-2">
                       <FormField id={field("city")} label="City">
                         <Input
@@ -573,6 +734,52 @@ export default function ManageSalon({
               </CardContent>
             </Card>
           </form>
+          {isOwner && (
+            <div className="mt-6">
+              <DeleteSalonCard salon={{ id: salonId, name: initialData.name }} />
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ================= PHOTOS ================= */}
+        <TabsContent value="photos" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Photos</CardTitle>
+              <CardDescription>
+                {canEditProfile
+                  ? "Show customers your space and your work. Changes go live when you save."
+                  : "Only people who can edit the salon profile can change these photos."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SalonPhotoManager
+                salonId={salonId}
+                images={photos}
+                savedImages={saved.photos}
+                onChange={editPhotos}
+                onUploadingChange={setUploadingPhotos}
+                saving={savingPhotos}
+                disabled={!canEditProfile}
+              />
+              <SaveBar
+                className="mt-6"
+                show={photosDirty || uploadingPhotos}
+                pending={savingPhotos}
+                saveLabel="Save photos"
+                onSave={savePhotos}
+                onDiscard={uploadingPhotos ? undefined : discardPhotos}
+                disabled={uploadingPhotos || !photosDirty}
+                message={
+                  uploadingPhotos
+                    ? "Uploading… you can save once it finishes"
+                    : photos[0] !== saved.photos[0]
+                      ? "Unsaved changes, including a new cover"
+                      : "Unsaved changes"
+                }
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* ================= HOURS ================= */}
@@ -845,6 +1052,7 @@ export default function ManageSalon({
         tone="danger"
         onConfirm={removeStaff}
       />
+      {leaveDialog}
     </div>
   );
 }

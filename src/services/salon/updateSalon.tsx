@@ -25,6 +25,12 @@ export const updateSalon = async (
       city: formData.get("city") as string,
       state: formData.get("state") as string,
       zipCode: formData.get("zipCode") as string,
+      // Sent only by Manage salon → Details; an empty one is left as saved.
+      ...Object.fromEntries(
+        (["division", "district", "area"] as const)
+          .filter((key) => ((formData.get(key) as string | null) ?? "").trim())
+          .map((key) => [key, (formData.get(key) as string).trim()]),
+      ),
       ...(AUDIENCES.includes(formData.get("audience") as string) && {
         audience: formData.get("audience") as string,
       }),

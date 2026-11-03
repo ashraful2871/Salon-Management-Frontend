@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   Clock,
@@ -9,8 +9,8 @@ import {
   MapPin,
   MapPinOff,
   Navigation,
+  RotateCcw,
   ShieldCheck,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useLocateAndSave } from "@/hooks/useLocateAndSave";
+import { useSavedLocation } from "@/hooks/useSavedLocation";
 import { NEARBY_RADIUS_KM } from "@/lib/geo";
 import { cn } from "@/lib/utils";
 import {
@@ -30,28 +31,14 @@ import {
 } from "@/lib/location-cookie";
 import LocationDialog from "./LocationDialog";
 
-/** Set once the visitor has answered (allowed, picked an area or said not
- *  now). The card never comes back after that: asking on every visit is a nag. */
-const ANSWERED_KEY = "sm_loc_asked";
-/** Let the page paint and settle before asking. */
-const ASK_DELAY_MS = 1500;
+/** Let the page paint before asking, and let the cookie be read after
+ *  hydration, so a visitor who already has a location never sees a flash. */
+const ASK_DELAY_MS = 800;
 /** The home page's "Salons near you" section (NearbySalons). */
 const NEARBY_SECTION_ID = "nearby";
-
-const readAnswered = () => {
-  try {
-    return window.localStorage.getItem(ANSWERED_KEY) === "1";
-  } catch {
-    return true;
-  }
-};
-const markAnswered = () => {
-  try {
-    window.localStorage.setItem(ANSWERED_KEY, "1");
-  } catch {
-    /* ignore */
-  }
-};
+/** Public pages that must stay reachable without a location (accepting an
+ *  admin or agent invitation). */
+const EXEMPT_PREFIXES = ["/invite"];
 
 // After the dialog's close animation, so the scroll is not fighting it.
 const scrollToNearby = () => {
@@ -62,7 +49,7 @@ const scrollToNearby = () => {
   }, 250);
 };
 
-type Step = "hidden" | "ask" | "blocked";
+type Step = "ask" | "blocked";
 
 const BENEFITS = [
   { icon: Navigation, text: `Salons within ${NEARBY_RADIUS_KM} km, closest first` },
@@ -71,42 +58,33 @@ const BENEFITS = [
 ];
 
 /**
- * The first-visit location ask: a centred dialog on the home page, so the
- * first thing a new visitor is offered is the salons around them. Our own
- * dialog first, so the browser's prompt only appears once the visitor has
- * said yes to it (a prompt on load is mostly blocked on reflex, and then can
- * never be asked again). If the browser refuses, or location was blocked
- * before, it offers picking an area instead. Hidden for anyone who already
- * has a saved location.
+ * The location gate: every public page asks for the visitor's location
+ * before they can browse, and the dialog cannot be dismissed (no close
+ * button; Escape and outside clicks do nothing) until a location is saved in
+ * the `sm_loc` cookie. Our own dialog comes first, so the browser's prompt
+ * only appears once the visitor has pressed "Allow location".
+ *
+ * If the browser refuses (blocked before, denied now, no GPS, outside
+ * Bangladesh) the dialog explains how to turn location on, and retries by
+ * itself when the permission flips to allowed. Picking an area is the only
+ * other way through: a site cannot re-open a permission the visitor blocked,
+ * so without it they would be locked out for good.
  */
 export default function LocationWelcome() {
   const pathname = usePathname();
-  const isHome = pathname === "/";
+  const exempt = EXEMPT_PREFIXES.some((p) => pathname.startsWith(p));
+  const saved = useSavedLocation();
   const { locate, busy, canAsk } = useLocateAndSave();
-  const [step, setStep] = useState<Step>("hidden");
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [step, setStep] = useState<Step>("ask");
+  const [pickerOpen, setPickerOpen] = useState(false);
 
-  // The layout outlives navigation, so this re-arms whenever the visitor
-  // lands on the home page, not only on the first page load.
   useEffect(() => {
-    if (!isHome) return;
-    if (readAnswered() || parseSavedLocation(readLocationCookie())) return;
-    const timer = window.setTimeout(() => {
-      // Saved in another tab, or from a page button, while we waited.
-      if (!readAnswered() && !parseSavedLocation(readLocationCookie())) {
-        setStep("ask");
-      }
-    }, ASK_DELAY_MS);
+    const timer = window.setTimeout(() => setReady(true), ASK_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [isHome]);
-
-  const close = () => {
-    markAnswered();
-    setStep("hidden");
-  };
+  }, []);
 
   const allow = async () => {
-    markAnswered();
     if (!canAsk) {
       setStep("blocked");
       return;
@@ -116,59 +94,60 @@ export default function LocationWelcome() {
       setStep("blocked");
       return;
     }
-    setStep("hidden");
     toast.success(`Showing salons near ${loc.label}`);
-    // Saving fires the cookie event, which fills NearbySalons in place.
-    scrollToNearby();
+    // Saving fires the cookie event, which closes this gate and fills
+    // NearbySalons in place.
+    if (pathname === "/") scrollToNearby();
   };
 
-  const pickArea = () => {
-    markAnswered();
-    setStep("hidden");
-    setDialogOpen(true);
-  };
+  // The visitor turned location on in the browser's site settings while the
+  // "turned off" screen was up: try again without making them press anything.
+  const prevCanAsk = useRef(canAsk);
+  useEffect(() => {
+    const wasBlocked = !prevCanAsk.current;
+    prevCanAsk.current = canAsk;
+    if (wasBlocked && canAsk && step === "blocked" && !busy) void allow();
+    // allow() is recreated every render; only the permission flip matters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canAsk]);
 
+  const hasLocation =
+    saved !== null ||
+    (ready && parseSavedLocation(readLocationCookie()) !== null);
+  const open = ready && !exempt && !hasLocation && !pickerOpen;
   const asking = step === "ask";
 
   return (
     <>
       <Dialog
-        open={isHome && step !== "hidden"}
-        onOpenChange={(next) => {
-          if (!next && !busy) close();
-        }}
+        open={open}
+        // Required: nothing but a saved location closes it.
+        onOpenChange={() => {}}
       >
         <DialogContent
           data-location-prompt
           showCloseButton={false}
-          // The visitor chooses; nothing in the dialog should grab focus and
-          // pop a phone's keyboard or a focus ring on open.
+          onEscapeKeyDown={(event) => event.preventDefault()}
+          onPointerDownOutside={(event) => event.preventDefault()}
+          onInteractOutside={(event) => event.preventDefault()}
+          // Nothing in the dialog should grab focus and pop a phone's
+          // keyboard or a focus ring on open.
           onOpenAutoFocus={(event) => event.preventDefault()}
           className="max-h-[calc(100dvh-2rem)] gap-0 overflow-y-auto rounded-3xl border-border bg-surface p-0 shadow-[0_24px_64px_-12px_rgb(0_0_0/0.35)] sm:max-w-md"
         >
-          <button
-            type="button"
-            onClick={close}
-            disabled={busy}
-            aria-label="Close"
-            className="absolute right-3 top-3 z-10 grid size-10 cursor-pointer place-items-center rounded-full bg-surface/80 text-muted-foreground transition-colors hover:bg-surface hover:text-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <X className="size-4" aria-hidden />
-          </button>
-
           <Illustration blocked={!asking} />
 
           <div className="px-5 pb-5 pt-5 text-center sm:px-7 sm:pb-7">
             <DialogTitle className="font-display text-xl font-semibold leading-tight text-foreground sm:text-2xl">
-              {asking ? "Find salons near you" : "Location is turned off"}
+              {asking ? "Turn on your location" : "Location is turned off"}
             </DialogTitle>
             <DialogDescription className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
               {asking
-                ? "Turn on your location and we'll show the salons closest to you, ready to book."
-                : "No problem. Pick your area instead, or turn location on later in your browser settings."}
+                ? "We need your location to show the salons around you. Allow it to continue browsing."
+                : "Your browser didn't share your location. Turn it on to continue."}
             </DialogDescription>
 
-            {asking && (
+            {asking ? (
               <ul className="mx-auto mt-5 grid max-w-sm gap-2.5 text-left">
                 {BENEFITS.map(({ icon: Icon, text }) => (
                   <li key={text} className="flex items-center gap-3 text-sm text-foreground">
@@ -179,76 +158,56 @@ export default function LocationWelcome() {
                   </li>
                 ))}
               </ul>
+            ) : (
+              <ol className="mx-auto mt-5 grid max-w-sm list-decimal gap-1.5 rounded-2xl bg-surface-subtle py-3.5 pl-8 pr-4 text-left text-sm text-foreground marker:font-semibold marker:text-muted-foreground">
+                <li>Tap the lock or settings icon next to the web address.</li>
+                <li>
+                  Set <span className="font-semibold">Location</span> to{" "}
+                  <span className="font-semibold">Allow</span>.
+                </li>
+                <li>Come back here and press Try again.</li>
+              </ol>
             )}
 
             <div className="mt-6 grid gap-2.5">
-              {asking ? (
-                <>
-                  <Button
-                    type="button"
-                    size="lg"
-                    onClick={allow}
-                    disabled={busy}
-                    aria-busy={busy}
-                    className="w-full"
-                  >
-                    {busy ? (
-                      <Loader2 className="animate-spin" aria-hidden />
-                    ) : (
-                      <LocateFixed aria-hidden />
-                    )}
-                    {busy ? "Finding you…" : "Allow location"}
-                  </Button>
-                  <Button
-                    type="button"
-                    size="lg"
-                    variant="outline"
-                    onClick={pickArea}
-                    disabled={busy}
-                    aria-haspopup="dialog"
-                    className="w-full"
-                  >
-                    <MapPin aria-hidden />
-                    Choose my area
-                  </Button>
-                  <button
-                    type="button"
-                    onClick={close}
-                    disabled={busy}
-                    className="mx-auto mt-1 inline-flex min-h-11 cursor-pointer items-center px-4 text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-40"
-                  >
-                    Not now
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    type="button"
-                    size="lg"
-                    onClick={pickArea}
-                    aria-haspopup="dialog"
-                    className="w-full"
-                  >
-                    <MapPin aria-hidden />
-                    Choose my area
-                  </Button>
-                  <Button
-                    type="button"
-                    size="lg"
-                    variant="outline"
-                    onClick={close}
-                    className="w-full"
-                  >
-                    Close
-                  </Button>
-                </>
+              <Button
+                type="button"
+                size="lg"
+                onClick={allow}
+                disabled={busy}
+                aria-busy={busy}
+                className="w-full"
+              >
+                {busy ? (
+                  <Loader2 className="animate-spin" aria-hidden />
+                ) : asking ? (
+                  <LocateFixed aria-hidden />
+                ) : (
+                  <RotateCcw aria-hidden />
+                )}
+                {busy ? "Finding you…" : asking ? "Allow location" : "Try again"}
+              </Button>
+              {!asking && (
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="outline"
+                  onClick={() => setPickerOpen(true)}
+                  disabled={busy}
+                  aria-haspopup="dialog"
+                  className="w-full"
+                >
+                  <MapPin aria-hidden />
+                  Choose my area instead
+                </Button>
               )}
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      <LocationDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      {/* Closing it without picking brings the gate straight back. */}
+      <LocationDialog open={pickerOpen} onOpenChange={setPickerOpen} />
     </>
   );
 }
