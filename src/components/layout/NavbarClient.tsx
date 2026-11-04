@@ -7,7 +7,6 @@ import {
   ChevronDown,
   ChevronRight,
   Home,
-  House,
   Info,
   LayoutDashboard,
   LogIn,
@@ -72,12 +71,18 @@ interface NavbarClientProps {
 
 // `wide`: in the desktop bar only from 2xl; below that the bar has no room
 // for them, so they sit under "More" (and in the phone drawer as usual).
-const NAV_LINKS: { href: string; label: string; icon: LucideIcon; wide?: boolean }[] = [
+const NAV_LINKS: {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  wide?: boolean;
+}[] = [
   { href: "/", label: "Home", icon: Home },
   // How it works + policies; home visits are booked from a salon's page.
-  { href: "/home-service", label: "Home Service", icon: House },
-  { href: "/ladies-parlour", label: "Ladies", icon: Flower2 },
-  { href: "/gents-parlour", label: "Gents", icon: Scissors },
+  // { href: "/home-service", label: "Home Service", icon: House },
+  { href: "/ladies-parlour", label: "Parlour", icon: Flower2 },
+  { href: "/gents-parlour", label: "Salon", icon: Scissors },
+  { href: "/#hair-try-on", label: "Hair Try On", icon: Store },
   { href: "/ai-suggestions", label: "AI Match", icon: Sparkles },
   { href: "/about", label: "About", icon: Info, wide: true },
   { href: "/contact", label: "Contact", icon: Mail, wide: true },
@@ -127,8 +132,12 @@ const NavbarClient = ({
 }: NavbarClientProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [ownerRevenueMinor, setOwnerRevenueMinor] = useState(initialOwnerRevenueMinor ?? null);
-  const [adminRevenueMinor, setAdminRevenueMinor] = useState(initialAdminRevenueMinor ?? null);
+  const [ownerRevenueMinor, setOwnerRevenueMinor] = useState(
+    initialOwnerRevenueMinor ?? null,
+  );
+  const [adminRevenueMinor, setAdminRevenueMinor] = useState(
+    initialAdminRevenueMinor ?? null,
+  );
   const [balancesLoading, setBalancesLoading] = useState(false);
   const pathname = usePathname();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -235,7 +244,13 @@ const NavbarClient = ({
     ? [
         { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
         ...(user.role === "CUSTOMER"
-          ? [{ href: "/dashboard/wallet", label: "My wallet", icon: WalletIcon }]
+          ? [
+              {
+                href: "/dashboard/wallet",
+                label: "My wallet",
+                icon: WalletIcon,
+              },
+            ]
           : []),
         ...(user.role === "SALON_OWNER"
           ? [{ href: "/dashboard/money", label: "Money", icon: WalletIcon }]
@@ -326,11 +341,17 @@ const NavbarClient = ({
                 variant="compact"
                 className="hidden sm:inline-flex lg:hidden xl:inline-flex 2xl:hidden"
               />
-              <LocationChip variant="icon" className="sm:hidden lg:grid xl:hidden" />
+              <LocationChip
+                variant="icon"
+                className="sm:hidden lg:grid xl:hidden"
+              />
 
               {accountLoading ? (
                 // Fixed sizes, so nothing shifts when the account streams in.
-                <div aria-hidden="true" className="flex items-center gap-1.5 sm:gap-2.5">
+                <div
+                  aria-hidden="true"
+                  className="flex items-center gap-1.5 sm:gap-2.5"
+                >
                   {showBalance && (
                     <Skeleton className="hidden h-10 w-36 rounded-full md:block" />
                   )}
@@ -340,29 +361,37 @@ const NavbarClient = ({
                 <>
                   {/* Balance: from md up; smaller screens have it in the drawer. */}
                   {showBalance && (
-                  <div className="hidden md:block">
-                    {user.role === "CUSTOMER" && <WalletMenu wallet={wallet} />}
-                    {user.role === "SALON_OWNER" && (
-                      <BalanceReveal
-                        variant="pill"
-                        label="Owner revenue"
-                        figures={[
-                          { label: "Net earnings", amountMinor: ownerRevenueMinor ?? null },
-                        ]}
-                        refreshing={balancesLoading}
-                      />
-                    )}
-                    {user.role === "ADMIN" && (
-                      <BalanceReveal
-                        variant="pill"
-                        label="Platform revenue"
-                        figures={[
-                          { label: "Total", amountMinor: adminRevenueMinor ?? null },
-                        ]}
-                        refreshing={balancesLoading}
-                      />
-                    )}
-                  </div>
+                    <div className="hidden md:block">
+                      {user.role === "CUSTOMER" && (
+                        <WalletMenu wallet={wallet} />
+                      )}
+                      {user.role === "SALON_OWNER" && (
+                        <BalanceReveal
+                          variant="pill"
+                          label="Owner revenue"
+                          figures={[
+                            {
+                              label: "Net earnings",
+                              amountMinor: ownerRevenueMinor ?? null,
+                            },
+                          ]}
+                          refreshing={balancesLoading}
+                        />
+                      )}
+                      {user.role === "ADMIN" && (
+                        <BalanceReveal
+                          variant="pill"
+                          label="Platform revenue"
+                          figures={[
+                            {
+                              label: "Total",
+                              amountMinor: adminRevenueMinor ?? null,
+                            },
+                          ]}
+                          refreshing={balancesLoading}
+                        />
+                      )}
+                    </div>
                   )}
 
                   {/* Account menu: avatar + name (+ role from xl) on desktop,
@@ -377,8 +406,12 @@ const NavbarClient = ({
                         <UserAvatar name={user.name} />
                         <span className="hidden max-w-[6rem] flex-col items-start leading-none lg:flex xl:max-w-[9rem]">
                           <span className="w-full truncate text-sm font-semibold text-foreground">
-                            <span className="xl:hidden">{firstName(user.name)}</span>
-                            <span className="hidden xl:inline">{user.name}</span>
+                            <span className="xl:hidden">
+                              {firstName(user.name)}
+                            </span>
+                            <span className="hidden xl:inline">
+                              {user.name}
+                            </span>
                           </span>
                           <span className="mt-1 hidden text-[10px] font-medium uppercase tracking-wider text-muted-foreground xl:block">
                             {roleLabel}
@@ -526,7 +559,9 @@ const NavbarClient = ({
                   <p className="truncate text-base font-bold leading-tight text-foreground">
                     {user.name}
                   </p>
-                  <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {user.email}
+                  </p>
                 </div>
                 <span className="shrink-0 self-start rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-hover">
                   {roleLabel}
@@ -544,7 +579,11 @@ const NavbarClient = ({
             )}
 
             {showBalance && user?.role === "CUSTOMER" && (
-              <WalletMenu wallet={wallet} variant="card" onNavigate={closeMenu} />
+              <WalletMenu
+                wallet={wallet}
+                variant="card"
+                onNavigate={closeMenu}
+              />
             )}
             {/* Only the links inside close the drawer; revealing keeps it open. */}
             {showBalance && user?.role === "SALON_OWNER" && (
@@ -552,12 +591,20 @@ const NavbarClient = ({
                 variant="card"
                 label="Owner revenue"
                 figures={[
-                  { label: "Net earnings", amountMinor: ownerRevenueMinor ?? null },
+                  {
+                    label: "Net earnings",
+                    amountMinor: ownerRevenueMinor ?? null,
+                  },
                 ]}
                 refreshing={balancesLoading}
                 footer={
                   <div className="border-t border-border p-3">
-                    <Button variant="outline" size="sm" className="w-full" asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      asChild
+                    >
                       <Link href="/dashboard/money" onClick={closeMenu}>
                         View details
                       </Link>
@@ -576,7 +623,12 @@ const NavbarClient = ({
                 refreshing={balancesLoading}
                 footer={
                   <div className="border-t border-border p-3">
-                    <Button variant="outline" size="sm" className="w-full" asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      asChild
+                    >
                       <Link href="/dashboard" onClick={closeMenu}>
                         View details
                       </Link>
@@ -708,7 +760,9 @@ const DrawerLink = ({
     aria-current={active ? "page" : undefined}
     className={cn(
       "group flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-      active ? "bg-primary-soft text-primary-hover" : "text-foreground hover:bg-muted",
+      active
+        ? "bg-primary-soft text-primary-hover"
+        : "text-foreground hover:bg-muted",
     )}
   >
     <span

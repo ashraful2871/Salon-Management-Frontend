@@ -1,3 +1,5 @@
+import { unstable_rethrow } from "next/navigation";
+
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse, Salon, SalonQuery } from "@/lib/api-types";
 import { TAGS } from "@/lib/cache-tags";
@@ -45,6 +47,9 @@ export const getAllSalon = async (
     const result: ApiResponse<Salon[]> = await response.json();
     return result;
   } catch (error) {
+    // Next's own signals (e.g. "this route reads cookies, render it on demand")
+    // must pass through, or the build logs them as a salon-loading failure.
+    unstable_rethrow(error);
     console.error("getAllSalon error:", error);
     return {
       success: false,

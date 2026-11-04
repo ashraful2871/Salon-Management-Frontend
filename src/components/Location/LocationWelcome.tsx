@@ -39,6 +39,16 @@ const NEARBY_SECTION_ID = "nearby";
 /** Public pages that must stay reachable without a location (accepting an
  *  admin or agent invitation). */
 const EXEMPT_PREFIXES = ["/invite"];
+/** "Not now" lasts for this browser session, so it doesn't reopen on every page. */
+const DISMISS_KEY = "sm_loc_prompt_dismissed";
+
+const readDismissed = () => {
+  try {
+    return window.sessionStorage.getItem(DISMISS_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
 
 // After the dialog's close animation, so the scroll is not fighting it.
 const scrollToNearby = () => {
@@ -58,17 +68,17 @@ const BENEFITS = [
 ];
 
 /**
- * The location gate: every public page asks for the visitor's location
- * before they can browse, and the dialog cannot be dismissed (no close
- * button; Escape and outside clicks do nothing) until a location is saved in
- * the `sm_loc` cookie. Our own dialog comes first, so the browser's prompt
- * only appears once the visitor has pressed "Allow location".
+ * The location prompt: public pages ask for the visitor's location until one
+ * is saved in the `sm_loc` cookie. Our own dialog comes first, so the
+ * browser's prompt only appears once the visitor has pressed "Allow location".
+ *
+ * The visitor can skip it ("Not now", the close button, Escape or a click
+ * outside); it then stays closed for the rest of the browser session, and a
+ * location can still be set from the navbar's location chip.
  *
  * If the browser refuses (blocked before, denied now, no GPS, outside
- * Bangladesh) the dialog explains how to turn location on, and retries by
- * itself when the permission flips to allowed. Picking an area is the only
- * other way through: a site cannot re-open a permission the visitor blocked,
- * so without it they would be locked out for good.
+ * Bangladesh) the dialog explains how to turn location on, retries by itself
+ * when the permission flips to allowed, and offers picking an area instead.
  */
 export default function LocationWelcome() {
   const pathname = usePathname();
@@ -78,11 +88,24 @@ export default function LocationWelcome() {
   const [ready, setReady] = useState(false);
   const [step, setStep] = useState<Step>("ask");
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setReady(true), ASK_DELAY_MS);
+    const timer = window.setTimeout(() => {
+      setDismissed(readDismissed());
+      setReady(true);
+    }, ASK_DELAY_MS);
     return () => window.clearTimeout(timer);
   }, []);
+
+  const dismiss = () => {
+    setDismissed(true);
+    try {
+      window.sessionStorage.setItem(DISMISS_KEY, "1");
+    } catch {
+      // Storage blocked: it stays closed until the next page load.
+    }
+  };
 
   const allow = async () => {
     if (!canAsk) {
@@ -114,22 +137,20 @@ export default function LocationWelcome() {
   const hasLocation =
     saved !== null ||
     (ready && parseSavedLocation(readLocationCookie()) !== null);
-  const open = ready && !exempt && !hasLocation && !pickerOpen;
+  const open = ready && !exempt && !hasLocation && !pickerOpen && !dismissed;
   const asking = step === "ask";
 
   return (
     <>
       <Dialog
         open={open}
-        // Required: nothing but a saved location closes it.
-        onOpenChange={() => {}}
+        // Close button, Escape or a click outside: same as "Not now".
+        onOpenChange={(next) => {
+          if (!next) dismiss();
+        }}
       >
         <DialogContent
           data-location-prompt
-          showCloseButton={false}
-          onEscapeKeyDown={(event) => event.preventDefault()}
-          onPointerDownOutside={(event) => event.preventDefault()}
-          onInteractOutside={(event) => event.preventDefault()}
           // Nothing in the dialog should grab focus and pop a phone's
           // keyboard or a focus ring on open.
           onOpenAutoFocus={(event) => event.preventDefault()}
@@ -201,6 +222,15 @@ export default function LocationWelcome() {
                   Choose my area instead
                 </Button>
               )}
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={dismiss}
+                disabled={busy}
+                className="w-full text-muted-foreground"
+              >
+                Not now
+              </Button>
             </div>
           </div>
         </DialogContent>
