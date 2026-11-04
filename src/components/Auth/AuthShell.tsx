@@ -1,9 +1,10 @@
-import { Scissors, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 
 import heroImage from "@/assets/hero-salon.jpg";
+import { BrandLogo } from "@/components/Shared/BrandLogo";
 import { SITE } from "@/lib/site";
 
 type AuthShellProps = {
@@ -21,13 +22,12 @@ const AuthShell = ({ title, subtitle, children }: AuthShellProps) => {
       {/* Left Side - Form */}
       <div className="flex-1 flex flex-col justify-center items-center px-4 py-10 sm:px-8 lg:px-16 xl:px-24">
         <div className="w-full max-w-md mx-auto">
-          <Link href="/" className="inline-flex items-center gap-2 mb-10 group">
-            <div className="w-10 h-10 rounded-xl bg-surface border flex items-center justify-center shadow-sm group-hover:shadow-md">
-              <Scissors className="w-5 h-5 text-primary" />
-            </div>
-            <span className="font-display text-2xl font-semibold tracking-tight text-foreground">
-              {SITE.name}
-            </span>
+          <Link
+            href="/"
+            aria-label={`${SITE.name} home`}
+            className="inline-flex items-center mb-10 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <BrandLogo className="text-3xl" preload />
           </Link>
 
           <div className="mb-8">
@@ -55,13 +55,8 @@ const AuthShell = ({ title, subtitle, children }: AuthShellProps) => {
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
           <div className="absolute inset-0 p-16 flex flex-col justify-end text-white">
-            <div className="inline-flex items-center gap-2 mb-8">
-              <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center shadow-sm">
-                <Scissors className="w-6 h-6 text-primary-soft" />
-              </div>
-              <span className="font-display text-4xl font-semibold tracking-tight text-white">
-                {SITE.name}
-              </span>
+            <div className="mb-8">
+              <BrandLogo inverted className="text-5xl" />
             </div>
 
             <ul className="space-y-4">

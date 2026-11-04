@@ -33,6 +33,8 @@ export function PhotoStep({ onReady }: { onReady: (session: TryOnSession) => voi
   const [token, setToken] = useState<string | null>(null);
   // A Turnstile token works once; a new key renders a fresh widget.
   const [turnstileKey, setTurnstileKey] = useState(0);
+  // Without this the Continue button just stays grey when the check can't run.
+  const [checkFailed, setCheckFailed] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -202,7 +204,30 @@ export function PhotoStep({ onReady }: { onReady: (session: TryOnSession) => voi
         </span>
       </label>
 
-      <Turnstile key={turnstileKey} onToken={setToken} />
+      <Turnstile
+        key={turnstileKey}
+        onToken={(next) => {
+          setToken(next);
+          if (next) setCheckFailed(false);
+        }}
+        onError={() => setCheckFailed(true)}
+      />
+      {checkFailed && !token && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-warning-soft px-3 py-2 text-sm text-foreground">
+          <span>The quick security check couldn&apos;t load.</span>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setCheckFailed(false);
+              setTurnstileKey((k) => k + 1);
+            }}
+          >
+            Try again
+          </Button>
+        </div>
+      )}
 
       <div aria-live="polite" className="space-y-2">
         {busy && (
