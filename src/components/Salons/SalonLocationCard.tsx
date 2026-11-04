@@ -10,17 +10,16 @@ import { directionsUrl, formatDistance, haversineMeters } from "@/lib/geo";
 import { useSavedLocation } from "@/hooks/useSavedLocation";
 import type { Salon } from "@/lib/api-types";
 
-type SalonLocation = Pick<
-  Salon,
-  | "name"
-  | "address"
-  | "area"
-  | "district"
-  | "city"
-  | "latitude"
-  | "longitude"
-  | "locationAccuracy"
->;
+type SalonLocation = {
+  name: string;
+  address?: string | null;
+  area?: string | null;
+  district?: string | null;
+  city?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  locationAccuracy?: Salon["locationAccuracy"];
+};
 
 // "House 12, Road 27" + "Dhanmondi" + "Dhaka", skipping parts the street
 // address already mentions.

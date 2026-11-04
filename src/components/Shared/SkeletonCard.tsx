@@ -224,61 +224,44 @@ export function SalonCardSkeleton() {
 }
 
 export function SalonDetailSkeleton() {
+  // Same frame as SalonDetails: title, photo grid, section tabs, menu + booking card.
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <section className="bg-muted/30 border-b">
-        <div className="container mx-auto px-4 py-10">
-          <div className="grid lg:grid-cols-12 gap-8 items-start">
-            <div className="lg:col-span-7">
-              <Skeleton className="h-[300px] md:h-[400px] w-full rounded-xl" />
-            </div>
-            <div className="lg:col-span-5">
-              <Card>
-                <CardContent className="p-6 space-y-4">
-                  <Skeleton className="h-8 w-3/4" />
-                  <Skeleton className="h-4 w-1/3" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-2/3" />
-                  <Skeleton className="h-4 w-1/2" />
-                  <Skeleton className="h-10 w-full rounded-lg" />
-                  <Skeleton className="h-10 w-full rounded-lg" />
-                </CardContent>
-              </Card>
-            </div>
+    <div className="bg-background pb-24">
+      <div className="container mx-auto px-4 pt-4 sm:px-6 lg:px-8 lg:pt-8">
+        <div className="flex flex-col">
+          <div className="order-2 mt-5 space-y-3 md:order-1 md:mt-0">
+            <Skeleton className="h-5 w-20 rounded-full" />
+            <Skeleton className="h-9 w-80 max-w-full" />
+            <Skeleton className="h-4 w-96 max-w-full" />
+          </div>
+          <div className="order-1 md:order-2 md:mt-6">
+            <Skeleton className="-mx-4 aspect-[4/3] rounded-none sm:-mx-6 md:mx-0 md:aspect-auto md:h-[22rem] md:rounded-3xl lg:h-[26rem]" />
           </div>
         </div>
-      </section>
-      <section className="pt-10">
-        <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-12 gap-8">
-            <div className="lg:col-span-8 space-y-8">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Card key={i}>
-                  <CardHeader>
-                    <Skeleton className="h-6 w-40" />
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Skeleton className="h-20 w-full rounded-lg" />
-                    <Skeleton className="h-20 w-full rounded-lg" />
-                  </CardContent>
-                </Card>
-              ))}
+      </div>
+      <div className="mt-6 border-b border-border">
+        <div className="container mx-auto flex gap-6 px-4 py-4 sm:px-6 lg:px-8">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-4 w-16" />
+          ))}
+        </div>
+      </div>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid gap-10 pt-8 lg:grid-cols-[minmax(0,1fr)_22.5rem] lg:gap-12 xl:grid-cols-[minmax(0,1fr)_24rem]">
+          <div className="space-y-4">
+            <Skeleton className="h-7 w-32" />
+            <div className="flex gap-2">
+              <Skeleton className="h-9 w-20 rounded-full" />
+              <Skeleton className="h-9 w-28 rounded-full" />
+              <Skeleton className="h-9 w-24 rounded-full" />
             </div>
-            <div className="lg:col-span-4 space-y-6">
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-6 w-28" />
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {Array.from({ length: 7 }).map((_, i) => (
-                    <Skeleton key={i} className="h-8 w-full rounded-md" />
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
+            <Skeleton className="h-80 w-full rounded-3xl" />
+          </div>
+          <div className="hidden lg:block">
+            <Skeleton className="h-[26rem] w-full rounded-3xl" />
           </div>
         </div>
-      </section>
+      </div>
     </div>
   );
 }
