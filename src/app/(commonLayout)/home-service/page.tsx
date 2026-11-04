@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import HomeLanding from "@/components/HomeService/HomeLanding";
 
 export const metadata: Metadata = {
-  title: "Home Service: beauty experts at your home",
+  title: "Home Service: how it works and our policies",
   description:
-    "Book verified beauty experts to your home. Ladies at Home sends female experts only. Pay half now, half at home.",
+    "How Home Service works: book a female beauty expert to your home from a parlour's page, the advance, cancellation and rescheduling policies, and your safety at the door.",
 };
 
 // Reads only the public settings (60 s cache), so this stays static.

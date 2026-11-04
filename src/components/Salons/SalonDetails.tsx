@@ -155,6 +155,9 @@ const SalonDetails = ({
 }) => {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>(undefined);
+  // Which side the booking dialog opens on: the home band opens it "At home".
+  const [bookingMode, setBookingMode] = useState<"SALON" | "HOME">("SALON");
+  const offersHome = Boolean(salon?.homeService?.ladies || salon?.homeService?.gents);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [unreviewedAppointmentId, setUnreviewedAppointmentId] = useState<string | null>(null);
   const { openWith, enabled: chatEnabled } = useAssistantLauncher();
@@ -241,13 +244,15 @@ const SalonDetails = ({
   const [customerOnlyOpen, setCustomerOnlyOpen] = useState(false);
   const bookingRoleBlocked = !!viewer?.role && viewer.role !== "CUSTOMER";
 
-  const handleBook = (serviceId?: string) => {
+  const handleBook = (serviceId?: string, mode: "SALON" | "HOME" = "SALON") => {
     if (bookingPaused) return;
     if (bookingRoleBlocked) {
       setCustomerOnlyOpen(true);
       return;
     }
     setSelectedServiceId(serviceId);
+    // A branch with no salon menu can still be booked at home.
+    setBookingMode(mode === "HOME" || (services.length === 0 && offersHome) ? "HOME" : "SALON");
     setIsBookingModalOpen(true);
   };
 
@@ -402,7 +407,10 @@ const SalonDetails = ({
           <div className="grid lg:grid-cols-12 gap-8 items-start">
             <div className="lg:col-span-8 space-y-10 min-w-0">
               {(salon?.homeService?.ladies || salon?.homeService?.gents) && (
-                <SalonHomeBand sides={salon.homeService} />
+                <SalonHomeBand
+                  sides={salon.homeService}
+                  onBook={bookingPaused ? undefined : () => handleBook(undefined, "HOME")}
+                />
               )}
               {salon?.description && (
                 <div id="about">
@@ -675,7 +683,7 @@ const SalonDetails = ({
                       </ul>
                     </div>
                   )}
-                  <Button size="lg" className="w-full" onClick={() => handleBook()} disabled={bookingPaused || services.length === 0}>
+                  <Button size="lg" className="w-full" onClick={() => handleBook()} disabled={bookingPaused || (services.length === 0 && !offersHome)}>
                     Book now
                   </Button>
                   <a href="#location" className="block text-center text-sm text-muted-foreground hover:text-foreground">
@@ -704,7 +712,7 @@ const SalonDetails = ({
               <p className="truncate text-sm font-medium">{salon?.name}</p>
             )}
           </div>
-          <Button size="lg" className="px-8" onClick={() => handleBook()} disabled={bookingPaused || services.length === 0}>
+          <Button size="lg" className="px-8" onClick={() => handleBook()} disabled={bookingPaused || (services.length === 0 && !offersHome)}>
             {bookingPaused ? "Bookings paused" : "Book now"}
           </Button>
         </div>
@@ -715,6 +723,8 @@ const SalonDetails = ({
         onClose={() => setIsBookingModalOpen(false)}
         salon={salon}
         initialServiceId={selectedServiceId}
+        homeSides={salon?.homeService}
+        initialMode={bookingMode}
       />
       {bookingRoleBlocked && (
         <ResponsiveDialog

@@ -65,7 +65,9 @@ const ServicePicker = ({
                   {formatBDT(service.priceMinor)}
                 </span>
                 <span className="block text-[11px] text-muted-foreground">
-                  {formatBDT(service.depositMinor)} deposit
+                  {service.depositMinor > 0
+                    ? `${formatBDT(service.depositMinor)} deposit`
+                    : "Free to book"}
                 </span>
               </span>
             </button>

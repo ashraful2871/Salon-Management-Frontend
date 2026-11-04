@@ -10,7 +10,7 @@ import { getSlots } from "@/services/slots/slot-api";
 import { getMyWallet } from "@/services/wallet/getMyWallet";
 import { getPublicSettings } from "@/services/settings/getPublicSettings";
 import { getUserRoles } from "@/services/get-roles/getUserRoles";
-import { resolveDepositMinor } from "@/lib/deposit";
+import { bookingPaymentsEnabled, resolveDepositMinor } from "@/lib/deposit";
 import type { ProviderId } from "@/lib/payment-providers";
 
 const isProviderId = (value: string | undefined): value is ProviderId =>
@@ -178,9 +178,14 @@ const BookingSummaryPage = async ({
   }
 
   const priceMinor = service.priceMinor ?? 0;
+  // Salon booking payments are a platform switch; off means a free booking.
+  const paymentsEnabled = bookingPaymentsEnabled(
+    settingsRes.success ? settingsRes.data : null,
+  );
   const depositMinor = resolveDepositMinor(
     { depositMinor: salon.depositMinor, depositPercent: salon.depositPercent },
     priceMinor,
+    paymentsEnabled,
   );
 
   const wallet = walletRes?.success ? walletRes.data : undefined;
@@ -188,6 +193,7 @@ const BookingSummaryPage = async ({
   // "Pay ৳450 now" is offered when the platform switch and the salon's own
   // opt-in are both on; the API checks both again on booking.
   const prepayAllowed =
+    paymentsEnabled &&
     settingsRes.success &&
     settingsRes.data?.["booking.prepayEnabled"] === true &&
     salon.acceptsPrepay === true &&

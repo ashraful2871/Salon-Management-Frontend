@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   ChevronDown,
@@ -60,24 +60,27 @@ interface NavbarClientProps {
   adminRevenueMinor?: number | null;
   /** The Suspense fallback: who is signed in isn't known yet. */
   accountLoading?: boolean;
+  /**
+   * The header balance (customer wallet, owner revenue, platform revenue), on
+   * the desktop bar and in the drawer. Follows the `booking.depositsEnabled`
+   * switch: with salon bookings free there is nothing to show, so it is hidden
+   * and its reads are skipped. Everything behind it is kept for when booking
+   * payments come back.
+   */
+  showBalance?: boolean;
 }
 
 // `wide`: in the desktop bar only from 2xl; below that the bar has no room
 // for them, so they sit under "More" (and in the phone drawer as usual).
 const NAV_LINKS: { href: string; label: string; icon: LucideIcon; wide?: boolean }[] = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/salons", label: "Salons", icon: Store },
+  // How it works + policies; home visits are booked from a salon's page.
+  { href: "/home-service", label: "Home Service", icon: House },
   { href: "/ladies-parlour", label: "Ladies", icon: Flower2 },
   { href: "/gents-parlour", label: "Gents", icon: Scissors },
   { href: "/ai-suggestions", label: "AI Match", icon: Sparkles },
   { href: "/about", label: "About", icon: Info, wide: true },
   { href: "/contact", label: "Contact", icon: Mail, wide: true },
-];
-
-// Home Service: Ladies first, with its promise, in the bar menu and the drawer.
-const HOME_SERVICE_LINKS: { href: string; label: string; icon: LucideIcon; tag?: string }[] = [
-  { href: "/home-service/ladies", label: "Ladies at Home", icon: Flower2, tag: "Female experts" },
-  { href: "/home-service/gents", label: "Gents at Home", icon: Scissors },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -120,6 +123,7 @@ const NavbarClient = ({
   ownerRevenueMinor: initialOwnerRevenueMinor,
   adminRevenueMinor: initialAdminRevenueMinor,
   accountLoading = false,
+  showBalance = false,
 }: NavbarClientProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -140,7 +144,8 @@ const NavbarClient = ({
 
   // Fetch balances asynchronously so the navbar doesn't wait for heavy analytical queries
   useEffect(() => {
-    if (!user) return;
+    // Hidden balance: don't run the heavy earnings queries for nothing.
+    if (!user || !showBalance) return;
 
     let isMounted = true;
 
@@ -175,7 +180,7 @@ const NavbarClient = ({
     return () => {
       isMounted = false;
     };
-  }, [user, initialOwnerRevenueMinor, initialAdminRevenueMinor]);
+  }, [user, showBalance, initialOwnerRevenueMinor, initialAdminRevenueMinor]);
 
   // The drawer is a route-level overlay, so a navigation has to dismiss it —
   // including a back/forward move, which no link handler sees. Adjusting during
@@ -271,54 +276,20 @@ const NavbarClient = ({
             {/* Desktop navigation */}
             <div className="hidden items-center gap-1 rounded-full border border-border bg-muted/70 p-1 lg:flex">
               {NAV_LINKS.map((link) => (
-                <Fragment key={link.href}>
-                  <Link
-                    href={link.href}
-                    aria-current={isActive(link.href) ? "page" : undefined}
-                    className={cn(
-                      "rounded-full px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 2xl:px-4",
-                      link.wide && "hidden 2xl:block",
-                      isActive(link.href)
-                        ? "bg-surface text-foreground shadow-xs"
-                        : "text-muted-foreground hover:bg-surface/70 hover:text-foreground",
-                    )}
-                  >
-                    {link.label}
-                  </Link>
-                  {link.href === "/salons" && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        className={cn(
-                          "inline-flex cursor-pointer items-center gap-1 rounded-full px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 2xl:px-4",
-                          isActive("/home-service")
-                            ? "bg-surface text-foreground shadow-xs"
-                            : "text-muted-foreground hover:bg-surface/70 hover:text-foreground",
-                        )}
-                      >
-                        Home Service
-                        <ChevronDown className="size-4" aria-hidden />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="min-w-60">
-                        {HOME_SERVICE_LINKS.map((item) => (
-                          <DropdownMenuItem key={item.href} asChild>
-                            <Link href={item.href} className="flex items-center">
-                              <item.icon className="mr-2 size-4" aria-hidden />
-                              <span className="flex-1">{item.label}</span>
-                              {item.tag && <HomeTag>{item.tag}</HomeTag>}
-                            </Link>
-                          </DropdownMenuItem>
-                        ))}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem asChild>
-                          <Link href="/home-service" className="flex items-center">
-                            <House className="mr-2 size-4" aria-hidden />
-                            How it works
-                          </Link>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  aria-current={isActive(link.href) ? "page" : undefined}
+                  className={cn(
+                    "rounded-full px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 2xl:px-4",
+                    link.wide && "hidden 2xl:block",
+                    isActive(link.href)
+                      ? "bg-surface text-foreground shadow-xs"
+                      : "text-muted-foreground hover:bg-surface/70 hover:text-foreground",
                   )}
-                </Fragment>
+                >
+                  {link.label}
+                </Link>
               ))}
               <DropdownMenu>
                 <DropdownMenuTrigger
@@ -360,12 +331,15 @@ const NavbarClient = ({
               {accountLoading ? (
                 // Fixed sizes, so nothing shifts when the account streams in.
                 <div aria-hidden="true" className="flex items-center gap-1.5 sm:gap-2.5">
-                  <Skeleton className="hidden h-10 w-36 rounded-full md:block" />
+                  {showBalance && (
+                    <Skeleton className="hidden h-10 w-36 rounded-full md:block" />
+                  )}
                   <Skeleton className="size-10 rounded-full" />
                 </div>
               ) : user ? (
                 <>
                   {/* Balance: from md up; smaller screens have it in the drawer. */}
+                  {showBalance && (
                   <div className="hidden md:block">
                     {user.role === "CUSTOMER" && <WalletMenu wallet={wallet} />}
                     {user.role === "SALON_OWNER" && (
@@ -389,6 +363,7 @@ const NavbarClient = ({
                       />
                     )}
                   </div>
+                  )}
 
                   {/* Account menu: avatar + name (+ role from xl) on desktop,
                       the avatar alone on smaller screens. */}
@@ -568,11 +543,11 @@ const NavbarClient = ({
               </div>
             )}
 
-            {user?.role === "CUSTOMER" && (
+            {showBalance && user?.role === "CUSTOMER" && (
               <WalletMenu wallet={wallet} variant="card" onNavigate={closeMenu} />
             )}
             {/* Only the links inside close the drawer; revealing keeps it open. */}
-            {user?.role === "SALON_OWNER" && (
+            {showBalance && user?.role === "SALON_OWNER" && (
               <BalanceReveal
                 variant="card"
                 label="Owner revenue"
@@ -591,7 +566,7 @@ const NavbarClient = ({
                 }
               />
             )}
-            {user?.role === "ADMIN" && (
+            {showBalance && user?.role === "ADMIN" && (
               <BalanceReveal
                 variant="card"
                 label="Platform revenue"
@@ -635,35 +610,25 @@ const NavbarClient = ({
                   </li>
                 ))}
               </ul>
-              <p className="mt-4 mb-1 px-1 text-overline font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-                Home Service
-              </p>
-              <ul className="space-y-0.5">
-                {HOME_SERVICE_LINKS.map((item) => (
-                  <li key={item.href}>
-                    <DrawerLink
-                      href={item.href}
-                      icon={item.icon}
-                      label={item.label}
-                      tag={item.tag}
-                      active={isActive(item.href)}
-                      onClick={closeMenu}
-                    />
-                  </li>
-                ))}
-                {/* Owners, staff and admins already have a salon side. */}
-                {!accountLoading && (!user || user.role === "CUSTOMER") && (
-                  <li>
-                    <DrawerLink
-                      href="/become-salon-owner"
-                      icon={Store}
-                      label="List your salon"
-                      active={isActive("/become-salon-owner")}
-                      onClick={closeMenu}
-                    />
-                  </li>
-                )}
-              </ul>
+              {/* Owners, staff and admins already have a salon side. */}
+              {!accountLoading && (!user || user.role === "CUSTOMER") && (
+                <>
+                  <p className="mt-4 mb-1 px-1 text-overline font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                    For salons
+                  </p>
+                  <ul className="space-y-0.5">
+                    <li>
+                      <DrawerLink
+                        href="/become-salon-owner"
+                        icon={Store}
+                        label="List your salon"
+                        active={isActive("/become-salon-owner")}
+                        onClick={closeMenu}
+                      />
+                    </li>
+                  </ul>
+                </>
+              )}
             </nav>
 
             {user && (

@@ -10,6 +10,7 @@ import {
   CalendarDays,
   Check,
   Clock,
+  House,
   Loader2,
   Scissors,
   Store,
@@ -17,6 +18,12 @@ import {
   X,
 } from "lucide-react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import HomeServicePicker, {
+  anchorExpertFor,
+  homeCartPrice,
+} from "./HomeServicePicker";
+import { getSalonHomeMenu } from "@/services/home-service/getSalonHomeMenu";
+import type { HomeAudience, HomeSalonMenu } from "@/services/home-service/types";
 
 import {
   Dialog,
@@ -38,6 +45,10 @@ import { formatBDT } from "@/lib/money";
 import { addDays, format, parseISO } from "date-fns";
 
 const STEPS = ["Service", "Date & time", "Review"] as const;
+/** At home, the dialog is the first step; the rest are the Home Service flow's. */
+const HOME_STEPS = ["Services", "Date & time", "Address & advance"] as const;
+
+type BookingMode = "SALON" | "HOME";
 
 const formatClock = (time: string) => {
   const [hourStr, minute] = time.split(":");
@@ -80,6 +91,7 @@ type SalonLike = {
   staff?: StaffItem[];
   depositMinor?: number;
   depositPercent?: number | null;
+  audience?: "UNISEX" | "LADIES" | "GENTS";
 };
 
 type SlotLike = {
@@ -95,6 +107,11 @@ type BookAppointmentModalProps = {
   onClose: () => void;
   salon: SalonLike;
   initialServiceId?: string;
+  /** The sides this branch can be booked for at home (`salon.homeService`);
+   *  absent or both false hides the "At home" choice. */
+  homeSides?: { ladies: boolean; gents: boolean };
+  /** The side the dialog opens on ("HOME" from the salon page's home band). */
+  initialMode?: BookingMode;
 };
 
 export default function BookAppointmentModal({
@@ -102,9 +119,58 @@ export default function BookAppointmentModal({
   onClose,
   salon,
   initialServiceId,
+  homeSides,
+  initialMode = "SALON",
 }: BookAppointmentModalProps) {
   const router = useRouter();
   const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  // ----- At the salon / At home
+  const offersHome = Boolean(homeSides?.ladies || homeSides?.gents);
+  const defaultAudience: HomeAudience =
+    homeSides?.ladies && homeSides?.gents
+      ? salon?.audience === "GENTS"
+        ? "GENTS"
+        : "LADIES"
+      : homeSides?.gents
+        ? "GENTS"
+        : "LADIES";
+  const [mode, setMode] = useState<BookingMode>("SALON");
+  const [homeAudience, setHomeAudience] = useState<HomeAudience>(defaultAudience);
+  const [homeItems, setHomeItems] = useState<string[]>([]);
+  const [homeMenu, setHomeMenu] = useState<HomeSalonMenu | null>(null);
+  const [homeLoading, setHomeLoading] = useState(false);
+  const [homeError, setHomeError] = useState<string | null>(null);
+  const [homeProblem, setHomeProblem] = useState<string | null>(null);
+  const [homeReload, setHomeReload] = useState(0);
+  const isHome = offersHome && mode === "HOME";
+
+  // The menu is read when "At home" is chosen and again when the side changes.
+  useEffect(() => {
+    if (!open || !isHome || !salon?.id) return;
+    let live = true;
+    setHomeLoading(true);
+    setHomeError(null);
+    setHomeMenu(null);
+    getSalonHomeMenu(salon.id, homeAudience)
+      .then((res) => {
+        if (!live) return;
+        if (res.success && res.data) {
+          setHomeMenu(res.data);
+          // Keep only what this side still offers.
+          const ids = new Set(res.data.menu.map((m) => m.id));
+          setHomeItems((prev) => prev.filter((id) => ids.has(id)));
+        } else {
+          setHomeError(res.message || "Home service isn't available here right now.");
+        }
+      })
+      .finally(() => live && setHomeLoading(false));
+    return () => {
+      live = false;
+    };
+  }, [open, isHome, salon?.id, homeAudience, homeReload]);
+
+  const homePrice = homeCartPrice(homeMenu, homeItems);
 
   const services = useMemo(
     () => (salon?.services || []).filter((s) => s?.isActive !== false),
@@ -140,8 +206,12 @@ export default function BookAppointmentModal({
       }
       setStep(1);
       setErrors({});
+      // A service picked on the page is a salon service, so start there.
+      setMode(initialServiceId ? "SALON" : initialMode);
+      setHomeItems([]);
+      setHomeProblem(null);
     }
-  }, [open, initialServiceId]);
+  }, [open, initialServiceId, initialMode]);
 
   const setField = (key: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -257,7 +327,35 @@ export default function BookAppointmentModal({
     return Object.keys(nextErrors).length === 0;
   };
 
+  // At home: hand the cart to the Home Service flow at its date step. It runs
+  // with "any available expert", anchored on one expert who does the whole cart.
+  const handleHomeContinue = () => {
+    if (!homeMenu) return;
+    if (!homeItems.length) {
+      setHomeProblem("Pick at least one service.");
+      return;
+    }
+    if (homePrice.belowMinMinor > 0) return;
+    const anchor = anchorExpertFor(homeMenu, homeItems);
+    if (!anchor) {
+      setHomeProblem(
+        "No one expert here does all of these in one visit. Remove a service to continue.",
+      );
+      return;
+    }
+    const query = new URLSearchParams({
+      expert: anchor.id,
+      any: "1",
+      items: homeItems.join(","),
+      step: "date",
+    });
+    track("home_side_select", homeAudience === "LADIES" ? "audience:ladies" : "audience:gents");
+    setIsNavigating(true);
+    router.push(`/home-service/book?${query.toString()}`);
+  };
+
   const handleNext = () => {
+    if (isHome) return handleHomeContinue();
     if (step === 1) {
       if (validateStep1()) setStep(2);
     } else {
@@ -298,7 +396,9 @@ export default function BookAppointmentModal({
     <div className="shrink-0 border-b px-4 pt-3 pb-4 sm:px-6 sm:pt-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <Title className="font-display text-lg font-semibold sm:text-xl">Book an appointment</Title>
+          <Title className="font-display text-lg font-semibold sm:text-xl">
+            {isHome ? "Book a home visit" : "Book an appointment"}
+          </Title>
           <Description className="truncate text-sm text-muted-foreground">{salon?.name}</Description>
         </div>
         <Button
@@ -314,9 +414,10 @@ export default function BookAppointmentModal({
       </div>
 
       <ol className="mt-4 flex items-center gap-2" aria-label="Booking steps">
-        {STEPS.map((label, i) => {
+        {(isHome ? HOME_STEPS : STEPS).map((label, i) => {
           const index = i + 1;
-          const state = index < step ? "done" : index === step ? "current" : "todo";
+          const at = isHome ? 1 : step;
+          const state = index < at ? "done" : index === at ? "current" : "todo";
           return (
             <li
               key={label}
@@ -342,7 +443,7 @@ export default function BookAppointmentModal({
                 {label}
               </span>
               {i < STEPS.length - 1 && (
-                <span aria-hidden className={cn("h-px min-w-3 flex-1", index < step ? "bg-primary" : "bg-border")} />
+                <span aria-hidden className={cn("h-px min-w-3 flex-1", index < at ? "bg-primary" : "bg-border")} />
               )}
             </li>
           );
@@ -580,9 +681,77 @@ export default function BookAppointmentModal({
     </div>
   );
 
+  // Where the service happens: only offered when the branch comes to homes.
+  const modeChoice = offersHome && step === 1 && (
+    <div className="mb-6 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Where">
+      {(
+        [
+          { id: "SALON", icon: Store, title: "At the salon", hint: "Visit the salon" },
+          {
+            id: "HOME",
+            icon: House,
+            title: "At home",
+            hint: homeMenu
+              ? `An expert comes to you · ${homeMenu.advancePercent}% advance`
+              : "An expert comes to you · pay an advance",
+          },
+        ] as const
+      ).map(({ id, icon: Icon, title, hint }) => {
+        const on = mode === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            onClick={() => {
+              setMode(id);
+              setHomeProblem(null);
+              setErrors({});
+            }}
+            className={cn(
+              "flex items-start gap-3 rounded-2xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              on
+                ? "border-primary bg-primary-soft ring-1 ring-primary"
+                : "border-border bg-surface hover:bg-surface-subtle",
+            )}
+          >
+            <Icon className={cn("mt-0.5 size-5 shrink-0", on ? "text-primary" : "text-muted-foreground")} aria-hidden />
+            <span className="min-w-0">
+              <span className="block font-semibold">{title}</span>
+              <span className="block text-xs text-muted-foreground">{hint}</span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const homeContent = homeSides && (
+    <HomeServicePicker
+      sides={homeSides}
+      audience={homeAudience}
+      onAudience={(a) => {
+        setHomeAudience(a);
+        setHomeProblem(null);
+      }}
+      menu={homeMenu}
+      loading={homeLoading}
+      error={homeError}
+      onRetry={() => setHomeReload((n) => n + 1)}
+      items={homeItems}
+      onItems={(next) => {
+        setHomeItems(next);
+        setHomeProblem(null);
+      }}
+      problem={homeProblem}
+    />
+  );
+
   const body = (
     <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
-      {step === 1 ? step1Content : step2Content}
+      {modeChoice}
+      {isHome ? homeContent : step === 1 ? step1Content : step2Content}
     </div>
   );
 
@@ -600,8 +769,12 @@ export default function BookAppointmentModal({
         className="min-w-0 flex-1 sm:flex-none sm:px-8"
         onClick={handleNext}
         loading={isNavigating}
+        disabled={
+          isHome &&
+          (homeLoading || !homeMenu || !homeItems.length || homePrice.belowMinMinor > 0)
+        }
       >
-        {step === 1 ? "Next" : "Review booking"}
+        {isHome ? "Choose date & time" : step === 1 ? "Next" : "Review booking"}
         {!isNavigating && <ArrowRight aria-hidden />}
       </Button>
     </div>

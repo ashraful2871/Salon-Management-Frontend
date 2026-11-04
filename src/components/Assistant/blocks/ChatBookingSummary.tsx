@@ -14,7 +14,12 @@ import {
 import { formatBDT } from "@/lib/money";
 import type { Block } from "@/lib/assistant-types";
 import Chip from "../Chip";
-import { formatDhakaClock, formatDuration, formatTime, formatYmd } from "../format";
+import {
+  formatDhakaClock,
+  formatDuration,
+  formatTime,
+  formatYmd,
+} from "../format";
 import { useAssistantLauncher } from "../AssistantContext";
 import type { BlockProps } from "../block-props";
 
@@ -28,7 +33,10 @@ const Row = ({
   children: React.ReactNode;
 }) => (
   <li className="flex items-start gap-2.5 text-sm">
-    <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+    <Icon
+      className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"
+      aria-hidden
+    />
     <span className="min-w-0 text-foreground">{children}</span>
   </li>
 );
@@ -141,19 +149,24 @@ const ChatBookingSummary = ({
             </dd>
           </div>
           <div className="flex justify-between gap-3">
-            <dt className="text-muted-foreground">
-              {paysAll ? "Paid now from wallet" : "Deposit held from wallet"}
-            </dt>
-            <dd className="font-medium text-foreground">
-              {formatBDT(payNowMinor)}
-            </dd>
-          </div>
-          <div className="flex justify-between gap-3">
             <dt className="text-muted-foreground">Pay at the salon</dt>
             <dd className="font-medium text-foreground">
               {formatBDT(dueAtSalonMinor)}
             </dd>
           </div>
+          <div className="flex justify-between gap-3">
+            <dt className="text-muted-foreground">
+              {payNowMinor <= 0
+                ? "Pay now"
+                : paysAll
+                  ? "Paid now from wallet"
+                  : "Deposit held from wallet"}
+            </dt>
+            <dd className="font-bold text-primary">
+              {payNowMinor <= 0 ? "Free" : formatBDT(payNowMinor)}
+            </dd>
+          </div>
+
           {shortfall > 0 && (
             <div className="flex justify-between gap-3 border-t border-border pt-1.5">
               <dt className="font-medium text-foreground">

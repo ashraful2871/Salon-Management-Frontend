@@ -76,7 +76,11 @@ export const useBookingDialogs = ({
               on {formatDay(cancelRow.date)} at {cancelRow.time}
               {isCustomer
                 ? ". This can't be undone."
-                : ` for ${cancelRow.customer}. Their deposit goes back to their wallet in full, with a goodwill credit.`}
+                : (cancelRow.raw.depositMinor ?? 0) +
+                      (cancelRow.raw.prepaidMinor ?? 0) >
+                    0
+                  ? ` for ${cancelRow.customer}. Their deposit goes back to their wallet in full, with a goodwill credit.`
+                  : ` for ${cancelRow.customer}. Nothing was paid for this free booking, so there is nothing to refund.`}
             </>
           )
         }

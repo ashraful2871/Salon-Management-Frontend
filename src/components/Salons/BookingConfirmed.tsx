@@ -93,6 +93,8 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
   const reference = booking.id.slice(0, 8).toUpperCase();
   const prepaidMinor = booking.prepaidMinor ?? 0;
   const paidInFull = prepaidMinor > 0;
+  // A free booking: nothing was taken in the app, the whole bill is at the salon.
+  const nothingPaid = booking.depositMinor + prepaidMinor <= 0;
   const dueAtSalonMinor =
     booking.amountDueMinor ??
     Math.max(booking.totalMinor - booking.depositMinor - prepaidMinor, 0);
@@ -212,10 +214,16 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-muted-foreground">
-                  {paidInFull ? "Paid in full from your wallet" : "Deposit held from your wallet"}
+                  {nothingPaid
+                    ? "Paid now"
+                    : paidInFull
+                      ? "Paid in full from your wallet"
+                      : "Deposit held from your wallet"}
                 </span>
                 <span className="font-semibold text-primary tabular-nums">
-                  {formatBDT(booking.depositMinor + prepaidMinor)}
+                  {nothingPaid
+                    ? "Free booking"
+                    : formatBDT(booking.depositMinor + prepaidMinor)}
                 </span>
               </div>
               <Separator />
@@ -236,9 +244,11 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
               </p>
               <p className="flex items-start gap-2 rounded-lg bg-surface-subtle p-3 text-xs text-muted-foreground">
                 <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" aria-hidden />
-                {paidInFull
-                  ? "Your payment is held, not spent, until your visit. It returns to your wallet in full if you cancel in time."
-                  : "The deposit is held, not spent. It comes off your bill when you arrive, and returns to your wallet in full if you cancel in time."}
+                {nothingPaid
+                  ? "No payment was taken to book. Pay at the salon after your service. If your plans change, cancel from My bookings."
+                  : paidInFull
+                    ? "Your payment is held, not spent, until your visit. It returns to your wallet in full if you cancel in time."
+                    : "The deposit is held, not spent. It comes off your bill when you arrive, and returns to your wallet in full if you cancel in time."}
               </p>
             </CardContent>
           </Card>

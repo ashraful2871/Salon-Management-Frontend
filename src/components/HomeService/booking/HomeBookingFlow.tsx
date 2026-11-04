@@ -356,8 +356,8 @@ export default function HomeBookingFlow({
             </Button>
           ) : (
             <Button variant="ghost" size="sm" className="-ml-3" asChild>
-              <Link href={`/home-service/experts/${expert.id}`}>
-                <ArrowLeft aria-hidden /> {expert.name}
+              <Link href={`/salons/${expert.salon.id}`}>
+                <ArrowLeft aria-hidden /> {expert.salon.name}
               </Link>
             </Button>
           )}
