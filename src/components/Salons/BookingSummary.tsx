@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   AlertTriangle,
-  ArrowLeft,
   CalendarDays,
   Check,
   ChevronRight,
@@ -27,6 +26,9 @@ import {
 } from "lucide-react";
 
 import SafeImage from "@/components/Shared/SafeImage";
+import BookingHeader, { SALON_STEPS } from "./booking/BookingHeader";
+import { addressLine, bookingHref } from "./salon-view";
+import { categoryLabel } from "@/constants/service-categories";
 
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -99,7 +101,10 @@ type BookingSummaryProps = {
   /** The salon takes the whole bill in the app (owner Phase 15). */
   prepayAllowed?: boolean;
   wallet: WalletInfo;
+  /** Back to the choosing step (date & time), with the choices kept. */
   editHref: string;
+  /** The salon's own page. */
+  salonHref: string;
   /** This page's own URL: a top-up opened here comes back to it. */
   returnHref: string;
   /** Open the top-up straight away (`?topup=1`, "Try again" after a failed
@@ -168,39 +173,6 @@ const DetailRow = ({
   </div>
 );
 
-const Step = ({
-  index,
-  label,
-  state,
-}: {
-  index: number;
-  label: string;
-  state: "done" | "current" | "todo";
-}) => (
-  <div className="flex items-center gap-2">
-    <span
-      className={cn(
-        "flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold",
-        state === "done" && "bg-primary-soft text-primary",
-        state === "current" && "bg-primary text-primary-foreground",
-        state === "todo" && "bg-muted text-muted-foreground",
-      )}
-    >
-      {state === "done" ? <Check className="h-3.5 w-3.5" /> : index}
-    </span>
-    <span
-      className={cn(
-        "text-sm",
-        state === "current"
-          ? "font-semibold text-foreground"
-          : "text-muted-foreground",
-      )}
-    >
-      {label}
-    </span>
-  </div>
-);
-
 const BookingSummary = ({
   salon,
   service,
@@ -212,6 +184,7 @@ const BookingSummary = ({
   prepayAllowed = false,
   wallet,
   editHref,
+  salonHref,
   returnHref,
   reopenTopup,
 }: BookingSummaryProps) => {
@@ -220,6 +193,10 @@ const BookingSummary = ({
   const [topupOpen, setTopupOpen] = useState(
     Boolean(reopenTopup) && (depositMinor > 0 || prepayAllowed),
   );
+  // Arriving from the date & time step: start at the top, not where that page was scrolled.
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, []);
   // Drop `?topup=1` from the address bar, so a reload doesn't reopen it.
   useEffect(() => {
     if (reopenTopup) window.history.replaceState(null, "", returnHref);
@@ -318,45 +295,27 @@ const BookingSummary = ({
 
   return (
     <div className="min-h-screen bg-surface-subtle pb-[calc(8rem+env(safe-area-inset-bottom))] lg:pb-16">
-      {/* HEADER */}
-      <div className="border-b bg-background">
-        <div className="container mx-auto px-4 py-5">
-          <Link
-            href={editHref}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to {salon.name}
-          </Link>
+      <BookingHeader
+        overline={salon.name}
+        title="Review & confirm"
+        steps={[
+          {
+            label: SALON_STEPS[0],
+            href: bookingHref(salon.id, {
+              service: service.id,
+              staff: staff?.id,
+              date: slot.date.slice(0, 10),
+              notes: notes || undefined,
+            }),
+          },
+          { label: SALON_STEPS[1], href: editHref },
+          { label: SALON_STEPS[2] },
+        ]}
+        current={2}
+        back={{ label: "Back to date & time", href: editHref }}
+      />
 
-          <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1 className="font-display text-3xl font-bold tracking-tight md:text-4xl">
-                Review &amp; confirm
-              </h1>
-              <p className="mt-1 text-muted-foreground">
-                {isFree
-                  ? "Check every detail below, then confirm. Booking is free."
-                  : "Check every detail below, then secure your slot."}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <Step index={1} label="Select" state="done" />
-              <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
-              <Step
-                index={2}
-                label={isFree ? "Review" : "Review & pay"}
-                state="current"
-              />
-              <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
-              <Step index={3} label="Confirmed" state="todo" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 sm:px-6 md:py-8 lg:px-8">
         <form action={formAction}>
           <input type="hidden" name="salonId" value={salon.id} />
           <input type="hidden" name="serviceId" value={service.id} />
@@ -369,11 +328,11 @@ const BookingSummary = ({
           )}
           {paysInFull && <input type="hidden" name="payInFull" value="true" />}
 
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
             {/* LEFT: what is being booked */}
-            <div className="space-y-6 lg:col-span-7">
+            <div className="min-w-0 space-y-6">
               <div>
-                <Card className="overflow-hidden shadow-sm">
+                <Card className="gap-0 overflow-hidden rounded-3xl py-0 shadow-none">
                   <div className="flex items-center gap-4 border-b bg-surface-subtle p-5">
                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted">
                       <SafeImage
@@ -386,13 +345,20 @@ const BookingSummary = ({
                     </div>
                     <div className="min-w-0">
                       <h2 className="truncate text-lg font-bold">
-                        {salon.name}
+                        <Link href={salonHref} className="hover:underline">
+                          {salon.name}
+                        </Link>
                       </h2>
                       <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-muted-foreground">
                         <MapPin className="h-3.5 w-3.5 shrink-0" />
-                        {[salon.address, salon.area, salon.city]
-                          .filter(Boolean)
-                          .join(", ") || "Address unavailable"}
+                        <span className="truncate">
+                          {addressLine({
+                            address: salon.address ?? null,
+                            area: salon.area ?? null,
+                            district: null,
+                            city: salon.city ?? null,
+                          }) || "Address unavailable"}
+                        </span>
                       </p>
                       {typeof salon.rating === "number" && salon.rating > 0 && (
                         <p className="mt-1 flex items-center gap-1 text-sm">
@@ -408,7 +374,7 @@ const BookingSummary = ({
                     </div>
                   </div>
 
-                  <CardHeader className="flex flex-row items-center justify-between pb-0">
+                  <CardHeader className="flex flex-row items-center justify-between pt-5 pb-0">
                     <CardTitle className="text-base">
                       Appointment details
                     </CardTitle>
@@ -425,7 +391,7 @@ const BookingSummary = ({
                     </Button>
                   </CardHeader>
 
-                  <CardContent className="pt-2">
+                  <CardContent className="pt-2 pb-2">
                     <div className="divide-y">
                       <DetailRow
                         icon={Scissors}
@@ -433,7 +399,9 @@ const BookingSummary = ({
                         value={service.name}
                         hint={
                           [
-                            service.category,
+                            service.category
+                              ? categoryLabel(service.category)
+                              : null,
                             service.duration
                               ? `${service.duration} minutes`
                               : null,
@@ -496,7 +464,7 @@ const BookingSummary = ({
               {/* PAYMENT METHOD - only when something is paid in the app */}
               {!isFree && (
                 <div>
-                  <Card className="shadow-sm">
+                  <Card className="rounded-3xl shadow-none">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-base">
                         <Lock className="h-4 w-4 text-primary" />
@@ -619,7 +587,7 @@ const BookingSummary = ({
               {/* POLICY */}
               {isFree ? (
                 <div>
-                  <Alert className="border-border bg-surface-subtle">
+                  <Alert className="rounded-3xl border-border bg-surface-subtle p-5">
                     <ShieldCheck className="h-4 w-4 text-success" />
                     <AlertTitle className="text-base flex items-center gap-2">
                       Free booking
@@ -660,7 +628,7 @@ const BookingSummary = ({
                 </div>
               ) : (
                 <div>
-                  <Alert className="border-border bg-surface-subtle">
+                  <Alert className="rounded-3xl border-border bg-surface-subtle p-5">
                     <ShieldCheck className="h-4 w-4 text-success" />
                     <AlertTitle className="text-base flex items-center gap-2">
                       Deposit & cancellation policy
@@ -707,9 +675,9 @@ const BookingSummary = ({
             </div>
 
             {/* RIGHT: money and confirm */}
-            <div className="lg:col-span-5">
+            <div>
               <div className="lg:sticky lg:top-24 space-y-4">
-                <Card className="shadow-md">
+                <Card className="rounded-3xl shadow-card">
                   <CardHeader>
                     <CardTitle className="text-base">Payment summary</CardTitle>
                   </CardHeader>
@@ -872,8 +840,7 @@ const BookingSummary = ({
                     {/* Phones confirm from the fixed bar below. */}
                     <Button
                       type="submit"
-                      size="lg"
-                      className="hidden w-full text-base lg:inline-flex"
+                      className="hidden w-full lg:inline-flex"
                       disabled={confirmDisabled}
                       loading={isBusy}
                     >
@@ -908,7 +875,7 @@ const BookingSummary = ({
                   </CardContent>
                 </Card>
 
-                <Card className="border-dashed shadow-none">
+                <Card className="rounded-3xl border-dashed shadow-none">
                   <CardContent className="flex items-start gap-3 p-4 text-sm text-muted-foreground">
                     <Timer className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                     <p>
@@ -981,8 +948,7 @@ const BookingSummary = ({
                 </div>
                 <Button
                   type="submit"
-                  size="lg"
-                  className="min-w-0 flex-1 text-base"
+                  className="min-w-0 flex-1"
                   disabled={confirmDisabled}
                   loading={isBusy}
                 >

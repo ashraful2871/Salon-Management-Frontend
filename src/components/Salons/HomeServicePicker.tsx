@@ -69,7 +69,7 @@ type Props = {
 };
 
 /**
- * "At home" on the salon's booking dialog: pick who it is for (when the branch
+ * "At home" in the salon booking flow: pick who it is for (when the branch
  * serves both), then the services, with the advance worked out as you go.
  * Date, time, address and payment are the Home Service booking flow's steps.
  */

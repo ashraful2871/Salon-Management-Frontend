@@ -145,7 +145,7 @@ const PREVIEW_ITEMS = [
 ];
 
 /**
- * What the parlour's booking dialog looks like on "At home": an illustration
+ * What the parlour's booking flow looks like on "At home": an illustration
  * built from the page's own tokens, so it stays sharp and needs no image.
  */
 function BookingPreview({ advance }: { advance: number }) {

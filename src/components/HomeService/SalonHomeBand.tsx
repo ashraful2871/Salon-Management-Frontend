@@ -5,16 +5,16 @@ import type { Salon } from "@/lib/api-types";
 
 /**
  * On a salon's page when the branch can be booked for Home Service
- * (`salon.homeService`). `onBook` opens the salon's booking dialog on "At
+ * (`salon.homeService`). `bookHref` opens the salon's booking flow on "At
  * home" with this branch's own menu; without it (e.g. bookings paused) only
  * a link to how Home Service works remains: home visits are booked only here.
  */
 export default function SalonHomeBand({
   sides,
-  onBook,
+  bookHref,
 }: {
   sides: NonNullable<Salon["homeService"]>;
-  onBook?: () => void;
+  bookHref?: string;
 }) {
   return (
     <div className="flex flex-col gap-4 rounded-3xl border border-gold/25 bg-primary-soft p-5 sm:flex-row sm:items-center sm:justify-between">
@@ -30,15 +30,14 @@ export default function SalonHomeBand({
         </div>
       </div>
       <div className="flex shrink-0 flex-wrap gap-2">
-        {onBook ? (
-          <button
-            type="button"
-            onClick={onBook}
+        {bookHref ? (
+          <Link
+            href={bookHref}
             className="inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Book a home visit
             <ArrowRight className="size-4" aria-hidden />
-          </button>
+          </Link>
         ) : (
           <Link
             href="/home-service"
