@@ -54,7 +54,7 @@ import {
   type NavGroup,
 } from "./dashboard-nav";
 import { SITE } from "@/lib/site";
-import { BrandLogo } from "@/components/Shared/BrandLogo";
+import { BrandLogo, LOGO } from "@/components/Shared/BrandLogo";
 
 /** The cookie the layout reads so the sidebar renders collapsed on the server. */
 const SIDEBAR_COOKIE = "sm_sidebar";
@@ -219,14 +219,14 @@ const Logo = ({ collapsed }: { collapsed: boolean }) => (
     className={cn("flex min-w-0 items-center gap-2 rounded-lg", FOCUS_RING)}
     aria-label={`${SITE.name} home`}
   >
-    {/* sizes is the rendered width, so a 32 px logo doesn't pull a 1920 w file. */}
+    {/* sizes is the rendered width, so a 64 px logo doesn't pull the full file. */}
     {collapsed ? (
       <Image
-        src="/favicon.png"
-        alt={SITE.name}
-        width={476}
-        height={315}
-        sizes="55px"
+        src={LOGO.src}
+        alt=""
+        width={LOGO.width}
+        height={LOGO.height}
+        sizes="64px"
         className="h-9 w-auto object-contain"
       />
     ) : (
