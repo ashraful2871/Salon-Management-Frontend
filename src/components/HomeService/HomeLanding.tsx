@@ -667,8 +667,15 @@ const policiesOf = (s: HomeServiceSettings): Item[] => {
     },
     {
       icon: MapPin,
-      title: "Area, travel fee and minimum order",
-      text: "Each parlour sets how far it travels, its travel fee and a minimum order. You see all three before you pay.",
+      ...(s["homeService.minOrderEnabled"]
+        ? {
+            title: "Area, travel fee and minimum order",
+            text: "Each parlour sets how far it travels, its travel fee and a minimum order. You see all three before you pay.",
+          }
+        : {
+            title: "Area and travel fee",
+            text: "Each parlour sets how far it travels and its travel fee, shown before you pay. There is no minimum order: book even a single service.",
+          }),
     },
     {
       icon: LifeBuoy,

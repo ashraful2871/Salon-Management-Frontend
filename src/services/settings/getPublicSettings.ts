@@ -65,6 +65,8 @@ export type PublicSettings = {
   "homeService.noShowPercent"?: number;
   "homeService.salonCancelCreditMinor"?: number;
   "homeService.advancePercent"?: number;
+  /** Off (the default): no minimum home order. */
+  "homeService.minOrderEnabled"?: boolean;
   "homeService.freeCancelHours"?: number;
   "homeService.appealWindowHours"?: number;
   "homeService.bookingWindowDays"?: number;
@@ -90,6 +92,7 @@ export const HOME_SERVICE_DEFAULTS = {
   "homeService.noShowPercent": 0,
   "homeService.salonCancelCreditMinor": 0,
   "homeService.advancePercent": 50,
+  "homeService.minOrderEnabled": false,
   "homeService.freeCancelHours": 3,
   "homeService.appealWindowHours": 48,
   "homeService.bookingWindowDays": 7,

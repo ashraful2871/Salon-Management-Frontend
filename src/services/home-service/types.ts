@@ -655,6 +655,8 @@ export type HomePlatformCaps = {
   gentsEnabled: boolean;
   maxRadiusKm: number;
   travelFeeMaxMinor: number;
+  /** `homeService.minOrderEnabled`: off, there is no minimum order and the field is hidden. */
+  minOrderEnabled?: boolean;
   minOrderMinMinor: number;
   minOrderMaxMinor: number;
   dayStartBound: string;

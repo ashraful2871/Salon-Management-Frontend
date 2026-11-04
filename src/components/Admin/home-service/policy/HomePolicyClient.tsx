@@ -353,6 +353,7 @@ function PolicyForm({
         <PolicyCard title="Payment" description="What the customer pays up front.">
           {field("advancePercent", { note: NEW_ONLY })}
           {field("paymentWindowMinutes")}
+          {field("minOrderEnabled", { note: NEW_ONLY })}
           {field("minOrderMinMinor")}
           {field("minOrderMaxMinor")}
         </PolicyCard>

@@ -785,7 +785,7 @@ const BookingSummary = ({
                       <div>
                         <p className="font-semibold">
                           {isFree
-                            ? "Pay now"
+                            ? "Booking fee"
                             : paysInFull
                               ? "Pay now (in full)"
                               : "Pay now (deposit)"}
