@@ -43,7 +43,12 @@ export type AssistantAction =
   | { type: "cancel_confirm"; appointmentId: string }
   | { type: "reschedule"; appointmentId: string }
   | { type: "book_usual"; appointmentId: string }
-  | { type: "rate_booking"; appointmentId: string; rating: number };
+  | { type: "rate_booking"; appointmentId: string; rating: number }
+  // A home visit from the chosen salon: who it is for, services, day, time.
+  | { type: "home_book"; audience?: "LADIES" | "GENTS" }
+  | { type: "home_services"; offeringIds: string[] }
+  | { type: "home_date"; date: string }
+  | { type: "home_time"; startAt: string };
 
 /* ---------------------------------------------------------------- pieces */
 
@@ -351,7 +356,53 @@ export type Block =
       methods: string[];
       /** Offer "Top up & book": a held summary is behind this prompt. */
       canAutoConfirm: boolean;
-    };
+    }
+  | HomeServicePickerBlock
+  | HomeSummaryBlock;
+
+/** A home visit's menu at the chosen salon: pick several, send `home_services`. */
+export type HomeServicePickerBlock = {
+  type: "home_service_picker";
+  salonId: string;
+  salonName: string;
+  audience: "LADIES" | "GENTS";
+  /** `homeService.advancePercent`: the share paid up front. */
+  advancePercent: number;
+  /** Already clamped to the platform cap. */
+  travelFeeMinor: number;
+  minOrderMinor: number;
+  /** Pre-ticked: what the draft already holds. */
+  selected: string[];
+  services: Array<{
+    id: string;
+    name: string;
+    category: string;
+    priceMinor: number;
+    durationMin: number;
+    kitNote: string | null;
+  }>;
+};
+
+/** The priced home visit before the address; `handoffUrl` opens the booking
+ *  page at the address step, where the advance is paid. */
+export type HomeSummaryBlock = {
+  type: "home_summary";
+  salon: { id: string; name: string; area: string };
+  audience: "LADIES" | "GENTS";
+  services: Array<{ id: string; name: string; priceMinor: number; durationMin: number }>;
+  date: string;
+  dateLabel: string;
+  startAt: string;
+  timeLabel: string;
+  subtotalMinor: number;
+  travelFeeMinor: number;
+  totalMinor: number;
+  advancePercent: number;
+  advanceMinor: number;
+  balanceMinor: number;
+  handoffUrl: string;
+  signedIn: boolean;
+};
 
 export type BlockType = Block["type"];
 
@@ -368,6 +419,7 @@ export const ASSISTANT_STEPS = [
   "summary",
   "payment",
   "booked",
+  "home",
 ] as const;
 
 export type AssistantStep = (typeof ASSISTANT_STEPS)[number];

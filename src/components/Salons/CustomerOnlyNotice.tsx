@@ -57,8 +57,8 @@ export default function CustomerOnlyNotice({
         )}
       >
         You&apos;re signed in as {ROLE_NOUN[role] ?? "a non-customer account"}.
-        Appointments are booked from a customer account, which pays the deposit
-        from its own wallet. Sign in with a customer account to book.
+        Appointments are booked from a customer account. Sign in with a
+        customer account to book.
       </p>
       <div
         className={cn(

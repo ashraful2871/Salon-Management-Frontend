@@ -10,16 +10,14 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
 import {
-  Plus,
-  X,
   Globe,
   MapPin,
   Phone,
   Mail,
-  ImageIcon,
   Building2,
 } from "lucide-react";
 import { createSalon } from "@/services/salon/createSalon";
+import { SalonPhotoManager } from "@/components/Owner/salon/SalonPhotoManager";
 import { searchPlaces } from "@/services/geo/searchPlaces";
 import { toast } from "sonner";
 import { BANGLADESH_LOCATIONS } from "@/constants/bangladesh-locations";
@@ -143,8 +141,6 @@ export default function AddSalonModal({
   // Client state for validation, the image list and the hours toggles.
   const [form, setForm] = React.useState<AddSalonPayload>(emptyForm);
 
-  const [imageUrl, setImageUrl] = React.useState("");
-
   // Map pin (required) and where to show the map before the pin is placed.
   const [coords, setCoords] = React.useState<{ lat: number; lng: number } | null>(
     null,
@@ -166,7 +162,6 @@ export default function AddSalonModal({
         await onCreate?.(form);
         setOpen(false);
         setForm(emptyForm());
-        setImageUrl("");
         setCoords(null);
         setMapFocus(undefined);
       }
@@ -208,20 +203,6 @@ export default function AddSalonModal({
       else delete clone[day];
       return { ...prev, operatingHours: clone };
     });
-  };
-
-  const addImage = () => {
-    const url = imageUrl.trim();
-    if (!url || form.images.includes(url)) return;
-    update("images", [...form.images, url]);
-    setImageUrl("");
-  };
-
-  const removeImage = (url: string) => {
-    update(
-      "images",
-      form.images.filter((u) => u !== url),
-    );
   };
 
   // Owner picked a district/area: show the map there so they only have to
@@ -491,63 +472,16 @@ export default function AddSalonModal({
         {/* ---- Photos ---- */}
         <FormSection
           title="Photos"
-          description="Paste image links; the first is the cover. You can save without any."
+          description="Upload photos of your salon; the first is the cover. You can save without any and add them later."
         >
-          <div className="space-y-3">
-            <div className="flex gap-2">
-              <Input
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                // No `name`: this input only feeds the list below.
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault(); // Enter adds, it doesn't submit
-                    addImage();
-                  }
-                }}
-                inputMode="url"
-                placeholder="Paste an image URL"
-                aria-label="Image URL"
-              />
-              <Button type="button" onClick={addImage} variant="outline">
-                <Plus />
-                Add
-              </Button>
-            </div>
-
-            {form.images.length === 0 ? (
-              <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                <ImageIcon className="h-4 w-4" />
-                No photos added yet.
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {form.images.map((url) => (
-                  <li
-                    key={url}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-3 py-2"
-                  >
-                    <p
-                      className="min-w-0 truncate text-xs text-muted-foreground"
-                      title={url}
-                    >
-                      {url}
-                    </p>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      type="button" // not a submit
-                      className="text-danger"
-                      aria-label="Remove photo"
-                      onClick={() => removeImage(url)}
-                    >
-                      <X />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <SalonPhotoManager
+            images={form.images}
+            onChange={(next) => {
+              update("images", next);
+              return true;
+            }}
+            disabled={isPending}
+          />
         </FormSection>
 
         {/* ---- Location ---- */}

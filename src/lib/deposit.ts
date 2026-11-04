@@ -19,10 +19,21 @@ export type DepositPolicy = {
   depositPercent?: number | null;
 };
 
+/**
+ * Mirrors the backend's `booking.depositsEnabled` switch (GET /settings/public).
+ * Off - the registry default, and the fallback when the call fails - means
+ * salon bookings are free: no deposit and no pay-in-full.
+ */
+export const bookingPaymentsEnabled = (
+  settings: { "booking.depositsEnabled"?: boolean } | null | undefined,
+): boolean => settings?.["booking.depositsEnabled"] === true;
+
 export const resolveDepositMinor = (
   salon: DepositPolicy,
   servicePriceMinor: number,
+  paymentsEnabled = true,
 ): number => {
+  if (!paymentsEnabled) return 0;
   if (!servicePriceMinor || servicePriceMinor <= 0) return 0;
 
   const raw =

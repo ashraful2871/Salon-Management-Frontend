@@ -44,6 +44,9 @@ export type PublicSettings = {
   "applications.enabled": boolean;
   /** Owner Phase 15: customers may pay the whole bill in the app (salons opt in too). */
   "booking.prepayEnabled"?: boolean;
+  /** Salon booking payments. Off (the default, and when the call fails):
+   *  bookings are free - no deposit, no pay-in-full, the bill is paid at the salon. */
+  "booking.depositsEnabled"?: boolean;
   "content.announcement": Announcement | null;
   "content.homeChips"?: HomeChip[];
   "content.categoryTiles"?: CategoryTile[];
@@ -62,6 +65,8 @@ export type PublicSettings = {
   "homeService.noShowPercent"?: number;
   "homeService.salonCancelCreditMinor"?: number;
   "homeService.advancePercent"?: number;
+  /** Off (the default): no minimum home order. */
+  "homeService.minOrderEnabled"?: boolean;
   "homeService.freeCancelHours"?: number;
   "homeService.appealWindowHours"?: number;
   "homeService.bookingWindowDays"?: number;
@@ -77,7 +82,7 @@ type HomeServiceKey = Extract<keyof PublicSettings, `homeService.${string}`>;
 export const HOME_SERVICE_DEFAULTS = {
   "homeService.enabled": true,
   "homeService.ladiesEnabled": true,
-  "homeService.gentsEnabled": true,
+  "homeService.gentsEnabled": false,
   "homeService.customerCancelPolicy": "FREE",
   "homeService.nonRefundableGraceMinutes": 0,
   "homeService.disclaimer.free": "",
@@ -87,6 +92,7 @@ export const HOME_SERVICE_DEFAULTS = {
   "homeService.noShowPercent": 0,
   "homeService.salonCancelCreditMinor": 0,
   "homeService.advancePercent": 50,
+  "homeService.minOrderEnabled": false,
   "homeService.freeCancelHours": 3,
   "homeService.appealWindowHours": 48,
   "homeService.bookingWindowDays": 7,

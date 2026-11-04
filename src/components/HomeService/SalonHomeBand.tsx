@@ -1,12 +1,21 @@
+import Link from "next/link";
 import { ArrowRight, House } from "lucide-react";
 
 import type { Salon } from "@/lib/api-types";
-import { SIDES } from "./content";
-import { SideLink } from "./HomeTrack";
 
-/** On a salon's page when the branch can be booked for Home Service (`salon.homeService`). */
-export default function SalonHomeBand({ sides }: { sides: NonNullable<Salon["homeService"]> }) {
-  const audiences = (["LADIES", "GENTS"] as const).filter((a) => (a === "LADIES" ? sides.ladies : sides.gents));
+/**
+ * On a salon's page when the branch can be booked for Home Service
+ * (`salon.homeService`). `onBook` opens the salon's booking dialog on "At
+ * home" with this branch's own menu; without it (e.g. bookings paused) only
+ * a link to how Home Service works remains: home visits are booked only here.
+ */
+export default function SalonHomeBand({
+  sides,
+  onBook,
+}: {
+  sides: NonNullable<Salon["homeService"]>;
+  onBook?: () => void;
+}) {
   return (
     <div className="flex flex-col gap-4 rounded-3xl border border-gold/25 bg-primary-soft p-5 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-start gap-3">
@@ -16,22 +25,29 @@ export default function SalonHomeBand({ sides }: { sides: NonNullable<Salon["hom
         <div>
           <p className="font-display font-semibold text-foreground">This salon also comes to your home</p>
           <p className="text-sm text-muted-foreground">
-            {sides.ladies ? "Female, ID-verified experts for ladies. " : ""}Pay part now, the rest at home.
+            {sides.ladies ? "Female, ID-verified experts for ladies. " : ""}Pay an advance now, the rest at home.
           </p>
         </div>
       </div>
       <div className="flex shrink-0 flex-wrap gap-2">
-        {audiences.map((a) => (
-          <SideLink
-            key={a}
-            audience={a}
-            href={SIDES[a].href}
+        {onBook ? (
+          <button
+            type="button"
+            onClick={onBook}
             className="inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            {SIDES[a].title}
+            Book a home visit
             <ArrowRight className="size-4" aria-hidden />
-          </SideLink>
-        ))}
+          </button>
+        ) : (
+          <Link
+            href="/home-service"
+            className="inline-flex h-10 items-center gap-1.5 rounded-full border border-border bg-surface px-4 text-sm font-semibold text-foreground transition-colors hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            How Home Service works
+            <ArrowRight className="size-4" aria-hidden />
+          </Link>
+        )}
       </div>
     </div>
   );

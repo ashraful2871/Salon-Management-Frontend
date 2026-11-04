@@ -4,7 +4,7 @@
  * them starts its list again from that point, rather than refreshing a URL
  * that may still carry an older point or ?near=off.
  */
-export const SALON_LIST_PATHS = ["/salons", "/gents-parlour"] as const;
+export const SALON_LIST_PATHS = ["/salons", "/ladies-parlour", "/gents-parlour"] as const;
 
 export const isSalonListPath = (pathname: string) =>
   (SALON_LIST_PATHS as readonly string[]).includes(pathname);
@@ -12,7 +12,9 @@ export const isSalonListPath = (pathname: string) =>
 /**
  * The Home Service lists (experts and services that reach a point). They need
  * a point to show anything, so a new location restarts them at it with
- * `?lat&lng` only: the radius and sort belong to the salon lists.
+ * `?lat&lng` only: the radius and sort belong to the salon lists. Both paths
+ * redirect to /home-service for now (home visits are booked from a salon's
+ * page); kept so the lists work again if they are routed back.
  */
 export const HOME_LIST_PATHS = ["/home-service/ladies", "/home-service/gents"] as const;
 

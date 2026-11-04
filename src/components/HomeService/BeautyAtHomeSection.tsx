@@ -5,20 +5,21 @@ import { Overline } from "@/components/LadiesParlour/Heading";
 import { Section } from "@/components/Shared/Section";
 import { Button } from "@/components/ui/button";
 import { getPublicSettings, homeSettingsOf } from "@/services/settings/getPublicSettings";
-import { SIDES, sideEnabled } from "./content";
+import { sideEnabled } from "./content";
 import { SideLink } from "./HomeTrack";
 
 /**
- * The home page's "Beauty at home" band: a big Ladies card and a Gents link.
- * Reads only the public settings (60 s cache), so `/` stays static; renders
- * nothing while Home Service is off.
+ * The home page's "Beauty at home" band. Ladies only for now (Gents follows
+ * `homeService.gentsEnabled`, off at launch). Visits are booked from a
+ * parlour's page, so it leads to how it works and to the parlour list. Reads
+ * only the public settings (60 s cache), so `/` stays static; renders nothing
+ * while the Ladies side is off.
  */
 export default async function BeautyAtHomeSection() {
   const res = await getPublicSettings();
   const s = homeSettingsOf(res.success ? res.data : null);
   const ladies = sideEnabled(s, "LADIES");
-  const gents = sideEnabled(s, "GENTS");
-  if (!ladies && !gents) return null;
+  if (!ladies) return null;
   const advance = s["homeService.advancePercent"];
 
   return (
@@ -30,33 +31,28 @@ export default async function BeautyAtHomeSection() {
             id="beauty-at-home"
             className="mt-4 font-display text-3xl font-semibold tracking-tight text-balance text-foreground sm:text-4xl"
           >
-            {ladies ? "A female expert, at your door" : "A grooming expert, at your door"}
+            A female expert, at your door
           </h2>
           <p className="mt-3 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            {ladies
-              ? "Facial, threading, mehedi and makeup at home. 100% female, ID-verified experts from salons near you."
-              : "Haircut, beard and grooming at home by verified experts from salons near you."}
+            Facial, threading, mehedi and makeup at home. 100% female, ID-verified experts from parlours near you.
+            Open a parlour and choose At home when you book.
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Button size="lg" asChild className="shadow-gold">
-              <SideLink audience={ladies ? "LADIES" : "GENTS"} href={SIDES[ladies ? "LADIES" : "GENTS"].href}>
-                {ladies ? "Book Ladies at Home" : "Book Gents at Home"}
+              <SideLink audience="LADIES" href="/home-service">
+                How Home Service works
                 <ArrowRight aria-hidden />
               </SideLink>
             </Button>
-            {ladies && gents && (
-              <Button variant="ghost" size="lg" asChild>
-                <SideLink audience="GENTS" href={SIDES.GENTS.href}>
-                  Gents at Home
-                </SideLink>
-              </Button>
-            )}
+            <Button variant="ghost" size="lg" asChild>
+              <Link href="/ladies-parlour">Find a parlour</Link>
+            </Button>
           </div>
         </div>
 
         <ul className="grid gap-3 text-sm">
           {[
-            { icon: BadgeCheck, text: ladies ? "Female experts only for ladies, ID-checked" : "Every expert ID-checked" },
+            { icon: BadgeCheck, text: "Female experts only, ID-checked" },
             { icon: Wallet, text: `Pay ${advance}% now, the rest at home` },
             { icon: KeyRound, text: "The visit starts only with your code" },
           ].map(({ icon: Icon, text }) => (
@@ -67,18 +63,13 @@ export default async function BeautyAtHomeSection() {
               <span className="font-semibold text-foreground">{text}</span>
             </li>
           ))}
-          <li>
-            <Link href="/home-service" className="text-sm font-semibold text-primary underline-offset-4 hover:underline">
-              How Home Service works
-            </Link>
-          </li>
         </ul>
       </div>
     </Section>
   );
 }
 
-/** The /ladies-parlour band: "Prefer at home?" → the Ladies list; nothing while that side is off. */
+/** "Prefer at home?" → how Home Service works; nothing while the Ladies side is off. Not placed on any page now. */
 export async function LadiesAtHomeBand() {
   const res = await getPublicSettings();
   if (!sideEnabled(homeSettingsOf(res.success ? res.data : null), "LADIES")) return null;
@@ -95,8 +86,8 @@ export async function LadiesAtHomeBand() {
           </p>
         </div>
         <Button size="lg" asChild className="w-full shrink-0 shadow-gold sm:w-auto">
-          <SideLink audience="LADIES" href={SIDES.LADIES.href}>
-            See experts near me
+          <SideLink audience="LADIES" href="/home-service">
+            How it works
             <ArrowRight aria-hidden />
           </SideLink>
         </Button>

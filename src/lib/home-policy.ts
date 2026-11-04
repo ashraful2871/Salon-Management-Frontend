@@ -286,3 +286,12 @@ export const policyFromSettings = (
     } satisfies Record<HomeCancelPolicy, string>,
   };
 };
+
+/**
+ * The advance on a home visit, mirroring `priceCart` in the backend's
+ * `HomeService/home.money.ts`: `advancePercent` of the total (subtotal +
+ * travel fee), rounded up to whole taka, never above the total. For previews
+ * only — the booking quote is the authority.
+ */
+export const advanceOf = (totalMinor: number, advancePercent: number) =>
+  Math.min(totalMinor, Math.ceil((totalMinor * advancePercent) / 10_000) * 100);

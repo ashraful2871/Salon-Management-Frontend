@@ -1,7 +1,6 @@
 import {
   BadgeCheck,
   Brush,
-  CalendarCheck,
   Crown,
   Eye,
   Feather,
@@ -10,12 +9,10 @@ import {
   HeartHandshake,
   KeyRound,
   LifeBuoy,
-  MapPin,
   Scissors,
   Smile,
   Sparkles,
   UserCheck,
-  Wallet,
   Wind,
   type LucideIcon,
 } from "lucide-react";
@@ -87,12 +84,6 @@ export const SORT_LABEL: Record<HomeExpertSort, string> = {
 /** The sort a list gets with no `sort` in the URL: best match while searching. */
 export const defaultSortFor = (searching: boolean): HomeExpertSort => (searching ? "relevance" : "rating");
 
-export const STEPS:{ icon: LucideIcon; title: string; text: string }[] = [
-  { icon: MapPin, title: "Set your location", text: "See the experts whose salon reaches your home." },
-  { icon: Sparkles, title: "Pick services and an expert", text: "Compare ratings, jobs done and prices." },
-  { icon: CalendarCheck, title: "Choose a time", text: "Any open slot in the next 7 days." },
-  { icon: Wallet, title: "Pay half now, half at home", text: "The advance holds your slot; pay the rest after." },
-];
 
 export const SAFETY: { icon: LucideIcon; title: string; text: string }[] = [
   { icon: UserCheck, title: "Female experts only for ladies", text: "Every Ladies at Home booking goes to a woman. Always." },

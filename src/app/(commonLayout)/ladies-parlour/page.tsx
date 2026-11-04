@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 
-import LadiesParlourPage from "@/components/LadiesParlour/LadiesParlourPage";
-
-// The parlours are read per request (serverFetch reads the session cookie).
-export const dynamic = "force-dynamic";
+import SalonsListPage from "@/components/Salons/SalonsListPage";
 
 export const metadata: Metadata = {
   title: "Ladies parlours near you",
@@ -11,6 +8,27 @@ export const metadata: Metadata = {
     "Book trusted ladies parlours for haircuts, facials, keratin, threading and bridal makeup. See prices, real reviews and open times.",
 };
 
-export default function LadiesParlourRoute() {
-  return <LadiesParlourPage />;
+/**
+ * The salon list, ladies-only: the same page as /gents-parlour, with no unisex
+ * salons and no Ladies / Gents switch. Search, area, service, near-me, map,
+ * sort and pages work as on /salons and stay on this URL.
+ */
+export default async function LadiesParlourPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | undefined }>;
+}) {
+  return (
+    <SalonsListPage
+      searchParams={await searchParams}
+      audience="LADIES"
+      noun={{ one: "ladies parlour", many: "ladies parlours" }}
+      intro={{
+        noun: "Ladies parlours",
+        title: "Ladies parlours & beauty salons",
+        description:
+          "Haircuts, facials, keratin, threading and bridal makeup. Compare ratings and prices, then book your slot in a few taps.",
+      }}
+    />
+  );
 }

@@ -107,13 +107,15 @@ type BookingSummaryProps = {
   reopenTopup?: { method?: ProviderId };
 };
 
-const METHOD_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
-  {
-    SALON_WALLET: Wallet,
-    CARD: CreditCard,
-    MOBILE_BANKING: Smartphone,
-    PAY_AT_SALON: Store,
-  };
+const METHOD_ICONS: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
+  SALON_WALLET: Wallet,
+  CARD: CreditCard,
+  MOBILE_BANKING: Smartphone,
+  PAY_AT_SALON: Store,
+};
 
 /**
  * `slot.date` arrives as an ISO timestamp for midnight in the server's zone.
@@ -158,7 +160,9 @@ const DetailRow = ({
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
-      <p className="mt-0.5 font-semibold text-foreground break-words">{value}</p>
+      <p className="mt-0.5 font-semibold text-foreground break-words">
+        {value}
+      </p>
       {hint && <p className="mt-0.5 text-sm text-muted-foreground">{hint}</p>}
     </div>
   </div>
@@ -212,7 +216,10 @@ const BookingSummary = ({
   reopenTopup,
 }: BookingSummaryProps) => {
   const router = useRouter();
-  const [topupOpen, setTopupOpen] = useState(Boolean(reopenTopup));
+  // A free booking has nothing to top up for, even when `?topup=1` is left over.
+  const [topupOpen, setTopupOpen] = useState(
+    Boolean(reopenTopup) && (depositMinor > 0 || prepayAllowed),
+  );
   // Drop `?topup=1` from the address bar, so a reload doesn't reopen it.
   useEffect(() => {
     if (reopenTopup) window.history.replaceState(null, "", returnHref);
@@ -226,6 +233,9 @@ const BookingSummary = ({
   const [payInFull, setPayInFull] = useState(false);
   const paysInFull = prepayAllowed && payInFull;
   const payNowMinor = paysInFull ? service.priceMinor : depositMinor;
+  // Nothing is taken in the app (booking payments switched off, or a salon
+  // with no deposit): no payment method, no wallet, the whole bill at the salon.
+  const isFree = depositMinor <= 0 && !prepayAllowed;
   const lastHandled = React.useRef(state);
 
   // Between the booking succeeding and the confirmation page arriving, this
@@ -249,7 +259,8 @@ const BookingSummary = ({
         body: "Another customer booked this slot while you were reviewing. Pick a different time to continue.",
         action: { label: "Choose another time", href: editHref },
       };
-    if (wallet.isFrozen)
+    // A free booking takes nothing from the wallet, so a frozen one is no bar.
+    if (wallet.isFrozen && !isFree)
       return {
         title: "Your wallet is on hold",
         body: "Bookings are paused while your wallet is frozen. Contact support to get it lifted.",
@@ -270,6 +281,7 @@ const BookingSummary = ({
     return null;
   }, [
     slot.isTaken,
+    isFree,
     wallet.isFrozen,
     wallet.available,
     hasShortfall,
@@ -300,7 +312,9 @@ const BookingSummary = ({
   const activeBlocker = isCompleting ? null : blocker;
   const isBusy = isPending || isCompleting;
   const confirmDisabled =
-    isBusy || Boolean(activeBlocker) || selectedMethod !== WALLET_METHOD_ID;
+    isBusy ||
+    Boolean(activeBlocker) ||
+    (!isFree && selectedMethod !== WALLET_METHOD_ID);
 
   return (
     <div className="min-h-screen bg-surface-subtle pb-[calc(8rem+env(safe-area-inset-bottom))] lg:pb-16">
@@ -321,14 +335,20 @@ const BookingSummary = ({
                 Review &amp; confirm
               </h1>
               <p className="mt-1 text-muted-foreground">
-                Check every detail below, then secure your slot.
+                {isFree
+                  ? "Check every detail below, then confirm. Booking is free."
+                  : "Check every detail below, then secure your slot."}
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
               <Step index={1} label="Select" state="done" />
               <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
-              <Step index={2} label="Review & pay" state="current" />
+              <Step
+                index={2}
+                label={isFree ? "Review" : "Review & pay"}
+                state="current"
+              />
               <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
               <Step index={3} label="Confirmed" state="todo" />
             </div>
@@ -344,7 +364,9 @@ const BookingSummary = ({
           <input type="hidden" name="slotId" value={slot.id} />
           {staff?.id && <input type="hidden" name="staffId" value={staff.id} />}
           {notes && <input type="hidden" name="notes" value={notes} />}
-          <input type="hidden" name="paymentMethod" value={selectedMethod} />
+          {!isFree && (
+            <input type="hidden" name="paymentMethod" value={selectedMethod} />
+          )}
           {paysInFull && <input type="hidden" name="payInFull" value="true" />}
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
@@ -363,7 +385,9 @@ const BookingSummary = ({
                       />
                     </div>
                     <div className="min-w-0">
-                      <h2 className="truncate text-lg font-bold">{salon.name}</h2>
+                      <h2 className="truncate text-lg font-bold">
+                        {salon.name}
+                      </h2>
                       <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-muted-foreground">
                         <MapPin className="h-3.5 w-3.5 shrink-0" />
                         {[salon.address, salon.area, salon.city]
@@ -388,7 +412,12 @@ const BookingSummary = ({
                     <CardTitle className="text-base">
                       Appointment details
                     </CardTitle>
-                    <Button variant="ghost" size="sm" asChild className="gap-1.5">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      asChild
+                      className="gap-1.5"
+                    >
                       <Link href={editHref}>
                         <Pencil className="h-3.5 w-3.5" />
                         Edit
@@ -405,7 +434,9 @@ const BookingSummary = ({
                         hint={
                           [
                             service.category,
-                            service.duration ? `${service.duration} minutes` : null,
+                            service.duration
+                              ? `${service.duration} minutes`
+                              : null,
                           ]
                             .filter(Boolean)
                             .join(" · ") || undefined
@@ -445,7 +476,9 @@ const BookingSummary = ({
                         value={staff?.name || "No preference"}
                         hint={
                           staff?.speciality ||
-                          (staff ? undefined : "The salon will assign someone available")
+                          (staff
+                            ? undefined
+                            : "The salon will assign someone available")
                         }
                       />
                       {notes && (
@@ -460,153 +493,217 @@ const BookingSummary = ({
                 </Card>
               </div>
 
-              {/* PAYMENT METHOD */}
-              <div>
-                <Card className="shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Lock className="h-4 w-4 text-primary" />
-                      Payment method
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      {prepayAllowed
-                        ? "Pay the whole bill now, or only the deposit and the rest at the salon."
-                        : "Only the deposit is paid now. The rest is settled at the salon."}
-                    </p>
-                  </CardHeader>
-                  <CardContent className="space-y-3" role="radiogroup" aria-label="Payment method">
-                    {PAYMENT_METHODS.map((method) => {
-                      const Icon = METHOD_ICONS[method.id] || CreditCard;
-                      const available = method.status === "AVAILABLE";
-                      const selected = available && selectedMethod === method.id;
+              {/* PAYMENT METHOD - only when something is paid in the app */}
+              {!isFree && (
+                <div>
+                  <Card className="shadow-sm">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Lock className="h-4 w-4 text-primary" />
+                        Payment method
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        {prepayAllowed
+                          ? "Pay the whole bill now, or only the deposit and the rest at the salon."
+                          : "Only the deposit is paid now. The rest is settled at the salon."}
+                      </p>
+                    </CardHeader>
+                    <CardContent
+                      className="space-y-3"
+                      role="radiogroup"
+                      aria-label="Payment method"
+                    >
+                      {PAYMENT_METHODS.map((method) => {
+                        const Icon = METHOD_ICONS[method.id] || CreditCard;
+                        const available = method.status === "AVAILABLE";
+                        const selected =
+                          available && selectedMethod === method.id;
 
-                      return (
-                        <button
-                          key={method.id}
-                          type="button"
-                          disabled={!available}
-                          onClick={() => available && setSelectedMethod(method.id)}
-                          role="radio"
-                          aria-checked={selected}
-                          className={cn(
-                            "flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-colors",
-                            selected &&
-                              "border-primary bg-primary-soft ring-2 ring-primary/20",
-                            available && !selected && "bg-surface hover:border-primary/40 hover:bg-surface-subtle",
-                            !available && "cursor-not-allowed border-dashed opacity-60",
-                          )}
-                        >
-                          <span
+                        return (
+                          <button
+                            key={method.id}
+                            type="button"
+                            disabled={!available}
+                            onClick={() =>
+                              available && setSelectedMethod(method.id)
+                            }
+                            role="radio"
+                            aria-checked={selected}
                             className={cn(
-                              "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
-                              selected
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted text-muted-foreground",
+                              "flex w-full items-center gap-4 rounded-xl border p-4 text-left transition-colors",
+                              selected &&
+                                "border-primary bg-primary-soft ring-2 ring-primary/20",
+                              available &&
+                                !selected &&
+                                "bg-surface hover:border-primary/40 hover:bg-surface-subtle",
+                              !available &&
+                                "cursor-not-allowed border-dashed opacity-60",
                             )}
                           >
-                            <Icon className="h-5 w-5" />
-                          </span>
+                            <span
+                              className={cn(
+                                "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
+                                selected
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-muted-foreground",
+                              )}
+                            >
+                              <Icon className="h-5 w-5" />
+                            </span>
 
-                          <span className="min-w-0 flex-1">
-                            <span className="flex flex-wrap items-center gap-2">
-                              <span className="font-semibold">{method.name}</span>
-                              {method.tag && (
-                                <Badge
-                                  variant={available ? "secondary" : "outline"}
-                                  className="text-[10px] uppercase tracking-wide"
-                                >
-                                  {method.tag}
-                                </Badge>
+                            <span className="min-w-0 flex-1">
+                              <span className="flex flex-wrap items-center gap-2">
+                                <span className="font-semibold">
+                                  {method.name}
+                                </span>
+                                {method.tag && (
+                                  <Badge
+                                    variant={
+                                      available ? "secondary" : "outline"
+                                    }
+                                    className="text-[10px] uppercase tracking-wide"
+                                  >
+                                    {method.tag}
+                                  </Badge>
+                                )}
+                              </span>
+                              <span className="mt-0.5 block text-sm text-muted-foreground">
+                                {method.description}
+                              </span>
+                              {selected && available && (
+                                <span className="mt-2 block text-sm">
+                                  <span className="text-muted-foreground">
+                                    Available balance:{" "}
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      "font-semibold",
+                                      hasShortfall
+                                        ? "text-destructive"
+                                        : "text-success",
+                                    )}
+                                  >
+                                    {wallet.loaded
+                                      ? formatBDT(wallet.available)
+                                      : "unavailable"}
+                                  </span>
+                                </span>
                               )}
                             </span>
-                            <span className="mt-0.5 block text-sm text-muted-foreground">
-                              {method.description}
+
+                            <span
+                              className={cn(
+                                "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2",
+                                selected
+                                  ? "border-primary bg-primary"
+                                  : "border-muted-foreground/30",
+                              )}
+                            >
+                              {selected && (
+                                <Check className="h-3 w-3 text-primary-foreground" />
+                              )}
                             </span>
-                            {selected && available && (
-                              <span className="mt-2 block text-sm">
-                                <span className="text-muted-foreground">
-                                  Available balance:{" "}
-                                </span>
-                                <span
-                                  className={cn(
-                                    "font-semibold",
-                                    hasShortfall ? "text-destructive" : "text-success",
-                                  )}
-                                >
-                                  {wallet.loaded
-                                    ? formatBDT(wallet.available)
-                                    : "unavailable"}
-                                </span>
-                              </span>
-                            )}
-                          </span>
+                          </button>
+                        );
+                      })}
 
-                          <span
-                            className={cn(
-                              "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2",
-                              selected
-                                ? "border-primary bg-primary"
-                                : "border-muted-foreground/30",
-                            )}
-                          >
-                            {selected && (
-                              <Check className="h-3 w-3 text-primary-foreground" />
-                            )}
-                          </span>
-                        </button>
-                      );
-                    })}
-
-                    <p className="flex items-start gap-2 rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
-                      <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                      {COMING_SOON_NOTICE}
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
+                      <p className="flex items-start gap-2 rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
+                        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        {COMING_SOON_NOTICE}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
 
               {/* POLICY */}
-              <div>
-                <Alert className="border-border bg-surface-subtle">
-                  <ShieldCheck className="h-4 w-4 text-success" />
-                  <AlertTitle className="text-base flex items-center gap-2">
-                    Deposit & cancellation policy
-                  </AlertTitle>
-                  <AlertDescription className="space-y-3 mt-3 text-muted-foreground">
-                    <p className="flex gap-2">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                      <span>
-                        <strong className="text-foreground">You turn up:</strong>{" "}
-                        the {formatBDT(depositMinor)} deposit comes off your bill
-                        and you pay {formatBDT(dueAtSalonMinor)} at the counter.
-                      </span>
-                    </p>
-                    <p className="flex gap-2">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                      <span>
-                        <strong className="text-foreground">
-                          You cancel in time:
-                        </strong>{" "}
-                        cancel at least{" "}
-                        {Math.round(salon.cancellationWindowMin / 60)} hour
-                        {salon.cancellationWindowMin >= 120 ? "s" : ""} before the
-                        appointment and the full deposit is released back to your
-                        wallet instantly.
-                      </span>
-                    </p>
-                    <p className="flex gap-2">
-                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-                      <span>
-                        <strong className="text-foreground">
-                          You do not show up:
-                        </strong>{" "}
-                        the deposit is forfeited to the salon. You have 48 hours
-                        to appeal if that was a mistake.
-                      </span>
-                    </p>
-                  </AlertDescription>
-                </Alert>
-              </div>
+              {isFree ? (
+                <div>
+                  <Alert className="border-border bg-surface-subtle">
+                    <ShieldCheck className="h-4 w-4 text-success" />
+                    <AlertTitle className="text-base flex items-center gap-2">
+                      Free booking
+                    </AlertTitle>
+                    <AlertDescription className="space-y-3 mt-3 text-muted-foreground">
+                      <p className="flex gap-2">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                        <span>
+                          <strong className="text-foreground">
+                            No payment now:
+                          </strong>{" "}
+                          no deposit and no card details. Nothing is taken from
+                          your wallet.
+                        </span>
+                      </p>
+                      <p className="flex gap-2">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                        <span>
+                          <strong className="text-foreground">
+                            You turn up:
+                          </strong>{" "}
+                          pay {formatBDT(service.priceMinor)} at the salon after
+                          your service.
+                        </span>
+                      </p>
+                      <p className="flex gap-2">
+                        <Info className="mt-0.5 h-4 w-4 shrink-0 text-info" />
+                        <span>
+                          <strong className="text-foreground">
+                            Plans change?
+                          </strong>{" "}
+                          cancel from My bookings so the salon can give the time
+                          to someone else.
+                        </span>
+                      </p>
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              ) : (
+                <div>
+                  <Alert className="border-border bg-surface-subtle">
+                    <ShieldCheck className="h-4 w-4 text-success" />
+                    <AlertTitle className="text-base flex items-center gap-2">
+                      Deposit & cancellation policy
+                    </AlertTitle>
+                    <AlertDescription className="space-y-3 mt-3 text-muted-foreground">
+                      <p className="flex gap-2">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                        <span>
+                          <strong className="text-foreground">
+                            You turn up:
+                          </strong>{" "}
+                          the {formatBDT(depositMinor)} deposit comes off your
+                          bill and you pay {formatBDT(dueAtSalonMinor)} at the
+                          counter.
+                        </span>
+                      </p>
+                      <p className="flex gap-2">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                        <span>
+                          <strong className="text-foreground">
+                            You cancel in time:
+                          </strong>{" "}
+                          cancel at least{" "}
+                          {Math.round(salon.cancellationWindowMin / 60)} hour
+                          {salon.cancellationWindowMin >= 120 ? "s" : ""} before
+                          the appointment and the full deposit is released back
+                          to your wallet instantly.
+                        </span>
+                      </p>
+                      <p className="flex gap-2">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+                        <span>
+                          <strong className="text-foreground">
+                            You do not show up:
+                          </strong>{" "}
+                          the deposit is forfeited to the salon. You have 48
+                          hours to appeal if that was a mistake.
+                        </span>
+                      </p>
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              )}
             </div>
 
             {/* RIGHT: money and confirm */}
@@ -661,7 +758,9 @@ const BookingSummary = ({
                                   : "bg-surface hover:border-primary/40 hover:bg-surface-subtle",
                               )}
                             >
-                              <span className="font-semibold">{option.label}</span>
+                              <span className="font-semibold">
+                                {option.label}
+                              </span>
                               <span className="text-xs text-muted-foreground">
                                 {option.hint}
                               </span>
@@ -670,20 +769,6 @@ const BookingSummary = ({
                         })}
                       </div>
                     )}
-
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="font-semibold">
-                          {paysInFull ? "Pay now (in full)" : "Pay now (deposit)"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Held on your wallet until your visit
-                        </p>
-                      </div>
-                      <p className="text-xl font-bold text-primary">
-                        {formatBDT(payNowMinor)}
-                      </p>
-                    </div>
 
                     <div className="flex items-start justify-between gap-4">
                       <div>
@@ -696,37 +781,60 @@ const BookingSummary = ({
                         {formatBDT(dueAtSalonMinor)}
                       </p>
                     </div>
-
-                    <Separator />
-
-                    <div className="rounded-lg bg-muted/60 p-3 text-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">
-                          Wallet available now
-                        </span>
-                        <span className="font-semibold">
-                          {formatBDT(wallet.available)}
-                        </span>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="font-semibold">
+                          {isFree
+                            ? "Booking fee"
+                            : paysInFull
+                              ? "Pay now (in full)"
+                              : "Pay now (deposit)"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {isFree
+                            ? "Booking is free - no deposit"
+                            : "Held on your wallet until your visit"}
+                        </p>
                       </div>
-                      <div className="mt-1.5 flex items-center justify-between">
-                        <span className="text-muted-foreground">
-                          Available after booking
-                        </span>
-                        <span
-                          className={cn(
-                            "font-semibold",
-                            hasShortfall && "text-destructive",
-                          )}
-                        >
-                          {formatBDT(Math.max(wallet.available - payNowMinor, 0))}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Your total balance of {formatBDT(wallet.balance)} does not
-                        change — a hold only moves money out of reach until the
-                        booking is settled.
+                      <p className="text-xl font-bold text-primary">
+                        {isFree ? "Free" : formatBDT(payNowMinor)}
                       </p>
                     </div>
+
+                    {!isFree && <Separator />}
+
+                    {!isFree && (
+                      <div className="rounded-lg bg-muted/60 p-3 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">
+                            Wallet available now
+                          </span>
+                          <span className="font-semibold">
+                            {formatBDT(wallet.available)}
+                          </span>
+                        </div>
+                        <div className="mt-1.5 flex items-center justify-between">
+                          <span className="text-muted-foreground">
+                            Available after booking
+                          </span>
+                          <span
+                            className={cn(
+                              "font-semibold",
+                              hasShortfall && "text-destructive",
+                            )}
+                          >
+                            {formatBDT(
+                              Math.max(wallet.available - payNowMinor, 0),
+                            )}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Your total balance of {formatBDT(wallet.balance)} does
+                          not change — a hold only moves money out of reach
+                          until the booking is settled.
+                        </p>
+                      </div>
+                    )}
 
                     {activeBlocker ? (
                       <div className="rounded-lg border border-warning-soft bg-warning-soft p-4">
@@ -771,6 +879,11 @@ const BookingSummary = ({
                     >
                       {isBusy ? (
                         "Confirming..."
+                      ) : isFree ? (
+                        <>
+                          <Check aria-hidden />
+                          Confirm booking
+                        </>
                       ) : (
                         <>
                           <Lock aria-hidden />
@@ -782,8 +895,15 @@ const BookingSummary = ({
 
                     <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
                       <ShieldCheck className="h-3.5 w-3.5" />
-                      Secured by {SITE.name}. You can cancel free of charge until{" "}
-                      {Math.round(salon.cancellationWindowMin / 60)}h before.
+                      {isFree ? (
+                        <>No payment needed to book. You pay at the salon.</>
+                      ) : (
+                        <>
+                          Secured by {SITE.name}. You can cancel free of charge
+                          until {Math.round(salon.cancellationWindowMin / 60)}h
+                          before.
+                        </>
+                      )}
                     </p>
                   </CardContent>
                 </Card>
@@ -828,16 +948,36 @@ const BookingSummary = ({
                   >
                     <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
                     <span className="truncate">{activeBlocker.title}</span>
-                    <ChevronRight className="ml-auto h-4 w-4 shrink-0" aria-hidden />
+                    <ChevronRight
+                      className="ml-auto h-4 w-4 shrink-0"
+                      aria-hidden
+                    />
                   </Link>
                 ))}
               <div className="flex items-center justify-between gap-4">
                 <div className="shrink-0">
-                  <p className="text-xs text-muted-foreground">
-                    Pay now · total{" "}
-                    <span className="tabular-nums">{formatBDT(service.priceMinor)}</span>
-                  </p>
-                  <p className="text-lg font-bold tabular-nums">{formatBDT(payNowMinor)}</p>
+                  {isFree ? (
+                    <>
+                      <p className="text-xs text-muted-foreground">
+                        Free booking · pay at the salon
+                      </p>
+                      <p className="text-lg font-bold tabular-nums">
+                        {formatBDT(service.priceMinor)}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs text-muted-foreground">
+                        Pay now · total{" "}
+                        <span className="tabular-nums">
+                          {formatBDT(service.priceMinor)}
+                        </span>
+                      </p>
+                      <p className="text-lg font-bold tabular-nums">
+                        {formatBDT(payNowMinor)}
+                      </p>
+                    </>
+                  )}
                 </div>
                 <Button
                   type="submit"
@@ -860,7 +1000,10 @@ const BookingSummary = ({
         open={topupOpen}
         setOpen={setTopupOpen}
         initialMethod={reopenTopup?.method}
-        defaultAmount={Math.max(Math.ceil(shortfallMinor / 100), TOPUP_MIN_TAKA)}
+        defaultAmount={Math.max(
+          Math.ceil(shortfallMinor / 100),
+          TOPUP_MIN_TAKA,
+        )}
         returnTo={returnHref}
       />
     </div>

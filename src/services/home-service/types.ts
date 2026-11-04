@@ -655,6 +655,8 @@ export type HomePlatformCaps = {
   gentsEnabled: boolean;
   maxRadiusKm: number;
   travelFeeMaxMinor: number;
+  /** `homeService.minOrderEnabled`: off, there is no minimum order and the field is hidden. */
+  minOrderEnabled?: boolean;
   minOrderMinMinor: number;
   minOrderMaxMinor: number;
   dayStartBound: string;
@@ -1053,4 +1055,51 @@ export type HomePageMeta = {
   statusCounts?: Partial<Record<HomeReportStatus, number>>;
   /** The owner's board only: advances held for the branch's open visits, whatever the filters. */
   heldMinor?: number;
+};
+
+/** `GET /home-service/salons/:salonId/menu`: one branch's home menu for an audience. */
+export type HomeSalonMenuItem = {
+  id: string;
+  category: HomeCategory;
+  name: string;
+  description: string | null;
+  kitNote: string | null;
+  durationMin: number;
+  priceMinor: number;
+  image: string | null;
+  /** The eligible experts who do this service. */
+  expertIds: string[];
+};
+
+export type HomeSalonMenuExpert = {
+  id: string;
+  name: string;
+  photo: string | null;
+  headline: string | null;
+  rating: number;
+  totalReviews: number;
+  completedJobs: number;
+  offeringIds: string[];
+};
+
+export type HomeSalonMenu = {
+  salon: {
+    id: string;
+    name: string;
+    area: string;
+    city: string | null;
+    image: string | null;
+    rating: number;
+    totalReviews: number;
+    /** Already clamped to the platform cap: what the quote will charge. */
+    travelFeeMinor: number;
+    minOrderMinor: number;
+  };
+  audience: HomeAudience;
+  /** `homeService.advancePercent`: the share paid up front. */
+  advancePercent: number;
+  distanceKm: number | null;
+  servesYou: boolean | null;
+  menu: HomeSalonMenuItem[];
+  experts: HomeSalonMenuExpert[];
 };

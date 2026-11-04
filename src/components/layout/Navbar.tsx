@@ -4,6 +4,8 @@ import { getDisplayUser } from "@/services/auth/displayUser";
 import NavbarClient from "./NavbarClient";
 import { getMyEarnings } from "@/services/settlement/getMyEarnings";
 import { getPlatformEarnings } from "@/services/settlement/getPlatformEarnings";
+import { getPublicSettings } from "@/services/settings/getPublicSettings";
+import { bookingPaymentsEnabled } from "@/lib/deposit";
 
 // Only the account half of the header waits on the API. The logo, links and
 // location chip render at once around a skeleton, so a slow or down API never
@@ -13,7 +15,17 @@ async function NavbarAccount() {
   // "Sign in" an hour after sign-in while the session itself was still good.
   // `getSessionUser` (inside `getDisplayUser`) renews an expired token before
   // deciding, and `getDisplayUser` makes sure the name is the real one.
-  const user = await getDisplayUser();
+  const [user, settings] = await Promise.all([
+    getDisplayUser(),
+    getPublicSettings(),
+  ]);
+
+  // The header balance follows the salon booking payments switch: while
+  // bookings are free (booking.depositsEnabled off, also the fallback when the
+  // settings call fails) it is hidden and the wallet is not read at all.
+  const showBalance = bookingPaymentsEnabled(
+    settings.success ? settings.data : null,
+  );
 
   // The header balance is a signed-in-only affordance, so the wallet read only
   // happens once the token has verified. A failed read degrades to `null` — the
@@ -22,7 +34,7 @@ async function NavbarAccount() {
   const ownerRevenueMinor: number | null = null;
   const adminRevenueMinor: number | null = null;
 
-  if (user) {
+  if (user && showBalance) {
     if (user.role === "CUSTOMER") {
       const walletResult = await getMyWallet();
       if (walletResult.success && walletResult.data) {
@@ -42,6 +54,7 @@ async function NavbarAccount() {
       wallet={wallet} 
       ownerRevenueMinor={ownerRevenueMinor}
       adminRevenueMinor={adminRevenueMinor}
+      showBalance={showBalance}
     />
   );
 }

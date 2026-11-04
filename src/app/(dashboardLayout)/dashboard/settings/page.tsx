@@ -5,14 +5,17 @@ import { getSessionUser } from "@/services/auth/session";
 import { getMe } from "@/services/auth/getMe";
 import { getNotificationPrefs } from "@/services/notifications/getNotificationPrefs";
 import { NotificationPrefsCard } from "@/components/Notifications/NotificationPrefsCard";
+import { getPublicSettings } from "@/services/settings/getPublicSettings";
+import { bookingPaymentsEnabled } from "@/lib/deposit";
 
 const BUSINESS_ROLES = ["SALON_OWNER", "BRANCH_MANAGER", "STAFF"];
 
 const SettingsPage = async () => {
-  const [res, user, me] = await Promise.all([
+  const [res, user, me, publicSettings] = await Promise.all([
     getMySalon(),
     getSessionUser(),
     getMe(),
+    getPublicSettings(),
   ]);
   const salon = res.success && res.data && res.data.length > 0 ? res.data[0] : null;
   const signIn =
@@ -32,6 +35,9 @@ const SettingsPage = async () => {
         currentEmail={user?.email ?? ""}
         signIn={signIn}
         notifications={prefs?.success && prefs.data ? <NotificationPrefsCard initial={prefs.data} /> : null}
+        depositsEnabled={bookingPaymentsEnabled(
+          publicSettings.success ? publicSettings.data : null,
+        )}
       />
     </div>
   );

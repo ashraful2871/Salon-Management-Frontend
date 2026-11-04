@@ -42,12 +42,15 @@ const Settings = ({
   currentEmail = "",
   signIn = null,
   notifications = null,
+  depositsEnabled = true,
 }: {
   salon?: any;
   currentEmail?: string;
   signIn?: { hasPassword: boolean; signInMethods: SignInMethod[] } | null;
   /** Settings → Notifications (business accounts); null hides it. */
   notifications?: ReactNode;
+  /** Platform switch `booking.depositsEnabled`; off = bookings are free. */
+  depositsEnabled?: boolean;
 }) => {
   // A Google-only account has no current password to type, so it gets a link
   // to set one by email instead of the change-password form.
@@ -477,9 +480,15 @@ const Settings = ({
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="text-sm text-muted-foreground bg-muted p-4 rounded-lg">
-                Customers pay a deposit upfront to hold their slot. It comes off their bill when they arrive. If they don&apos;t show up, you keep a portion of it.
-              </div>
+              {depositsEnabled ? (
+                <div className="text-sm text-muted-foreground bg-muted p-4 rounded-lg">
+                  Customers pay a deposit upfront to hold their slot. It comes off their bill when they arrive. If they don&apos;t show up, you keep a portion of it.
+                </div>
+              ) : (
+                <div className="text-sm text-info bg-info-soft p-4 rounded-lg">
+                  Online bookings are free for customers right now, so no deposit is taken and customers pay the whole bill at your salon. The amount below is saved and applies if deposits are turned back on.
+                </div>
+              )}
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="depositMinor">Deposit Amount (৳)</Label>

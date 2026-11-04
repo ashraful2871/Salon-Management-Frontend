@@ -8,6 +8,8 @@ import CancellationPreview from "./blocks/CancellationPreview";
 import ChatBookingSummary from "./blocks/ChatBookingSummary";
 import CounterPicker from "./blocks/CounterPicker";
 import DatePicker from "./blocks/DatePicker";
+import HomeServicePicker from "./blocks/HomeServicePicker";
+import HomeSummaryCard from "./blocks/HomeSummaryCard";
 import LocationRequest from "./blocks/LocationRequest";
 import LoginRequired from "./blocks/LoginRequired";
 import Notice from "./blocks/Notice";
@@ -114,6 +116,10 @@ const AssistantBlocks = ({
             return <LoginRequired key={key} block={block} />;
           case "notice":
             return <Notice key={key} block={block} />;
+          case "home_service_picker":
+            return <HomeServicePicker key={key} block={block} {...props} />;
+          case "home_summary":
+            return <HomeSummaryCard key={key} block={block} />;
           default:
             return null;
         }

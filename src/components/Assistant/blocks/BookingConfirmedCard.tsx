@@ -127,8 +127,14 @@ const BookingConfirmedCard = ({ block }: { block: ConfirmedBlock }) => (
           <>
             Pay {formatBDT(block.dueAtSalonMinor)} at the salon
             <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
-              {formatBDT(block.depositMinor)} of {formatBDT(block.totalMinor)} is
-              held from your wallet.
+              {block.depositMinor > 0 ? (
+                <>
+                  {formatBDT(block.depositMinor)} of {formatBDT(block.totalMinor)} is
+                  held from your wallet.
+                </>
+              ) : (
+                "Free booking - nothing was taken from your wallet."
+              )}
             </span>
           </>
         ) : (block.prepaidMinor ?? 0) > 0 ? (
@@ -148,7 +154,7 @@ const BookingConfirmedCard = ({ block }: { block: ConfirmedBlock }) => (
         )}
       </p>
 
-      {block.freeCancellationUntil && (
+      {block.freeCancellationUntil && block.depositMinor > 0 && (
         <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
           <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sage" aria-hidden />
           The deposit is held, not spent. Free cancellation until{" "}

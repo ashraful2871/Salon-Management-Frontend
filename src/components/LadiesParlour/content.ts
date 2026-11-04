@@ -34,7 +34,9 @@ export const POPULAR = [
 ];
 
 // Each is true today: an admin approves every salon, menus carry prices,
-// slots are live, and a booking holds only a deposit.
+// slots are live, and booking is free (booking.depositsEnabled is off). If
+// deposits are switched back on, restore the "Small deposit only" copy here
+// and in the FAQ below.
 export const PROMISES: { title: string; text: string; icon: LucideIcon }[] = [
   {
     title: "Approved parlours",
@@ -52,8 +54,8 @@ export const PROMISES: { title: string; text: string; icon: LucideIcon }[] = [
     icon: CalendarCheck,
   },
   {
-    title: "Small deposit only",
-    text: "It holds your slot and counts toward your bill.",
+    title: "Free to book",
+    text: "No deposit, no card. Pay at the parlour after your service.",
     icon: Wallet,
   },
 ];
@@ -139,11 +141,11 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Do I pay for the whole service online?",
-    a: "No. A small deposit from your wallet holds your slot, and it counts toward your bill. You pay the rest at the parlour. Some parlours also let you pay the full bill in the app.",
+    a: "No. Booking is free - there is no deposit and nothing is paid in the app. You pay the whole bill at the parlour after your service.",
   },
   {
     q: "Can I cancel a booking?",
-    a: "Yes. Each parlour sets its own free-cancellation window, and you see it before you book. Cancel inside it and your deposit goes back to your wallet.",
+    a: "Yes. Cancel from My bookings any time before your appointment, so the parlour can give the time to someone else. There is nothing to refund, because nothing was paid.",
   },
   {
     q: "How are the ratings worked out?",

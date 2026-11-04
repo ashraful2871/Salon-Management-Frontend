@@ -51,6 +51,7 @@ const ManageSalonPage = async ({
         closures={closures?.success ? (closures.data ?? []) : null}
         pause={pause?.success ? (pause.data ?? null) : null}
         otherBranches={otherBranches}
+        isOwner={isOwner}
       />
     </div>
   );

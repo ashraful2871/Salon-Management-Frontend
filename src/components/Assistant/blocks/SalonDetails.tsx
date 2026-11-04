@@ -74,7 +74,9 @@ const SalonDetails = ({
           <div className="rounded-lg bg-muted/50 px-2.5 py-2">
             <dt className="text-muted-foreground">Deposit to hold</dt>
             <dd className="mt-0.5 text-sm font-semibold text-foreground">
-              {formatBDT(policy.depositMinor)}
+              {policy.depositMinor > 0 || policy.depositPercent != null
+                ? formatBDT(policy.depositMinor)
+                : "None - free booking"}
               {policy.depositPercent != null && (
                 <span className="ml-1 text-xs font-normal text-muted-foreground">
                   ({policy.depositPercent}%)

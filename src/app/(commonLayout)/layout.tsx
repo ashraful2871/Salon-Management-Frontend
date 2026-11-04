@@ -41,7 +41,7 @@ const CommonLayout = async ({ children }: { children: React.ReactNode }) => {
           {children}
         </main>
         <Footer />
-        {/* Asks for a location once, on the first visit. */}
+        {/* Location gate: required before browsing public pages. */}
         <LocationWelcome />
       </div>
     </AssistantProvider>

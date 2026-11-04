@@ -50,14 +50,15 @@ export function SettingsForm({ home }: { home: OwnerHomeProfile }) {
 
   const feeEnabled = platform.travelFeeMaxMinor > 0;
   const feeMinor = toMinor(Number(form.travelFee) || 0);
+  // Off (`homeService.minOrderEnabled`): no minimum order, so the field is hidden and not checked.
+  const minOrderOn = platform.minOrderEnabled === true;
   const minOrderMinor = toMinor(Number(form.minOrder) || 0);
   const buffer = Number(form.travelBufferMin);
 
   const dirty = (Object.keys(form) as (keyof Form)[]).some((k) => form[k] !== saved[k]);
   const valid =
     feeMinor <= platform.travelFeeMaxMinor &&
-    minOrderMinor >= platform.minOrderMinMinor &&
-    minOrderMinor <= platform.minOrderMaxMinor &&
+    (!minOrderOn || (minOrderMinor >= platform.minOrderMinMinor && minOrderMinor <= platform.minOrderMaxMinor)) &&
     Number.isInteger(buffer) &&
     buffer >= BUFFER_MIN &&
     buffer <= BUFFER_MAX &&
@@ -69,7 +70,7 @@ export function SettingsForm({ home }: { home: OwnerHomeProfile }) {
     const input: HomeProfileSettingsInput = { salonId: salon.id };
     if (form.radiusKm !== saved.radiusKm) input.radiusKm = form.radiusKm;
     if (form.travelFee !== saved.travelFee) input.travelFeeMinor = feeMinor;
-    if (form.minOrder !== saved.minOrder) input.minOrderMinor = minOrderMinor;
+    if (minOrderOn && form.minOrder !== saved.minOrder) input.minOrderMinor = minOrderMinor;
     if (form.travelBufferMin !== saved.travelBufferMin) input.travelBufferMin = buffer;
     if (form.dayStart !== saved.dayStart) input.dayStart = form.dayStart;
     if (form.dayEnd !== saved.dayEnd) input.dayEnd = form.dayEnd;
@@ -124,21 +125,23 @@ export function SettingsForm({ home }: { home: OwnerHomeProfile }) {
               </p>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor={field("minOrder")}>Minimum order (৳)</Label>
-              <Input
-                id={field("minOrder")}
-                type="number"
-                inputMode="numeric"
-                min={toTaka(platform.minOrderMinMinor)}
-                max={toTaka(platform.minOrderMaxMinor)}
-                value={form.minOrder}
-                onChange={(e) => set("minOrder", e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                {formatBDT(platform.minOrderMinMinor)} to {formatBDT(platform.minOrderMaxMinor)}.
-              </p>
-            </div>
+            {minOrderOn && (
+              <div className="space-y-1.5">
+                <Label htmlFor={field("minOrder")}>Minimum order (৳)</Label>
+                <Input
+                  id={field("minOrder")}
+                  type="number"
+                  inputMode="numeric"
+                  min={toTaka(platform.minOrderMinMinor)}
+                  max={toTaka(platform.minOrderMaxMinor)}
+                  value={form.minOrder}
+                  onChange={(e) => set("minOrder", e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {formatBDT(platform.minOrderMinMinor)} to {formatBDT(platform.minOrderMaxMinor)}.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label htmlFor={field("buffer")}>Travel buffer (minutes)</Label>
