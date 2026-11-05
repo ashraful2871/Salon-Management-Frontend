@@ -13,6 +13,7 @@ import RecentReviews from "@/components/Home/RecentReviews";
 import PartnerCtaSection from "@/components/Home/PartnerCtaSection";
 import CtaSection from "@/components/Home/CtaSection";
 import BeautyAtHomeSection from "@/components/HomeService/BeautyAtHomeSection";
+import { ScrollToHash } from "@/components/Shared/ScrollToHash";
 
 export default function Home() {
   return (
@@ -35,6 +36,8 @@ export default function Home() {
       </Suspense>
       <PartnerCtaSection />
       <CtaSection />
+      {/* Navbar's "/#hair-try-on" from another page: land on it once / settles. */}
+      <ScrollToHash />
     </>
   );
 }

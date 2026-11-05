@@ -6,7 +6,7 @@ import { TAGS } from "@/lib/cache-tags";
 import { enc, homeSend } from "./request";
 import type { HomeBooking, HomeEndResult } from "./types";
 
-/** `POST /home-service/bookings/:id/cancel`: the refund reaches the wallet in the same step. */
+/** `POST /home-service/bookings/:id/cancel`: the refund goes back to the bKash account or card that paid, right after. */
 export const cancelHomeBooking = async (
   id: string,
   reason?: string,
@@ -21,7 +21,7 @@ export const cancelHomeBooking = async (
     updateTag(TAGS.homeBooking(id));
     updateTag(TAGS.myHomeBookings);
     revalidateTag(TAGS.homeJobs, "max");
-    revalidateTag(TAGS.homeAvailability(result.data.booking.expert.id), "max");
+    revalidateTag(TAGS.homeAvailability(result.data.booking.bookAgain.expertId), "max");
     revalidateTag(TAGS.ownerHomeServiceBookings(result.data.booking.salon.id), "max");
     revalidateTag(TAGS.adminHome, "max");
   }

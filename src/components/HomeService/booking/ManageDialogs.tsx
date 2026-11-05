@@ -78,7 +78,9 @@ export function CancelDialog({
     setPending(false);
     if (!res.success || !res.data) return void toast.error(homeErrorMessage(res));
     const returned = res.data.outcome.refundMinor + res.data.balanceReleasedMinor;
-    toast.success(returned > 0 ? `${formatBDT(returned)} is back in your wallet` : "Booking cancelled");
+    toast.success(
+      returned > 0 ? `Booking cancelled. ${formatBDT(returned)} is being refunded to the account you paid with.` : "Booking cancelled",
+    );
     onDone(res.data.booking);
     onOpenChange(false);
   };
@@ -136,7 +138,7 @@ export function CancelDialog({
             <p className="text-sm text-foreground">{quote.message}</p>
             <div className="grid grid-cols-2 gap-2">
               <div className={cn("rounded-2xl p-3", TONE_CLASSES.success.soft)}>
-                <p className="text-xs text-muted-foreground">Back to your wallet</p>
+                <p className="text-xs text-muted-foreground">Refunded to your bKash / card</p>
                 <p className="text-lg font-semibold tabular-nums text-foreground">{formatBDT(back)}</p>
               </div>
               <div className={cn("rounded-2xl p-3", kept > 0 ? TONE_CLASSES.warning.soft : "bg-muted")}>
@@ -182,17 +184,20 @@ export function RescheduleDialog({
   const [pending, setPending] = useState(false);
   const [blocked, setBlocked] = useState<string | null>(null);
 
+  // An assigned visit keeps its expert; one still waiting for the salon looks
+  // at every free expert of the branch (the salon assigns again after a move).
+  const assignedId = booking.expert?.id ?? null;
   const source = useMemo(
     () =>
       open
         ? {
             offeringIds: booking.items.map((i) => i.offeringId),
-            expertId: booking.expert.id,
+            ...(assignedId ? { expertId: assignedId } : { salonId: booking.salon.id }),
             lat: booking.address.latitude,
             lng: booking.address.longitude,
           }
         : null,
-    [open, booking.items, booking.expert.id, booking.address.latitude, booking.address.longitude],
+    [open, booking.items, assignedId, booking.salon.id, booking.address.latitude, booking.address.longitude],
   );
   const { days, times, reload } = useHomeSlots(source, open ? date : null);
 
@@ -203,7 +208,11 @@ export function RescheduleDialog({
   const submit = async () => {
     if (!date || !time) return;
     setPending(true);
-    const res = await rescheduleHomeBooking(booking.id, { date, startAt: time }, booking.expert.id);
+    const res = await rescheduleHomeBooking(
+      booking.id,
+      { date, startAt: time, ...(assignedId ? {} : { expertId: "ANY" as const }) },
+      booking.bookAgain.expertId,
+    );
     setPending(false);
     if (!res.success || !res.data) {
       if (res.errorCode === "RESCHEDULE_NOT_ALLOWED") return void setBlocked(res.message || homeErrorMessage(res));

@@ -1,100 +1,110 @@
 import Image from "next/image";
 import Link from "next/link";
-import { CalendarCheck, Check, MapPin } from "lucide-react";
+import { ArrowRight, Clock, MapPin, ShieldCheck, Tag } from "lucide-react";
 
-import { Button } from "../ui/button";
-import { IconTile } from "../Shared/FeatureCard";
 import HeroSearch from "./HeroSearch";
 import NearMeButton from "./NearMeButton";
 import heroImg from "@/assets/hero-salon.jpg";
 import { getPublicSettings } from "@/services/settings/getPublicSettings";
-import { SITE } from "@/lib/site";
 
-// Each one is true today: admin approves every salon, slots are live and
-// prices go through formatBDT. Don't add claims that aren't.
-const TRUST = ["Approved salons", "Real-time slots", "Prices in ৳"];
+// Each one is true today: admin approves every salon, slots are live and every
+// service shows its price before booking. Don't add claims that aren't.
+const TRUST = [
+  { icon: ShieldCheck, label: "Approved salons", long: "Approved salons only" },
+  { icon: Clock, label: "Live slots", long: "Live open slots" },
+  { icon: Tag, label: "Upfront prices", long: "Prices shown upfront" },
+];
 
-// No entrance animation: the LCP element (the H1) is in here.
-// The chips come from the cookieless public settings (60 s), so / stays static.
+/**
+ * Two layouts from one tree, no entrance animation (the H1 is the LCP):
+ * - phones: the photo as a clear band on top, then the copy and search on the
+ *   light page background, left-aligned like an app;
+ * - md and up: one framed full-width photo with the copy and search on it.
+ * The chips come from the cookieless public settings (60 s), so / stays static.
+ */
 const Hero = async () => {
   const settings = await getPublicSettings();
   const chips = settings.success ? settings.data?.["content.homeChips"] : undefined;
 
   return (
-    <section
-      aria-labelledby="hero-title"
-      className="relative -mt-16 overflow-hidden bg-background bg-glow-hero pt-24 pb-12 sm:pt-28 sm:pb-16 lg:flex lg:min-h-[calc(100svh-4rem)] lg:items-center"
-    >
-      <div className="container mx-auto w-full px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 items-center lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16">
-          <div className="text-center lg:text-left">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-xs font-semibold text-primary">
-              <MapPin className="size-3.5" aria-hidden />
-              Salon booking in Bangladesh
-            </span>
+    <section aria-labelledby="hero-title" className="px-3 pt-3 sm:px-4 sm:pt-4 lg:px-6">
+      <div className="relative isolate md:flex md:min-h-[600px] md:overflow-hidden md:rounded-[2rem] md:bg-charcoal lg:min-h-[min(calc(100svh-6rem),780px)]">
+        {/* The photo: a band on phones, the whole background from md. */}
+        <div className="relative h-52 overflow-hidden rounded-3xl bg-charcoal min-[400px]:h-60 md:absolute md:inset-0 md:-z-10 md:h-auto md:rounded-none">
+          <Image
+            src={heroImg}
+            alt=""
+            fill
+            preload
+            sizes="100vw"
+            placeholder="blur"
+            className="object-cover object-[60%_50%] md:object-[70%_50%]"
+          />
+          {/* Phones: just enough shade for the label. md+: readable copy on
+              the left, the salon showing through on the right. */}
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent md:bg-gradient-to-r md:from-black/85 md:via-black/55 md:to-black/0"
+          />
+          <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-foreground shadow-soft md:hidden">
+            <MapPin className="size-3.5 text-primary-hover" aria-hidden />
+            Salons &amp; parlours across Bangladesh
+          </span>
+        </div>
+
+        <div className="container mx-auto flex w-full flex-col px-1 pt-7 md:justify-center md:px-10 md:py-16 lg:px-14">
+          <div className="max-w-2xl">
+            <p className="hidden text-sm font-semibold uppercase tracking-[0.2em] text-gold-light md:block">
+              Salons &amp; parlours across Bangladesh
+            </p>
 
             <h1
               id="hero-title"
-              className="mt-5 font-display text-display-hero font-bold tracking-tight text-balance text-foreground lg:text-display-hero-lg"
+              className="font-display text-[2.125rem] font-bold leading-[1.1] tracking-tight text-balance text-foreground md:mt-4 md:text-6xl md:leading-[1.05] md:text-white lg:text-7xl"
             >
-              Book trusted salons <span className="text-primary">near you</span>
+              Book trusted salons{" "}
+              <span className="text-primary md:text-white">near you</span>
             </h1>
 
-            <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg lg:mx-0">
-              Compare prices, see open slots and book in seconds. Pay from your
-              {SITE.name} wallet.
+            <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-muted-foreground text-pretty md:mt-5 md:text-lg md:text-white/80">
+              Compare prices, see free times and book your next look in a few
+              taps.
             </p>
 
-            <div className="mx-auto mt-8 max-w-xl lg:mx-0">
+            <div className="mt-6 md:mt-8">
               <HeroSearch chips={chips} />
             </div>
 
-            <div className="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:justify-center lg:justify-start">
-              <NearMeButton className="w-full sm:w-auto" />
-              <Button variant="link" asChild>
-                <Link href="#how-it-works">How it works</Link>
-              </Button>
-            </div>
-
-            <ul className="mt-8 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground lg:justify-start">
-              {TRUST.map((item) => (
-                <li key={item} className="inline-flex items-center gap-1.5">
-                  <Check className="size-4 text-success" aria-hidden />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="relative ml-auto hidden w-full max-w-[520px] lg:block">
-            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-3xl border border-border bg-muted shadow-card">
-              {/* Desktop only (the column is hidden below lg), so no preload. */}
-              <Image
-                src={heroImg}
-                alt="Inside a salon"
-                fill
-                sizes="(min-width: 1024px) 520px, 0px"
-                placeholder="blur"
-                className="object-cover"
+            <div className="mt-4 flex items-center gap-2 md:mt-6">
+              <NearMeButton
+                className="h-12 w-full md:h-11 md:w-auto md:border-white/30 md:bg-white/10 md:text-white md:hover:border-white/50 md:hover:bg-white/20 md:hover:text-white"
+                iconClassName="text-primary md:text-gold-light"
               />
-            </div>
-
-            {/* Illustrative: what a booking looks like, not live data. */}
-            <div
-              aria-hidden
-              className="absolute bottom-6 -left-6 flex items-center gap-3 rounded-2xl border border-border bg-surface p-3 shadow-card"
-            >
-              <IconTile icon={CalendarCheck} />
-              <div>
-                <p className="font-display text-sm font-semibold text-foreground">
-                  Booking confirmed
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Token #12 · 2:30 PM
-                </p>
-              </div>
+              <Link
+                href="#how-it-works"
+                className="group hidden h-11 items-center gap-1.5 rounded-full px-4 text-sm font-semibold text-white/85 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 md:inline-flex"
+              >
+                How it works
+                <ArrowRight
+                  className="size-4 transition-transform group-hover:translate-x-0.5"
+                  aria-hidden
+                />
+              </Link>
             </div>
           </div>
+
+          <ul className="mt-6 grid grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-surface py-3 md:mt-14 md:flex md:flex-wrap md:gap-x-6 md:gap-y-2 md:divide-x-0 md:rounded-none md:border-0 md:border-t md:border-white/15 md:bg-transparent md:px-0 md:pb-0 md:pt-5">
+            {TRUST.map(({ icon: Icon, label, long }) => (
+              <li
+                key={label}
+                className="flex flex-col items-center gap-1 px-1 text-center text-xs font-medium text-foreground md:flex-row md:gap-2 md:px-0 md:text-sm md:font-normal md:text-white/75"
+              >
+                <Icon className="size-4 text-primary-hover md:text-gold-light" aria-hidden />
+                <span className="md:hidden">{label}</span>
+                <span className="hidden md:inline">{long}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </section>

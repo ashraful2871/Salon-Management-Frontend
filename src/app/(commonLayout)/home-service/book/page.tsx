@@ -13,7 +13,6 @@ import { getUserRoles } from "@/services/get-roles/getUserRoles";
 import { getHomeAddresses } from "@/services/home-service/getHomeAddresses";
 import { getHomeExpert } from "@/services/home-service/getHomeExpert";
 import { getPaymentMethods } from "@/services/payments/getPaymentMethods";
-import { getMyWallet } from "@/services/wallet/getMyWallet";
 
 export const metadata = { title: "Book a home visit" };
 
@@ -53,9 +52,15 @@ export default async function HomeBookPage({ searchParams }: { searchParams: Pro
 
   const saved = parseSavedLocation((await cookies()).get(LOCATION_COOKIE)?.value);
   const point = saved ? { lat: saved.lat, lng: saved.lng, label: saved.label } : null;
-  const [expertRes, role] = await Promise.all([
+  // The role is read from the cookie here (no API call), so every API read
+  // below goes out in one round instead of the customer's waiting on the expert.
+  const role = await getUserRoles();
+  const isCustomer = role === "CUSTOMER";
+  const [expertRes, addressesRes, meRes, methodsRes] = await Promise.all([
     getHomeExpert(expertId, point ? { lat: point.lat, lng: point.lng } : {}),
-    getUserRoles(),
+    isCustomer ? getHomeAddresses() : null,
+    isCustomer ? getMe() : null,
+    isCustomer ? getPaymentMethods() : null,
   ]);
   if (!expertRes.success || !expertRes.data) {
     const gone = expertRes.errorCode === "EXPERT_UNAVAILABLE" || /not found/i.test(expertRes.message);
@@ -67,11 +72,6 @@ export default async function HomeBookPage({ searchParams }: { searchParams: Pro
     );
   }
   const expert = expertRes.data;
-
-  const isCustomer = role === "CUSTOMER";
-  const [addressesRes, walletRes, meRes, methodsRes] = isCustomer
-    ? await Promise.all([getHomeAddresses(), getMyWallet(), getMe(), getPaymentMethods()])
-    : [null, null, null, null];
 
   // The cart from the URL, kept to what this expert still offers.
   const menuIds = new Set(expert.menu.map((m) => m.id));
@@ -112,7 +112,6 @@ export default async function HomeBookPage({ searchParams }: { searchParams: Pro
         role,
         name: me?.name ?? "",
         phone,
-        walletMinor: walletRes?.success && walletRes.data ? walletRes.data.availableMinor : 0,
         addresses: addressesRes?.success && addressesRes.data ? addressesRes.data : [],
       }}
       methods={methodsRes?.success && methodsRes.data ? methodsRes.data : []}

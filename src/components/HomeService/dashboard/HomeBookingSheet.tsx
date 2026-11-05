@@ -17,12 +17,10 @@ export default function HomeBookingSheet({
   target,
   open,
   onOpenChange,
-  walletMinor,
 }: {
   target: SheetTarget | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  walletMinor: number;
 }) {
   const [loaded, setLoaded] = useState<{ target: SheetTarget; booking: HomeBooking | null; error: string | null } | null>(null);
 
@@ -50,7 +48,6 @@ export default function HomeBookingSheet({
         <HomeBookingView
           key={target?.opening}
           initial={current.booking}
-          walletMinor={walletMinor}
           methods={[]}
           via={null}
           retryMethod={null}

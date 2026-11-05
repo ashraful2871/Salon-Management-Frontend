@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, Moon, Sun, Sunrise } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { getHomeAvailability } from "@/services/home-service/getHomeAvailability";
-import { getHomeDays } from "@/services/home-service/getHomeDays";
+import { getHomeSlots } from "@/services/home-service/getHomeSlots";
 import type { HomeDay, HomeSlot, SlotPeriod } from "@/services/home-service/types";
 
 /** Today in Dhaka as YYYY-MM-DD, the server's calendar. */
@@ -39,41 +38,60 @@ export function useHomeSlots(source: SlotSource | null, date: string | null) {
   const timesKey = base && date ? `${base}|${date}` : null;
   const [daysRes, setDaysRes] = useState<Result<{ days: HomeDay[]; outOfArea: boolean }> | null>(null);
   const [timesRes, setTimesRes] = useState<Result<HomeSlot[]> | null>(null);
+  // The keys already asked for. One call fetches whatever is missing: days and
+  // times together on first load or a cart change, only times on a date change.
+  const asked = useRef<{ days: string | null; times: string | null }>({ days: null, times: null });
 
   useEffect(() => {
-    if (!daysKey || !source) return;
-    let live = true;
-    getHomeDays(source).then((res) => {
-      if (!live) return;
-      const today = dhakaToday();
-      setDaysRes(
-        res.success && res.data
-          ? // Past days are never shown, whatever the server's clock said.
-            { key: daysKey, data: { ...res.data, days: res.data.days.filter((d) => d.date >= today) }, error: null }
-          : { key: daysKey, data: null, error: res.message },
-      );
-    });
-    return () => {
-      live = false;
-    };
-  }, [daysKey, source]);
+    if (!source) return;
+    const seen = asked.current; // one object for the hook's life
+    // The keys this run fetches, or null for a part it leaves alone.
+    const dKey = daysKey !== null && daysKey !== seen.days ? daysKey : null;
+    const tKey = timesKey !== null && date !== null && timesKey !== seen.times ? timesKey : null;
+    const wantDays = dKey !== null;
+    const wantTimes = tKey !== null;
+    if (!wantDays && !wantTimes) return;
+    if (wantDays) seen.days = dKey;
+    if (wantTimes) seen.times = tKey;
 
-  useEffect(() => {
-    if (!timesKey || !source || !date) return;
     let live = true;
-    getHomeAvailability({ ...source, date }).then((res) => {
-      if (!live) return;
-      const now = Date.now();
-      setTimesRes(
-        res.success && res.data
-          ? { key: timesKey, data: res.data.slots.filter((s) => new Date(s.startAt).getTime() > now), error: null }
-          : { key: timesKey, data: null, error: res.message },
-      );
-    });
+    let done = false;
+    const failed: Awaited<ReturnType<typeof getHomeSlots>> = {
+      days: { success: false, message: "Couldn't load the days. Please try again." },
+      times: { success: false, message: "Couldn't load the times. Please try again." },
+    };
+    getHomeSlots({ ...source, days: wantDays, date: wantTimes ? date : null })
+      .catch(() => failed)
+      .then(({ days: d, times: t }) => {
+        done = true;
+        if (!live) return;
+        if (dKey !== null && d) {
+          const today = dhakaToday();
+          setDaysRes(
+            d.success && d.data
+              ? // Past days are never shown, whatever the server's clock said.
+                { key: dKey, data: { ...d.data, days: d.data.days.filter((x) => x.date >= today) }, error: null }
+              : { key: dKey, data: null, error: d.message },
+          );
+        }
+        if (tKey !== null && t) {
+          const now = Date.now();
+          setTimesRes(
+            t.success && t.data
+              ? { key: tKey, data: t.data.slots.filter((s) => new Date(s.startAt).getTime() > now), error: null }
+              : { key: tKey, data: null, error: t.message },
+          );
+        }
+      });
     return () => {
       live = false;
+      // Dropped before it answered: let the next run ask again.
+      if (!done) {
+        if (wantDays && seen.days === dKey) seen.days = null;
+        if (wantTimes && seen.times === tKey) seen.times = null;
+      }
     };
-  }, [timesKey, source, date]);
+  }, [daysKey, timesKey, source, date]);
 
   // Days may show the last answer while the next loads; times never do.
   const days: Load<{ days: HomeDay[]; outOfArea: boolean }> = {

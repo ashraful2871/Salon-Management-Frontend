@@ -46,7 +46,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${outfit.variable} ${inter.variable}`}>
+    <html
+      lang="en"
+      className={`${outfit.variable} ${inter.variable} scroll-smooth`}
+      // Next turns smooth scrolling off during route changes, so a new page
+      // starts at the top instead of gliding up from the old scroll position.
+      data-scroll-behavior="smooth"
+    >
       <body className="antialiased font-body bg-background text-foreground">
         {children}
         <AppToaster />

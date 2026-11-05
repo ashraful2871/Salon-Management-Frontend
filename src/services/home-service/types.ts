@@ -70,7 +70,21 @@ export type HomeReportStatus = "OPEN" | "REVIEWING" | "ACTIONED" | "DISMISSED";
 
 export type HomeDocKind = "ID_FRONT" | "ID_BACK" | "SELFIE";
 
-export type HomePayMethod = "WALLET" | "BKASH" | "SSLCOMMERZ";
+/** The advance is paid only at a gateway; the wallet is not a way to pay. */
+export type HomePayMethod = "BKASH" | "SSLCOMMERZ";
+
+/** One online payment for a visit and what went back to it (`GET /bookings/:id`). */
+export type HomePayment = {
+  transactionId: string;
+  provider: "BKASH" | "SSLCOMMERZ";
+  /** The gateway's own words, e.g. "bKash" or "VISA-Dutch Bangla". */
+  method: string | null;
+  amountMinor: number;
+  paidAt: string | null;
+  /** bKash TrxID / bank transaction id: what the gateway's support asks for. */
+  gatewayRef: string | null;
+  refunds: { amountMinor: number; status: "REFUNDED" | "PROCESSING"; at: string | null }[];
+};
 
 export type SlotPeriod = "MORNING" | "AFTERNOON" | "EVENING";
 
@@ -110,6 +124,7 @@ export type HomeErrorCode =
   | "POLICY_NOT_ACCEPTED"
   | "POLICY_CHANGED"
   | "WALLET_FROZEN"
+  | "PAYMENT_METHOD_UNAVAILABLE"
   | "PAYMENT_EXPIRED"
   | "INVALID_STATE"
   | "RESCHEDULE_NOT_ALLOWED"
@@ -435,7 +450,12 @@ export type HomeBookingSummary = {
   refundedMinor: number | null;
   createdAt: string;
   salon: { id: string; name: string; area: string | null; image: string | null };
-  expert: HomeExpertSummary;
+  /** Null while an "any available expert" visit waits for the salon to assign someone. */
+  expert: HomeExpertSummary | null;
+  expertAssigned: boolean;
+  expertAssignedAt: string | null;
+  /** Where "Book again" starts (an expert who does the cart, plus whether "any" was chosen). */
+  bookAgain: { expertId: string; any: boolean };
   services: string[];
 };
 
@@ -482,14 +502,17 @@ export type HomeBooking = HomeBookingSummary & {
   /** The 4 digits the customer reads to the expert; null outside CONFIRMED … ARRIVED. */
   startCode: string | null;
   balanceMethod: BalanceMethod | null;
+  /** Older visits only: the rest was paid from the wallet before that was switched off. */
   balanceHeldInApp: boolean;
+  /** Online payments for this visit (normally one), oldest first. */
+  payments?: HomePayment[];
 };
 
 export type HomeMyBookingsTab = "upcoming" | "past";
 
-/** `POST /bookings/:id/pay`: confirmed from the wallet, or a gateway page to go to. */
+/** `POST /bookings/:id/pay`: a gateway page to go to, or the visit when it was already paid. */
 export type HomePayResult =
-  | { status: Exclude<HomeBookingStatus, "PENDING_PAYMENT">; paidFrom: "WALLET" | null; booking: HomeBooking }
+  | { status: Exclude<HomeBookingStatus, "PENDING_PAYMENT">; paidFrom: null; booking: HomeBooking }
   | {
       status: "PENDING_PAYMENT";
       paidFrom: "BKASH" | "SSLCOMMERZ";
@@ -831,7 +854,11 @@ export type OwnerHomeBooking = {
   startAt: string;
   endAt: string;
   salon: { id: string; name: string };
+  /** While `expertAssigned` is false this expert only holds the time; nobody has been told. */
   expert: { id: string; name: string; audience: HomeAudience };
+  /** False: the customer chose "any available expert" and the branch hasn't picked one yet. */
+  expertAssigned: boolean;
+  expertAssignedAt: string | null;
   customerName: string;
   recipientName: string;
   contactPhone: string;
@@ -853,12 +880,30 @@ export type OwnerHomeBooking = {
 export type OwnerHomeBookingTab = "today" | "upcoming" | "past";
 
 /** `GET /home-service/owner/bookings/:id/eligible-experts`: free at that time and able to do every service. */
+/** Why an expert can't take the visit (`reassignCandidates` in the API's home.lifecycle.ts). */
+export type HomeCandidateReason =
+  | "CURRENT"
+  | "NOT_VERIFIED"
+  | "SUSPENDED"
+  | "PAUSED"
+  | "MISSING_SERVICE"
+  | "DAY_FULL"
+  | "OFF_SHIFT"
+  | "TIME_OFF"
+  | "BUSY"
+  | "NOT_FREE";
+
+/** Every expert of the branch on the visit's side; free ones first. */
 export type HomeReassignCandidate = {
   id: string;
   name: string;
   photo: string | null;
   rating: number;
   completedJobs: number;
+  available: boolean;
+  reasonCode: HomeCandidateReason | null;
+  /** Why not, in words ("Has another booking at that time"); null when available. */
+  reason: string | null;
 };
 
 export type OwnerHomeBookingQuery = {
@@ -867,6 +912,8 @@ export type OwnerHomeBookingQuery = {
   status?: HomeBookingStatus;
   audience?: HomeAudience;
   expertId?: string;
+  /** "1": only visits still waiting for an expert. */
+  needsExpert?: "1";
   from?: string;
   to?: string;
   page?: number;
@@ -924,6 +971,8 @@ export type AdminHomeBookingRow = {
   appealStatus: HomeAppealStatus | null;
   isTest: boolean;
   createdAt: string;
+  /** Null: an "any available expert" visit the branch hasn't assigned; `expert` only holds the time. */
+  expertAssignedAt: string | null;
   salon: { id: string; name: string };
   customer: { id: string; name: string; email: string };
   expert: { id: string; name: string };
@@ -1055,6 +1104,8 @@ export type HomePageMeta = {
   statusCounts?: Partial<Record<HomeReportStatus, number>>;
   /** The owner's board only: advances held for the branch's open visits, whatever the filters. */
   heldMinor?: number;
+  /** The owner's board only: upcoming visits with no expert assigned yet, whatever the filters. */
+  needsExpert?: number;
 };
 
 /** `GET /home-service/salons/:salonId/menu`: one branch's home menu for an audience. */

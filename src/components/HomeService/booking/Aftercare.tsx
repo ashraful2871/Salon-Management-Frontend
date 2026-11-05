@@ -101,7 +101,7 @@ function ReviewCard({
 
   const submit = async () => {
     setPending(true);
-    const res = await reviewHomeBooking(b.id, { rating, comment: comment.trim() || undefined }, b.expert.id);
+    const res = await reviewHomeBooking(b.id, { rating, comment: comment.trim() || undefined }, b.expert?.id ?? b.bookAgain.expertId);
     if (res.success) toast.success("Thanks for your review");
     else toast.error(homeErrorMessage(res));
     // A review from another tab answers ALREADY_REVIEWED: this brings it in.
@@ -111,7 +111,7 @@ function ReviewCard({
 
   return (
     <section ref={ref} aria-label="Review your visit" className={CARD}>
-      <p className="font-semibold text-foreground">How was {b.expert.name}?</p>
+      <p className="font-semibold text-foreground">How was {b.expert?.name ?? "your expert"}?</p>
       <div role="radiogroup" aria-label="Your rating" className="mt-2 flex gap-1">
         {[1, 2, 3, 4, 5].map((n) => (
           <button
@@ -223,7 +223,7 @@ function AppealCard({
 
 const APPEAL_LINE = {
   PENDING: { tone: "warning", text: "We have your appeal and will decide within 48 hours." },
-  APPROVED: { tone: "success", text: "Your appeal was upheld. The fee is back in your wallet." },
+  APPROVED: { tone: "success", text: "Your appeal was upheld. The fee is being refunded to the account you paid with." },
   REJECTED: { tone: "neutral", text: "We looked at your appeal and the fee stands." },
 } as const;
 

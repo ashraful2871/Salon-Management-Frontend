@@ -42,7 +42,19 @@ const COLUMNS: Column<HomeBookingSummary>[] = [
   },
   { key: "when", header: "When", mobile: "eyebrow", cell: whenOf },
   { key: "services", header: "Services", mobile: "primary", cell: (b) => b.services.join(", ") },
-  { key: "expert", header: "Expert", mobile: "secondary", cell: (b) => b.expert.name },
+  {
+    key: "expert",
+    header: "Expert",
+    mobile: "secondary",
+    cell: (b) =>
+      b.expert ? (
+        b.expert.name
+      ) : (
+        <span className="inline-flex items-center rounded-full bg-warning-soft px-2 py-0.5 text-xs font-medium text-warning">
+          Not assigned yet
+        </span>
+      ),
+  },
   { key: "advance", header: "Advance", mobile: "meta", cell: advanceOf },
   {
     key: "status",
@@ -60,7 +72,6 @@ export default function HomeBookingsList({
   totalPages,
   total,
   pageSize,
-  walletMinor,
 }: {
   bookings: HomeBookingSummary[];
   tab: HomeMyBookingsTab;
@@ -68,7 +79,6 @@ export default function HomeBookingsList({
   totalPages: number;
   total: number;
   pageSize: number;
-  walletMinor: number;
 }) {
   const { navigate, isPending } = useFilterNavigation();
   const [target, setTarget] = useState<SheetTarget | null>(null);
@@ -126,7 +136,7 @@ export default function HomeBookingsList({
           onPageChange={(p) => navigate(`/dashboard/home-bookings?tab=${tab}&page=${p}`, { scroll: true })}
         />
       )}
-      <HomeBookingSheet target={target} open={open} onOpenChange={setOpen} walletMinor={walletMinor} />
+      <HomeBookingSheet target={target} open={open} onOpenChange={setOpen} />
     </div>
   );
 }

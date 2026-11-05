@@ -101,7 +101,7 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "How does the payment work?",
-    a: "You pay an advance online when you book (from your wallet, bKash or card) and the rest at home after the service. The advance is held by us and only reaches the salon once the visit is done.",
+    a: "You pay an advance online when you book, with bKash, a card or mobile banking (Nagad, Rocket), and the rest at home after the service. We hold the advance and the salon gets it only once the visit is done. Any refund goes straight back to the account you paid with.",
   },
   {
     q: "What if I need to cancel?",

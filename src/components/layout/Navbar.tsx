@@ -2,8 +2,6 @@ import { Suspense } from "react";
 import { getMyWallet, type Wallet } from "@/services/wallet/getMyWallet";
 import { getDisplayUser } from "@/services/auth/displayUser";
 import NavbarClient from "./NavbarClient";
-import { getMyEarnings } from "@/services/settlement/getMyEarnings";
-import { getPlatformEarnings } from "@/services/settlement/getPlatformEarnings";
 import { getPublicSettings } from "@/services/settings/getPublicSettings";
 import { bookingPaymentsEnabled } from "@/lib/deposit";
 
@@ -43,15 +41,15 @@ async function NavbarAccount() {
     }
     // For SALON_OWNER and ADMIN, we do not await their earnings here.
     // getMyEarnings and getPlatformEarnings run heavy analytical queries
-    // that take several seconds, which blocks the navbar and user avatar 
+    // that take several seconds, which blocks the navbar and user avatar
     // from rendering. They will be fetched asynchronously in NavbarClient.
   }
 
   // Pass the user data (or null) to the client component
   return (
-    <NavbarClient 
-      user={user} 
-      wallet={wallet} 
+    <NavbarClient
+      user={user}
+      wallet={wallet}
       ownerRevenueMinor={ownerRevenueMinor}
       adminRevenueMinor={adminRevenueMinor}
       showBalance={showBalance}
@@ -61,7 +59,9 @@ async function NavbarAccount() {
 
 export default function Navbar() {
   return (
-    <Suspense fallback={<NavbarClient user={null} wallet={null} accountLoading />}>
+    <Suspense
+      fallback={<NavbarClient user={null} wallet={null} accountLoading />}
+    >
       <NavbarAccount />
     </Suspense>
   );

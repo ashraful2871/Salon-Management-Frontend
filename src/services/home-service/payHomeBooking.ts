@@ -10,12 +10,11 @@ import { enc, homeSend } from "./request";
 import type { HomePayMethod, HomePayResult } from "./types";
 
 /**
- * `POST /home-service/bookings/:id/pay`: a wallet that covers the advance
- * confirms at once (whatever `method` says); otherwise the shortfall goes to
- * bKash or the card gateway and `redirectUrl` is where to send the customer.
- * `idempotencyKey` is made per attempt by the component. The gateway always
- * returns to the wallet result pages, so the visit's page (with `via`, which
- * the page tracks the payment by) rides in the booking-resume cookie.
+ * `POST /home-service/bookings/:id/pay`: the whole advance goes to bKash or
+ * SSLCommerz (the wallet is not a way to pay) and `redirectUrl` is where to
+ * send the customer. `idempotencyKey` is made per attempt by the component.
+ * The API returns the browser straight to the visit's page; the
+ * booking-resume cookie is the fallback for a return it can't place.
  */
 export const payHomeBooking = async (
   id: string,

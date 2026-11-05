@@ -407,7 +407,7 @@ function Policies({ s }: { s: HomeServiceSettings }) {
               <div>
                 <dt className="font-semibold text-foreground">{advance}% when you book</dt>
                 <dd className="text-sm leading-relaxed text-muted-foreground">
-                  Online from your wallet, bKash or card. {SITE.name} holds it; the parlour gets it only after the
+                  Online with bKash, card or mobile banking. {SITE.name} holds it; the parlour gets it only after the
                   visit.
                 </dd>
               </div>
@@ -589,7 +589,7 @@ const stepsOf = (s: HomeServiceSettings): Item[] => {
     {
       icon: Wallet,
       title: "Add your address, pay the advance",
-      text: "Pay from your wallet, bKash or card. Your time is held for you.",
+      text: "Pay with bKash, card or mobile banking. Your time is held while you pay.",
     },
     {
       icon: KeyRound,
@@ -611,7 +611,7 @@ const cancelText = (s: HomeServiceSettings): string => {
         : s["homeService.disclaimer.nonRefundable"];
   if (override.trim()) return override;
 
-  if (policy === "FREE") return "Cancel any time before the visit and the whole advance comes back to your wallet.";
+  if (policy === "FREE") return "Cancel any time before the visit and the whole advance is refunded to the bKash account or card you paid with.";
   if (policy === "WINDOW") {
     return `Cancel free until ${plural(s["homeService.freeCancelHours"], "hour")} before the visit. After that, ${
       s["homeService.lateCancelPercent"]
@@ -656,7 +656,7 @@ const policiesOf = (s: HomeServiceSettings): Item[] => {
           ? "If the expert arrives and you're not there, the advance is not refunded."
           : noShow > 0
             ? `If the expert arrives and you're not there, ${noShow}% of the advance is kept.`
-            : "If the expert arrives and you're not there, the advance still comes back to your wallet.",
+            : "If the expert arrives and you're not there, the advance is still refunded to you.",
     },
     {
       icon: ShieldCheck,
