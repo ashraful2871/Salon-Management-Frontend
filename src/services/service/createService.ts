@@ -4,7 +4,6 @@ import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse, SalonService } from "@/lib/api-types";
 import { revalidateTag, updateTag } from "next/cache";
 import { TAGS } from "@/lib/cache-tags";
-import { toMinor } from "@/lib/money";
 
 export const createService = async (
   _currentState: ApiResponse<SalonService> | null,
@@ -15,7 +14,8 @@ export const createService = async (
       name: formData.get("name") as string,
       description: formData.get("description") as string,
       category: formData.get("category") as string,
-      priceMinor: toMinor(Number(formData.get("price"))),
+      // `POST /services` takes taka and converts to poisha itself (like PATCH).
+      price: Number(formData.get("price")),
       duration: Number(formData.get("duration")),
       salonId: formData.get("salonId") as string,
     };
@@ -33,7 +33,17 @@ export const createService = async (
       body: JSON.stringify(payload),
     });
 
-    const result: ApiResponse<SalonService> = await response.json();
+    const result: ApiResponse<SalonService> & {
+      errorDetails?: { path?: string; message?: string }[] | null;
+    } = await response.json();
+
+    // Zod failures come back as a bare "Validation error"; show the field's message.
+    const firstDetail = Array.isArray(result.errorDetails)
+      ? result.errorDetails[0]?.message
+      : undefined;
+    if (!result.success && firstDetail) {
+      return { success: false, message: firstDetail };
+    }
 
     if (result.success) {
       updateTag(TAGS.services);

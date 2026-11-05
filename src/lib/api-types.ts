@@ -123,6 +123,33 @@ export type SalonMarkersResult = {
 // [minLng, minLat, maxLng, maxLat], the order GET /salons/map expects.
 export type Bbox = [west: number, south: number, east: number, north: number];
 
+/** The list filters GET /salons/map also takes, so the pins match the list. */
+export type SalonMarkerFilters = {
+  searchTerm?: string;
+  area?: string;
+  district?: string;
+  division?: string;
+  category?: string;
+  audience?: "LADIES" | "GENTS";
+  includeUnisex?: boolean;
+};
+
+/** GET /salons/areas: an area that has live salons, built from the salons themselves. */
+export type SalonArea = {
+  area: string;
+  district: string;
+  division: string;
+  count: number;
+  center: { lat: number; lng: number } | null;
+  bbox: Bbox | null;
+};
+
+export type SalonAreasQuery = {
+  audience?: "LADIES" | "GENTS";
+  includeUnisex?: boolean;
+  category?: string;
+};
+
 export type GeoPlace = {
   label: string;
   lat: number;

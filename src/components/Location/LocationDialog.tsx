@@ -6,12 +6,14 @@ import {
   ArrowLeft,
   Check,
   ChevronRight,
-  Crosshair,
   Hand,
   Loader2,
+  LocateFixed,
   Map as MapIcon,
   MapPin,
+  Navigation,
   Search,
+  ShieldCheck,
   TriangleAlert,
   X,
 } from "lucide-react";
@@ -91,6 +93,10 @@ type LocationDialogProps = {
   onDone?: () => void;
   // "map" opens straight on the pin screen ("Pick on map" buttons).
   initialStep?: "options" | "map";
+  // Takes over what happens after a location is saved (the cookie is
+  // written either way): a salon list keeps its other filters this way
+  // instead of restarting from the point alone.
+  onSaved?: (location: SavedLocation) => void;
 };
 
 const LocationDialog = ({
@@ -98,11 +104,14 @@ const LocationDialog = ({
   onOpenChange,
   onDone,
   initialStep = "options",
+  onSaved,
 }: LocationDialogProps) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent
       className={cn(
-        "max-h-[92dvh] gap-0 overflow-y-auto p-0 sm:max-w-lg",
+        "max-h-[92dvh] gap-0 overflow-y-auto rounded-3xl border-border/60 p-0 shadow-2xl sm:max-w-lg",
+        // A round, always-visible close button that lines up with the header.
+        "[&>[data-slot=dialog-close]]:top-5 [&>[data-slot=dialog-close]]:right-4 [&>[data-slot=dialog-close]]:grid [&>[data-slot=dialog-close]]:size-9 [&>[data-slot=dialog-close]]:place-items-center [&>[data-slot=dialog-close]]:rounded-full [&>[data-slot=dialog-close]]:text-muted-foreground [&>[data-slot=dialog-close]]:opacity-100 [&>[data-slot=dialog-close]]:transition-colors [&>[data-slot=dialog-close]]:hover:bg-muted [&>[data-slot=dialog-close]]:hover:text-foreground sm:[&>[data-slot=dialog-close]]:top-6 sm:[&>[data-slot=dialog-close]]:right-5",
         // Phones: a bottom sheet rather than a floating card.
         "max-sm:top-auto max-sm:bottom-0 max-sm:max-w-full max-sm:translate-y-0 max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:border-x-0 max-sm:border-b-0",
         "max-sm:data-[state=open]:slide-in-from-bottom max-sm:data-[state=closed]:slide-out-to-bottom max-sm:data-[state=open]:zoom-in-100 max-sm:data-[state=closed]:zoom-out-100",
@@ -111,6 +120,7 @@ const LocationDialog = ({
       {/* Mounted only while open, so every open starts fresh. */}
       <LocationPicker
         initialStep={initialStep}
+        onSaved={onSaved}
         onDone={() => {
           onOpenChange(false);
           onDone?.();
@@ -123,9 +133,11 @@ const LocationDialog = ({
 const LocationPicker = ({
   onDone,
   initialStep,
+  onSaved,
 }: {
   onDone: () => void;
   initialStep: "options" | "map";
+  onSaved?: (location: SavedLocation) => void;
 }) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -185,7 +197,9 @@ const LocationPicker = ({
       return;
     }
     onDone();
-    if (isSalonListPath(pathname)) {
+    if (onSaved) {
+      onSaved(stored);
+    } else if (isSalonListPath(pathname)) {
       router.push(
         `${pathname}?lat=${stored.lat}&lng=${stored.lng}&r=5&sort=distance`,
       );
@@ -327,95 +341,31 @@ const LocationPicker = ({
   const canRetry =
     showGpsButton && (geo.status === "timeout" || geo.status === "unavailable");
 
+  // While the customer types, the results take over the body (the way
+  // ride and delivery apps do it) instead of being pushed below the fold.
+  const searchActive = query.trim().length >= 2;
+  const savedArea = saved?.source === "area" ? saved.label : null;
+
   return (
     <div className="flex flex-col">
       <SheetHandle />
-      <DialogHeader className="px-5 pt-5 pr-12 pb-4 text-left sm:px-6 sm:pt-6">
-        <DialogTitle className="font-display text-xl">
-          Where should we look?
-        </DialogTitle>
-        <DialogDescription>
-          We&apos;ll show salons near this spot. It&apos;s remembered in this
-          browser, never saved to your account.
-        </DialogDescription>
+      <DialogHeader className="px-5 pt-5 pr-14 pb-5 text-left sm:px-6 sm:pt-6">
+        <div className="flex items-center gap-3.5">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary-soft text-primary ring-1 ring-inset ring-primary/15">
+            <MapPin className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 space-y-0.5">
+            <DialogTitle className="font-display text-xl leading-tight tracking-tight">
+              Set your location
+            </DialogTitle>
+            <DialogDescription className="text-sm">
+              We&apos;ll show salons and parlours closest to you.
+            </DialogDescription>
+          </div>
+        </div>
       </DialogHeader>
 
       <div className="space-y-5 px-5 pb-6 sm:px-6">
-        {saved && (
-          <div className="flex items-center gap-3 rounded-2xl border border-gold/30 bg-gold/5 px-3.5 py-3">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gold/15">
-              <MapPin className="h-4 w-4 text-gold-dark" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Current location
-              </p>
-              <p className="truncate text-sm font-semibold text-foreground">
-                {saved.label}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={clearSaved}
-              className="shrink-0 cursor-pointer rounded-full px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              Clear
-            </button>
-          </div>
-        )}
-
-        <div className="grid gap-2 sm:grid-cols-2">
-          {showGpsButton && (
-            <OptionButton
-              onClick={locateWithGps}
-              disabled={busy}
-              icon={
-                geo.status === "locating" ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Crosshair className="h-5 w-5" />
-                )
-              }
-              title={
-                geo.status === "locating"
-                  ? "Finding you…"
-                  : canRetry
-                    ? "Try again"
-                    : "Use my current location"
-              }
-              hint="Then fine-tune the pin"
-              primary
-            />
-          )}
-          <OptionButton
-            onClick={() => {
-              setOutsideBd(false);
-              setStep(browseStep(saved));
-            }}
-            disabled={busy}
-            icon={<MapIcon className="h-5 w-5" />}
-            title="Choose on map"
-            hint="Drop a pin anywhere"
-            className={cn(!showGpsButton && "sm:col-span-2")}
-          />
-        </div>
-
-        {gpsMessage && (
-          <p
-            role="status"
-            className="flex items-start gap-2 rounded-xl border border-rose/30 bg-rose/5 px-3 py-2.5 text-sm text-foreground"
-          >
-            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-rose" />
-            {gpsMessage}
-          </p>
-        )}
-
-        <div className="flex items-center gap-3 text-xs uppercase tracking-wider text-muted-foreground">
-          <span className="h-px flex-1 bg-border" />
-          or search
-          <span className="h-px flex-1 bg-border" />
-        </div>
-
         <SearchBox
           inputRef={searchRef}
           query={query}
@@ -427,28 +377,132 @@ const LocationPicker = ({
           disabled={busy}
         />
 
-        <div className="space-y-2.5">
-          <p className="text-sm font-semibold">Popular areas</p>
-          <div className="flex flex-wrap gap-2">
-            {POPULAR_AREAS.map((area) => (
-              <button
-                key={area.name}
-                type="button"
-                onClick={() => pickArea(area)}
+        {!searchActive && (
+          <>
+            {saved && (
+              <div className="flex items-center gap-3 rounded-2xl bg-primary-soft/70 px-3.5 py-3 ring-1 ring-inset ring-primary/15">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface text-primary shadow-xs">
+                  <Navigation className="h-4 w-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground">
+                    Showing salons near
+                  </p>
+                  <p className="truncate text-sm font-semibold text-foreground">
+                    {saved.label}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearSaved}
+                  disabled={busy}
+                  className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-surface hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Clear
+                </button>
+              </div>
+            )}
+
+            <div className="divide-y divide-border/70 overflow-hidden rounded-2xl border bg-surface">
+              {showGpsButton && (
+                <ActionRow
+                  onClick={locateWithGps}
+                  disabled={busy}
+                  accent
+                  icon={
+                    geo.status === "locating" ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <LocateFixed className="h-5 w-5" />
+                    )
+                  }
+                  title={
+                    geo.status === "locating"
+                      ? "Finding you…"
+                      : canRetry
+                        ? "Try again"
+                        : "Use my current location"
+                  }
+                  hint="Uses your device GPS — you can fine-tune the pin"
+                />
+              )}
+              <ActionRow
+                onClick={() => {
+                  setOutsideBd(false);
+                  setStep(browseStep(saved));
+                }}
                 disabled={busy}
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border bg-background px-3.5 py-1.5 text-sm font-medium transition-colors hover:border-gold hover:bg-gold/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60"
+                icon={<MapIcon className="h-5 w-5" />}
+                title="Choose on map"
+                hint="Drop a pin on your exact spot"
+              />
+            </div>
+
+            {gpsMessage && (
+              <p
+                role="status"
+                className="flex items-start gap-2.5 rounded-xl bg-danger-soft px-3.5 py-3 text-sm text-foreground ring-1 ring-inset ring-danger/15"
               >
-                {pickingArea === area.name ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <MapPin className="h-3.5 w-3.5 text-gold" />
-                )}
-                {area.name}
-              </button>
-            ))}
-          </div>
-        </div>
+                <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
+                {gpsMessage}
+              </p>
+            )}
+
+            <section aria-labelledby="popular-areas-heading" className="space-y-3">
+              <h3
+                id="popular-areas-heading"
+                className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground"
+              >
+                Popular in Dhaka
+              </h3>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {POPULAR_AREAS.map((area) => {
+                  const selected = savedArea === `${area.name}, Dhaka`;
+                  const loading = pickingArea === area.name;
+                  return (
+                    <button
+                      key={area.name}
+                      type="button"
+                      onClick={() => pickArea(area)}
+                      disabled={busy}
+                      aria-pressed={selected}
+                      className={cn(
+                        "group relative min-w-0 cursor-pointer rounded-xl border bg-surface px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60",
+                        selected
+                          ? "border-primary/50 bg-primary-soft/60"
+                          : "hover:border-primary/40 hover:bg-primary-soft/40",
+                      )}
+                    >
+                      <span className="block truncate pr-4 text-sm font-medium text-foreground">
+                        {area.name}
+                      </span>
+                      <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <MapPin className="h-3 w-3 transition-colors group-hover:text-primary" />
+                        Dhaka
+                      </span>
+                      {(loading || selected) && (
+                        <span className="absolute top-2 right-2 grid h-4 w-4 place-items-center rounded-full bg-primary text-primary-foreground">
+                          {loading ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Check className="h-3 w-3" />
+                          )}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          </>
+        )}
       </div>
+
+      <p className="flex items-center justify-center gap-2 border-t bg-surface-subtle px-5 py-3 text-center text-xs text-muted-foreground sm:px-6">
+        <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-success" />
+        Saved only in this browser — never to your account.
+      </p>
     </div>
   );
 };
@@ -461,60 +515,49 @@ const SheetHandle = () => (
   />
 );
 
-const OptionButton = ({
+const ActionRow = ({
   onClick,
   disabled,
   icon,
   title,
   hint,
-  primary = false,
-  className,
+  accent = false,
 }: {
   onClick: () => void;
   disabled?: boolean;
   icon: React.ReactNode;
   title: string;
   hint: string;
-  primary?: boolean;
-  className?: string;
+  accent?: boolean;
 }) => (
   <button
     type="button"
     onClick={onClick}
     disabled={disabled}
-    className={cn(
-      "group flex w-full cursor-pointer items-center gap-3 rounded-2xl border p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-60",
-      primary
-        ? "border-transparent bg-gradient-gold text-white shadow-gold hover:brightness-105"
-        : "border-border bg-background hover:border-gold/50 hover:bg-gold/5",
-      className,
-    )}
+    className="group flex w-full cursor-pointer items-center gap-3.5 px-4 py-3.5 text-left transition-colors hover:bg-surface-subtle focus-visible:bg-surface-subtle focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
   >
     <span
       className={cn(
-        "grid h-10 w-10 shrink-0 place-items-center rounded-xl",
-        primary ? "bg-white/20" : "bg-gold/10 text-gold-dark",
+        "grid h-10 w-10 shrink-0 place-items-center rounded-full",
+        accent
+          ? "bg-primary text-primary-foreground shadow-gold"
+          : "bg-muted text-foreground",
       )}
     >
       {icon}
     </span>
     <span className="min-w-0 flex-1">
-      <span className="block text-sm font-semibold">{title}</span>
       <span
         className={cn(
-          "block text-xs",
-          primary ? "text-white/85" : "text-muted-foreground",
+          "block text-sm font-semibold",
+          accent ? "text-primary" : "text-foreground",
         )}
       >
-        {hint}
+        {title}
       </span>
+      <span className="block text-xs text-muted-foreground">{hint}</span>
     </span>
-    <ChevronRight
-      className={cn(
-        "h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5",
-        primary ? "text-white/80" : "text-muted-foreground",
-      )}
-    />
+    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
   </button>
 );
 
@@ -564,8 +607,10 @@ const SearchBox = ({
           placeholder="Search area, road or landmark"
           autoComplete="off"
           className={cn(
-            "h-11 rounded-xl pl-10 pr-10",
-            floating && "border-transparent bg-white shadow-md",
+            "rounded-xl pl-10 pr-10",
+            floating
+              ? "h-11 border-transparent bg-white shadow-md"
+              : "h-12 bg-surface-subtle text-[15px] shadow-none transition-colors focus-visible:bg-surface",
           )}
           aria-describedby="location-search-status"
         />
@@ -592,19 +637,50 @@ const SearchBox = ({
       >
         <div id="location-search-status" aria-live="polite">
           {searchError ? (
-            <p className="px-3 py-2 text-sm text-muted-foreground">{searchError}</p>
-          ) : showEmpty ? (
-            <p className="px-3 py-2 text-sm text-muted-foreground">
-              No places found. Try a nearby area or landmark.
+            <p
+              className={cn(
+                "flex items-center gap-2 text-sm text-muted-foreground",
+                floating ? "px-3 py-2" : "rounded-xl border border-dashed px-4 py-3",
+              )}
+            >
+              <TriangleAlert className="h-4 w-4 shrink-0 text-warning" />
+              {searchError}
             </p>
+          ) : showEmpty ? (
+            floating ? (
+              <p className="px-3 py-2 text-sm text-muted-foreground">
+                No places found. Try a nearby area or landmark.
+              </p>
+            ) : (
+              <div className="rounded-xl border border-dashed px-4 py-6 text-center">
+                <p className="text-sm font-medium text-foreground">No places found</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Try a nearby area, road or landmark.
+                </p>
+              </div>
+            )
           ) : null}
         </div>
+
+        {!floating && searching && results.length === 0 && (
+          <div className="divide-y overflow-hidden rounded-xl border" aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-3 px-3.5 py-3">
+                <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-3.5 w-2/5" />
+                  <Skeleton className="h-3 w-4/5" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {results.length > 0 && (
           <ul
             className={cn(
-              "max-h-64 overflow-y-auto",
-              !floating && "overflow-hidden rounded-xl border",
+              "overflow-y-auto",
+              floating ? "max-h-64" : "max-h-80 divide-y overflow-hidden rounded-xl border",
             )}
             aria-label="Places"
           >
@@ -614,9 +690,11 @@ const SearchBox = ({
                   type="button"
                   onClick={() => onPick(place)}
                   disabled={disabled}
-                  className="flex w-full cursor-pointer items-start gap-2.5 px-3.5 py-2.5 text-left text-sm transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
+                  className="group flex w-full cursor-pointer items-center gap-3 px-3.5 py-2.5 text-left text-sm transition-colors hover:bg-surface-subtle focus-visible:bg-surface-subtle focus-visible:outline-none"
                 >
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground transition-colors group-hover:bg-primary-soft group-hover:text-primary">
+                    <MapPin className="h-4 w-4" />
+                  </span>
                   <span className="min-w-0">
                     <span className="block truncate font-medium text-foreground">
                       {shortPlaceLabel(place)}
@@ -780,7 +858,7 @@ const MapStep = ({
   return (
     <div className="flex flex-col">
       <SheetHandle />
-      <div className="flex items-start gap-2 px-4 pt-4 pb-3 pr-12 sm:px-5 sm:pt-5">
+      <div className="flex items-start gap-2 px-4 pt-5 pb-3 pr-14 sm:px-5 sm:pt-6">
         <button
           type="button"
           onClick={onBack}
@@ -862,18 +940,18 @@ const MapStep = ({
       <div className="space-y-3 px-4 pt-4 pb-5 sm:px-5 sm:pb-6">
         <div
           aria-live="polite"
-          className="flex min-h-[4.25rem] items-start gap-3 rounded-2xl border bg-muted/30 px-3.5 py-3"
+          className="flex min-h-[4.25rem] items-start gap-3 rounded-2xl border bg-surface-subtle px-3.5 py-3"
         >
           <span
             className={cn(
               "grid h-9 w-9 shrink-0 place-items-center rounded-full",
-              address.status === "outside" ? "bg-rose/15" : "bg-gold/15",
+              address.status === "outside" ? "bg-danger-soft" : "bg-primary-soft",
             )}
           >
             {address.status === "outside" ? (
-              <TriangleAlert className="h-4 w-4 text-rose" />
+              <TriangleAlert className="h-4 w-4 text-danger" />
             ) : (
-              <MapPin className="h-4 w-4 text-gold-dark" />
+              <MapPin className="h-4 w-4 text-primary" />
             )}
           </span>
           <div className="min-w-0 flex-1">

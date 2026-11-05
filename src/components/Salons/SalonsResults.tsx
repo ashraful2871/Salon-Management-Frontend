@@ -2,17 +2,18 @@
 import { track } from "@/lib/track";
 import { useRouter } from "next/navigation";
 
-import { List, Map as MapIcon, MapPin, Navigation, SearchX, Store, X } from "lucide-react";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import {
+  List,
+  Map as MapIcon,
+  MapPin,
+  Navigation,
+  SearchX,
+  Store,
+  X,
+} from "lucide-react";
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
 import { categoryLabel } from "@/constants/service-categories";
 import SalonCard from "../Shared/SalonCard";
 import Pagination from "../Shared/Pagination";
@@ -21,24 +22,24 @@ import { ErrorState } from "../Shared/ErrorState";
 import LocationDialog from "../Location/LocationDialog";
 import { SalonsMap, type SearchArea } from "../Map/MapClient";
 import { cn } from "@/lib/utils";
-import { isInBangladesh, roundCoord } from "@/lib/geo";
+import { isInBangladesh } from "@/lib/geo";
 import { toSalonCardData } from "@/lib/salon-card";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import type { PaginationMeta, Salon } from "@/lib/api-types";
+import type {
+  Bbox,
+  PaginationMeta,
+  Salon,
+  SalonMarkerFilters,
+} from "@/lib/api-types";
 import {
   SALON_NOUN,
+  locationName,
   salonGridClass,
+  type ListLocation,
   type ListNoun,
   type NearbyContext,
-  type SalonSort,
 } from "./types";
 import { useSalonsUrl } from "./useSalonsUrl";
-
-const SORT_LABELS: Record<SalonSort, string> = {
-  distance: "Nearest",
-  rating: "Top rated",
-  newest: "Newest",
-};
 
 const countOf = (n: number, noun: ListNoun) =>
   `${n.toLocaleString("en-US")} ${n === 1 ? noun.one : noun.many}`;
@@ -54,35 +55,54 @@ type SalonsProps = {
   allSalons: Salon[];
   // The backend sends { page, limit, total }; totalPage is derived here.
   meta?: Pick<PaginationMeta, "page" | "limit" | "total">;
+  location: ListLocation;
   nearby: NearbyContext | null;
-  sort: SalonSort;
+  /** What the map frames first when there is no point: the area's (or every area's) pins. */
+  frame: Bbox | null;
+  /** The list's filters, which the map's pins follow. */
+  mapFilters: SalonMarkerFilters;
   error?: string;
   noun?: ListNoun;
+  /** /salons only: the Ladies / Gents filter is a removable chip. */
+  showAudience?: boolean;
 };
 
 export default function SalonsResults({
   allSalons,
   meta,
+  location,
   nearby,
-  sort,
+  frame,
+  mapFilters,
   error,
   noun = SALON_NOUN,
+  showAudience = false,
 }: SalonsProps) {
   const router = useRouter();
-  const { searchParams, navigate, isPending: isNavigating } = useSalonsUrl();
+  const {
+    searchParams,
+    navigate,
+    location: go,
+    isPending: isNavigating,
+  } = useSalonsUrl();
   // The retry below re-renders the route rather than changing the URL.
   const [isRetrying, startRetry] = useTransition();
   const isPending = isNavigating || isRetrying;
 
   const [locationOpen, setLocationOpen] = useState(false);
 
-  // Nearby mode shows a map: beside the list on desktop, behind a Map/List
-  // toggle on phones. It is mounted only while on screen, so it costs nothing
-  // until then.
+  // The map sits beside the list on desktop and behind a Map/List switch on
+  // phones. It opens by itself on desktop once the list is about a place
+  // (an area or a point); "all areas" starts as a wider grid. It is mounted
+  // only while on screen, so it costs nothing until then.
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const placeBound = location.kind !== "all";
+  const [desktopMap, setDesktopMap] = useState<boolean | null>(null);
   const [mobileView, setMobileView] = useState<"list" | "map">("list");
   const [activeId, setActiveId] = useState<string | null>(null);
-  const showMap = nearby !== null && (isDesktop || mobileView === "map");
+  const showMap = isDesktop
+    ? (desktopMap ?? placeBound)
+    : mobileView === "map";
   const mapOnly = showMap && !isDesktop;
 
   useEffect(() => {
@@ -99,34 +119,18 @@ export default function SalonsResults({
     });
   };
 
-  // Keep the point in the URL when tuning a nearby search, so the result is
-  // shareable even when it started from the saved cookie.
-  const pin = nearby
-    ? { lat: String(nearby.lat), lng: String(nearby.lng) }
-    : {};
-
-  const setSort = (value: SalonSort) => navigate({ ...pin, sort: value });
-  const showAllSalons = () =>
-    navigate({
-      lat: null,
-      lng: null,
-      r: null,
-      sort: sort === "distance" ? null : sort,
-      near: "off",
-    });
   const goToPage = (p: number) => {
     navigate({ page: p > 1 ? String(p) : null }, { keepPage: true });
     scrollToResults();
   };
 
-  const clearFilters = () =>
-    navigate({
-      searchTerm: null,
-      division: null,
-      district: null,
-      area: null,
-      category: null,
-    });
+  const filterKeys = {
+    searchTerm: null,
+    category: null,
+    ...(showAudience ? { audience: null } : {}),
+  };
+  const clearFilters = () => navigate(filterKeys);
+  const showEverything = () => go.all();
 
   // The reach stays NEARBY_RADIUS_KM however far the map is zoomed out; only
   // the point it is measured from moves.
@@ -135,12 +139,7 @@ export default function SalonsResults({
       toast.error("Move the map back over Bangladesh to search there.");
       return;
     }
-    navigate({
-      lat: String(roundCoord(lat)),
-      lng: String(roundCoord(lng)),
-      r: null,
-      near: null,
-    });
+    go.near(lat, lng);
   };
 
   // A pin was clicked: bring its card into view (the map may show salons
@@ -175,21 +174,58 @@ export default function SalonsResults({
   const pageSize = meta?.limit ?? salons.length;
   const totalPage = meta?.limit ? Math.max(1, Math.ceil(total / meta.limit)) : 1;
 
-  // What the list is narrowed by, most specific first, for the empty state.
   const category = searchParams.get("category");
-  const matchTerm =
-    searchParams.get("searchTerm") ||
-    (category ? categoryLabel(category) : "") ||
-    searchParams.get("area") ||
-    searchParams.get("district") ||
-    searchParams.get("division");
+  const searchTerm = searchParams.get("searchTerm");
+  const audience = showAudience ? searchParams.get("audience") : null;
+  const place = locationName(location);
+  const hasFilters = Boolean(category || searchTerm || audience);
 
   const countText = nearby
     ? `${countOf(total, noun)} within ${nearby.radiusKm} km`
-    : `${countOf(total, noun)} found`;
+    : place
+      ? `${countOf(total, noun)} in ${place}`
+      : `${countOf(total, noun)} found`;
   const showAllLabel = `Show all ${noun.many}`;
+  const placeLabel = nearby ? nearby.label : place;
 
-  const gridClass = salonGridClass(nearby !== null);
+  // Removable chips for what narrows the list, so each can go on its own.
+  const chips: { key: string; label: ReactNode; onRemove: () => void }[] = [];
+  if (location.kind !== "all" || place) {
+    chips.push({
+      key: "location",
+      label: (
+        <>
+          {nearby ? (
+            <Navigation className="size-3.5 text-primary" aria-hidden="true" />
+          ) : (
+            <MapPin className="size-3.5 text-primary" aria-hidden="true" />
+          )}
+          {nearby ? `Near ${nearby.label.split(",")[0]}` : place}
+        </>
+      ),
+      onRemove: showEverything,
+    });
+  }
+  if (searchTerm)
+    chips.push({
+      key: "search",
+      label: `“${searchTerm}”`,
+      onRemove: () => navigate({ searchTerm: null }),
+    });
+  if (category)
+    chips.push({
+      key: "category",
+      label: categoryLabel(category),
+      onRemove: () => navigate({ category: null }),
+    });
+  if (audience)
+    chips.push({
+      key: "audience",
+      label: audience === "LADIES" ? "Ladies" : "Gents",
+      onRemove: () => navigate({ audience: null }),
+    });
+
+  const gridClass = salonGridClass(showMap && isDesktop);
 
   const renderList = () => {
     if (error) {
@@ -207,21 +243,22 @@ export default function SalonsResults({
         </div>
       );
     }
-    if (total === 0 && matchTerm) {
+    if (total === 0 && hasFilters) {
+      const what = searchTerm || (category ? categoryLabel(category) : "") || "these filters";
       return (
         <EmptyState
           icon={SearchX}
-          title={`No ${noun.many} match “${matchTerm}”`}
+          title={`No ${noun.many} match “${what}”${placeLabel ? ` ${nearby ? "near" : "in"} ${placeLabel.split(",")[0]}` : ""}`}
           description={
-            nearby
-              ? `Nothing within ${nearby.radiusKm} km of ${nearby.label}. Clear the filters or look further away.`
+            placeLabel
+              ? `Clear the filters, or look in every area.`
               : `Try another word or clear the filters to see every ${noun.one}.`
           }
           action={
             <div className="flex flex-wrap justify-center gap-2">
               <Button onClick={clearFilters}>Clear filters</Button>
-              {nearby && (
-                <Button variant="outline" onClick={showAllSalons}>
+              {placeLabel && (
+                <Button variant="outline" onClick={showEverything}>
                   {showAllLabel}
                 </Button>
               )}
@@ -230,21 +267,25 @@ export default function SalonsResults({
         />
       );
     }
-    if (total === 0 && nearby) {
+    if (total === 0 && placeLabel) {
       return (
         <EmptyState
           icon={MapPin}
-          title={`No ${noun.many} within ${nearby.radiusKm} km of ${nearby.label}`}
+          title={
+            nearby
+              ? `No ${noun.many} within ${nearby.radiusKm} km of ${nearby.label}`
+              : `No ${noun.many} in ${placeLabel} yet`
+          }
           description={`Try a nearby spot on the map, or browse every ${noun.one}.`}
           action={
             <div className="flex flex-wrap justify-center gap-2">
-              <Button onClick={showAllSalons}>{showAllLabel}</Button>
+              <Button onClick={showEverything}>{showAllLabel}</Button>
               <Button
                 variant="outline"
                 onClick={() => setLocationOpen(true)}
                 aria-haspopup="dialog"
               >
-                Change location
+                Pick on map
               </Button>
             </div>
           }
@@ -310,78 +351,96 @@ export default function SalonsResults({
 
   return (
     <>
-      {/* Toolbar: where the list is measured from, its size, its order. */}
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 space-y-2">
-          <p aria-live="polite" className="text-lg font-semibold text-foreground">
+      {/* Toolbar: the count, what narrows it, and the map switch. */}
+      <div className="mb-5 flex flex-col gap-3 md:mb-6 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0 space-y-2.5">
+          <p
+            aria-live="polite"
+            className="text-base font-semibold text-foreground md:text-lg"
+          >
             {error ? capitalize(noun.many) : countText}
           </p>
-          {nearby ? (
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full border border-border bg-surface py-1 pl-2.5 pr-1 text-foreground">
-                <MapPin className="size-3.5 shrink-0 text-primary" aria-hidden="true" />
-                <span className="truncate">
-                  Near <span className="font-semibold">{nearby.label}</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setLocationOpen(true)}
-                  aria-haspopup="dialog"
-                  className="shrink-0 cursor-pointer rounded-full px-2 py-0.5 text-xs font-semibold text-primary transition-colors hover:bg-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  Change
-                </button>
-              </span>
-              <Button variant="ghost" size="sm" onClick={showAllSalons}>
-                <X aria-hidden="true" />
-                {showAllLabel}
-              </Button>
-            </div>
-          ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setLocationOpen(true)}
-              aria-haspopup="dialog"
+          {chips.length > 0 && (
+            <ul
+              aria-label="Active filters"
+              className={cn(
+                "flex-wrap items-center gap-2",
+                // Phones show the location as a chip in the bar already.
+                chips.every((c) => c.key === "location")
+                  ? "hidden md:flex"
+                  : "flex",
+              )}
             >
-              <Navigation aria-hidden="true" />
-              Show {noun.many} near you
-            </Button>
+              {chips.map((chip) => (
+                <li
+                  key={chip.key}
+                  className={cn(chip.key === "location" && "hidden md:block")}
+                >
+                  <span className="inline-flex h-8 max-w-[16rem] items-center gap-1.5 rounded-full border border-border bg-surface pl-3 pr-1 text-sm text-foreground">
+                    <span className="flex min-w-0 items-center gap-1.5 truncate">
+                      {chip.label}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={chip.onRemove}
+                      aria-label="Remove filter"
+                      className="grid size-6 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </span>
+                </li>
+              ))}
+              {chips.length > 1 && (
+                <li>
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-8 px-1.5"
+                    onClick={() =>
+                      location.kind !== "all" || place
+                        ? go.all(filterKeys)
+                        : clearFilters()
+                    }
+                  >
+                    Clear all
+                  </Button>
+                </li>
+              )}
+            </ul>
           )}
         </div>
 
-        {/* The reach is fixed at NEARBY_RADIUS_KM, so there is no radius to pick. */}
-        <div className="flex shrink-0 items-center gap-2">
-          <span className="text-sm text-muted-foreground">Sort by</span>
-          <Select
-            value={sort}
-            onValueChange={(value) => setSort(value as SalonSort)}
+        {isDesktop && (
+          <Button
+            type="button"
+            variant="outline"
+            className="hidden shrink-0 rounded-full lg:inline-flex"
+            onClick={() => setDesktopMap(!showMap)}
+            aria-pressed={showMap}
           >
-            <SelectTrigger
-              aria-label={`Sort ${noun.many}`}
-              className="w-36 rounded-xl data-[size=default]:h-10 md:data-[size=default]:h-10"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent align="end">
-              {(nearby
-                ? (["distance", "rating", "newest"] as const)
-                : (["rating", "newest"] as const)
-              ).map((value) => (
-                <SelectItem key={value} value={value}>
-                  {SORT_LABELS[value]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            {showMap ? (
+              <>
+                <List aria-hidden="true" />
+                Hide map
+              </>
+            ) : (
+              <>
+                <MapIcon aria-hidden="true" />
+                Show map
+              </>
+            )}
+          </Button>
+        )}
       </div>
 
       <div
         id="salon-results"
         className={cn(
           UNDER_BAR,
-          nearby &&
+          showMap &&
+            isDesktop &&
             "lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8",
         )}
       >
@@ -402,13 +461,17 @@ export default function SalonsResults({
           )}
         </div>
 
-        {showMap && nearby && (
-          <div className="h-[calc(100dvh-7rem-var(--salons-bar-h,0px))] overflow-hidden rounded-2xl border border-border/70 shadow-soft lg:sticky lg:top-[calc(5rem+var(--salons-bar-h,0px))] lg:h-[calc(100vh-6rem-var(--salons-bar-h,0px))]">
+        {showMap && (
+          // The map fills the box absolutely, so it never collapses to 0 when
+          // the box's height comes from min-height rather than height.
+          <div className="relative h-[calc(100dvh-9rem-var(--salons-bar-h,0px))] min-h-80 overflow-hidden rounded-2xl border border-border/70 shadow-soft lg:sticky lg:top-[calc(5rem+var(--salons-bar-h,0px))] lg:h-[calc(100vh-6rem-var(--salons-bar-h,0px))]">
             <SalonsMap
-              className="h-full"
-              origin={[nearby.lat, nearby.lng]}
-              originLabel={nearby.label}
-              radiusKm={nearby.radiusKm}
+              className="absolute inset-0"
+              origin={nearby ? [nearby.lat, nearby.lng] : null}
+              originLabel={nearby?.label}
+              radiusKm={nearby?.radiusKm}
+              frame={frame}
+              filters={mapFilters}
               activeId={activeId}
               onPinClick={showCard}
               onSearchArea={searchArea}
@@ -417,27 +480,31 @@ export default function SalonsResults({
         )}
       </div>
 
-      {nearby && (
-        <button
-          type="button"
-          onClick={toggleMobileView}
-          className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 z-30 inline-flex h-12 -translate-x-1/2 cursor-pointer items-center gap-2 rounded-full bg-foreground px-5 text-sm font-semibold text-background shadow-card transition-transform active:scale-95 lg:hidden"
-        >
-          {mobileView === "map" ? (
-            <>
-              <List className="size-4" aria-hidden="true" />
-              List
-            </>
-          ) : (
-            <>
-              <MapIcon className="size-4" aria-hidden="true" />
-              Map
-            </>
-          )}
-        </button>
-      )}
+      {/* Phones: one switch between the list and the map. */}
+      <button
+        type="button"
+        onClick={toggleMobileView}
+        className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 z-30 inline-flex h-12 -translate-x-1/2 cursor-pointer items-center gap-2 rounded-full bg-foreground px-5 text-sm font-semibold text-background shadow-card transition-transform active:scale-95 lg:hidden"
+      >
+        {mobileView === "map" ? (
+          <>
+            <List className="size-4" aria-hidden="true" />
+            List
+          </>
+        ) : (
+          <>
+            <MapIcon className="size-4" aria-hidden="true" />
+            Map
+          </>
+        )}
+      </button>
 
-      <LocationDialog open={locationOpen} onOpenChange={setLocationOpen} />
+      <LocationDialog
+        open={locationOpen}
+        onOpenChange={setLocationOpen}
+        initialStep="map"
+        onSaved={(loc) => go.near(loc.lat, loc.lng)}
+      />
     </>
   );
 }
