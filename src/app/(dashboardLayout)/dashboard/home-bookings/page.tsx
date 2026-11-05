@@ -7,7 +7,6 @@ import HomeBookingsList from "@/components/HomeService/dashboard/HomeBookingsLis
 import { FilterNavigationProvider } from "@/hooks/useFilterNavigation";
 import { getHomeAddresses } from "@/services/home-service/getHomeAddresses";
 import { getMyHomeBookings } from "@/services/home-service/getMyHomeBookings";
-import { getMyWallet } from "@/services/wallet/getMyWallet";
 
 export const metadata = { title: "Home bookings" };
 
@@ -24,7 +23,7 @@ async function Addresses() {
 }
 
 async function Visits({ tab, page }: { tab: "upcoming" | "past"; page: number }) {
-  const [res, wallet] = await Promise.all([getMyHomeBookings(tab, page), getMyWallet()]);
+  const res = await getMyHomeBookings(tab, page);
   if (!res.success) return <EmptyState title="We couldn't load your visits" description={res.message} />;
   const total = res.meta?.total ?? 0;
   const pageSize = res.meta?.limit ?? 20;
@@ -36,7 +35,6 @@ async function Visits({ tab, page }: { tab: "upcoming" | "past"; page: number })
       total={total}
       pageSize={pageSize}
       totalPages={Math.max(1, Math.ceil(total / pageSize))}
-      walletMinor={wallet.success && wallet.data ? wallet.data.availableMinor : 0}
     />
   );
 }

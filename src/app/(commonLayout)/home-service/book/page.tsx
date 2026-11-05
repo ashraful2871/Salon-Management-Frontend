@@ -13,7 +13,6 @@ import { getUserRoles } from "@/services/get-roles/getUserRoles";
 import { getHomeAddresses } from "@/services/home-service/getHomeAddresses";
 import { getHomeExpert } from "@/services/home-service/getHomeExpert";
 import { getPaymentMethods } from "@/services/payments/getPaymentMethods";
-import { getMyWallet } from "@/services/wallet/getMyWallet";
 
 export const metadata = { title: "Book a home visit" };
 
@@ -69,9 +68,9 @@ export default async function HomeBookPage({ searchParams }: { searchParams: Pro
   const expert = expertRes.data;
 
   const isCustomer = role === "CUSTOMER";
-  const [addressesRes, walletRes, meRes, methodsRes] = isCustomer
-    ? await Promise.all([getHomeAddresses(), getMyWallet(), getMe(), getPaymentMethods()])
-    : [null, null, null, null];
+  const [addressesRes, meRes, methodsRes] = isCustomer
+    ? await Promise.all([getHomeAddresses(), getMe(), getPaymentMethods()])
+    : [null, null, null];
 
   // The cart from the URL, kept to what this expert still offers.
   const menuIds = new Set(expert.menu.map((m) => m.id));
@@ -112,7 +111,6 @@ export default async function HomeBookPage({ searchParams }: { searchParams: Pro
         role,
         name: me?.name ?? "",
         phone,
-        walletMinor: walletRes?.success && walletRes.data ? walletRes.data.availableMinor : 0,
         addresses: addressesRes?.success && addressesRes.data ? addressesRes.data : [],
       }}
       methods={methodsRes?.success && methodsRes.data ? methodsRes.data : []}

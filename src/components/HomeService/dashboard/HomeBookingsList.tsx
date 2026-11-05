@@ -60,7 +60,6 @@ export default function HomeBookingsList({
   totalPages,
   total,
   pageSize,
-  walletMinor,
 }: {
   bookings: HomeBookingSummary[];
   tab: HomeMyBookingsTab;
@@ -68,7 +67,6 @@ export default function HomeBookingsList({
   totalPages: number;
   total: number;
   pageSize: number;
-  walletMinor: number;
 }) {
   const { navigate, isPending } = useFilterNavigation();
   const [target, setTarget] = useState<SheetTarget | null>(null);
@@ -126,7 +124,7 @@ export default function HomeBookingsList({
           onPageChange={(p) => navigate(`/dashboard/home-bookings?tab=${tab}&page=${p}`, { scroll: true })}
         />
       )}
-      <HomeBookingSheet target={target} open={open} onOpenChange={setOpen} walletMinor={walletMinor} />
+      <HomeBookingSheet target={target} open={open} onOpenChange={setOpen} />
     </div>
   );
 }

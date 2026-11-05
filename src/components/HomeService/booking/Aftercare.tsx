@@ -223,7 +223,7 @@ function AppealCard({
 
 const APPEAL_LINE = {
   PENDING: { tone: "warning", text: "We have your appeal and will decide within 48 hours." },
-  APPROVED: { tone: "success", text: "Your appeal was upheld. The fee is back in your wallet." },
+  APPROVED: { tone: "success", text: "Your appeal was upheld. The fee is being refunded to the account you paid with." },
   REJECTED: { tone: "neutral", text: "We looked at your appeal and the fee stands." },
 } as const;
 

@@ -11,7 +11,6 @@ import { getUserRoles } from "@/services/get-roles/getUserRoles";
 import { getHomeBooking } from "@/services/home-service/getHomeBooking";
 import { ACTIVE_HOME_STATUSES } from "@/services/home-service/types";
 import { getPaymentMethods } from "@/services/payments/getPaymentMethods";
-import { getMyWallet } from "@/services/wallet/getMyWallet";
 
 export const metadata = { title: "Your home visit" };
 
@@ -21,9 +20,9 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
 /**
  * /home-service/booking/[id]: one visit, from paying to done. Also where a
- * bKash / card trip comes back to (through the wallet result page and the
- * booking-resume cookie, `?via=bkash|sslcommerz`), and where "Try again"
- * reopens the pay panel (`?topup=1&method=`).
+ * bKash / card trip comes back to: the API sends the browser straight here
+ * (`?via=bkash|sslcommerz&pay=success|failed|cancelled`), and where "Try
+ * again" reopens the pay panel (`?method=`).
  */
 export default async function HomeBookingPage({
   params,
@@ -55,18 +54,17 @@ export default async function HomeBookingPage({
   }
   const booking = res.data;
   const active = ACTIVE_HOME_STATUSES.includes(booking.status);
-  const [walletRes, methodsRes] = active
-    ? await Promise.all([getMyWallet(), booking.status === "PENDING_PAYMENT" ? getPaymentMethods() : null])
-    : [null, null];
+  const methodsRes = active && booking.status === "PENDING_PAYMENT" ? await getPaymentMethods() : null;
 
   const via = one(sp.via);
   const method = one(sp.method);
+  const payOutcome = one(sp.pay);
   return (
     <HomeBookingView
       initial={booking}
-      walletMinor={walletRes?.success && walletRes.data ? walletRes.data.availableMinor : 0}
       methods={methodsRes?.success && methodsRes.data ? methodsRes.data : []}
       via={via === "bkash" || via === "sslcommerz" ? via : null}
+      payOutcome={payOutcome === "failed" || payOutcome === "cancelled" ? payOutcome : null}
       retryMethod={method === "BKASH" || method === "SSLCOMMERZ" ? (method as ProviderId) : null}
       ask={one(sp.review) ? "review" : one(sp.appeal) ? "appeal" : null}
     />

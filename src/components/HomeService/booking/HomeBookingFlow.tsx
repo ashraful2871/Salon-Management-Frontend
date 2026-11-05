@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, Clock, Loader2, LogIn, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarClock, Check, Clock, Loader2, LogIn, MapPin, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ import AddressStep, { addressProblem, fromSaved, type AddressDraft } from "./Add
 import { DisclaimerBox } from "./Disclaimer";
 import { homeErrorMessage, stepForCode, type BookStep } from "./errors";
 import { BD_MOBILE, dayText, normalizePhone, timeText } from "./format";
-import { PayPanel, useHomePay } from "./PayPanel";
+import { GatewayRedirectOverlay, PayPanel, useHomePay } from "./PayPanel";
 import { DayChips, TimeGroups, useHomeSlots, type SlotSource } from "./SlotPicker";
 
 const STEPS: { key: BookStep; label: string }[] = [
@@ -45,7 +45,6 @@ export type BookViewer = {
   role?: string;
   name: string;
   phone: string;
-  walletMinor: number;
   addresses: HomeAddress[];
 };
 
@@ -103,7 +102,7 @@ export default function HomeBookingFlow({
   const [creating, setCreating] = useState(false);
   const [savingPhone, setSavingPhone] = useState(false);
   const createKey = useRef<string | null>(null);
-  const { pay, pending: paying } = useHomePay();
+  const { pay, pending: paying, redirecting } = useHomePay();
 
   const chosen = useMemo(() => expert.menu.filter((m) => items.includes(m.id)), [expert.menu, items]);
   const subtotal = chosen.reduce((s, m) => s + m.priceMinor, 0);
@@ -219,7 +218,7 @@ export default function HomeBookingFlow({
     await runQuote();
   };
 
-  const book = async (method: ProviderId | "WALLET") => {
+  const book = async (method: ProviderId) => {
     const input = quoteInput();
     if (!input || !quote) return;
     setCreating(true);
@@ -463,11 +462,14 @@ export default function HomeBookingFlow({
               onAccepted={setAccepted}
               lang={lang}
               onLang={setLang}
+              addressText={[address.addressLine.trim(), address.area.trim()].filter(Boolean).join(", ")}
+              recipient={`${address.recipientName.trim()} · ${normalizePhone(address.contactPhone)}`}
+              onEdit={go}
               pay={
                 quote && (
                   <PayPanel
-                    advanceMinor={quote.advanceMinor}
-                    walletMinor={viewer.walletMinor}
+                    amountMinor={quote.advanceMinor}
+                    balanceMinor={quote.balanceMinor}
                     methods={methods}
                     pending={creating || paying}
                     disabled={quoting || timeGone || (quote.requiresAcceptance && !accepted)}
@@ -475,7 +477,7 @@ export default function HomeBookingFlow({
                     hint={
                       quote.requiresAcceptance && !accepted
                         ? "Tick “I understand” above to pay."
-                        : `We hold this time for ${quote.paymentWindowMinutes} minutes while you pay.`
+                        : `Your time is held for ${quote.paymentWindowMinutes} minutes while you pay.`
                     }
                   />
                 )
@@ -513,7 +515,7 @@ export default function HomeBookingFlow({
           </div>
         </div>
       )}
-      {step === "review" && <div className="mt-6 lg:hidden">{summary}</div>}
+      <GatewayRedirectOverlay provider={redirecting} />
     </div>
   );
 }
@@ -738,6 +740,9 @@ function Review({
   onAccepted,
   lang,
   onLang,
+  addressText,
+  recipient,
+  onEdit,
   pay,
 }: {
   quote: HomeQuote | null;
@@ -748,15 +753,21 @@ function Review({
   onAccepted: (v: boolean) => void;
   lang: "en" | "bn";
   onLang: (l: "en" | "bn") => void;
+  addressText: string;
+  recipient: string;
+  onEdit: (step: BookStep) => void;
   pay: React.ReactNode;
 }) {
   if (!quote) {
     return (
       <Panel title="Review & pay">
         {quoting || !error ? (
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" aria-hidden /> Checking the price and the time…
-          </p>
+          <div role="status" className="space-y-3">
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" aria-hidden /> Checking the price and the time…
+            </p>
+            <div className="h-40 animate-pulse rounded-3xl bg-muted" aria-hidden />
+          </div>
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-danger">{error}</p>
@@ -769,54 +780,110 @@ function Review({
     );
   }
   return (
-    <Panel title="Review & pay">
-      <div className={cn("space-y-3 rounded-3xl border border-border bg-surface p-4 sm:p-5", quoting && "opacity-60")}>
-        <dl className="space-y-1.5 text-sm">
-          {quote.items.map((it) => (
-            <div key={it.id} className="flex justify-between gap-3">
-              <dt className="min-w-0 text-muted-foreground">
-                {it.name} <span className="text-xs">· {durationText(it.durationMin)}</span>
-              </dt>
-              <dd className="tabular-nums">{formatBDT(it.priceMinor)}</dd>
-            </div>
-          ))}
-          {quote.travelFeeMinor > 0 && (
+    <Panel title="Review & pay" hint="Check your visit, then pay the advance to confirm it.">
+      <div className={cn("space-y-4 transition-opacity", quoting && "pointer-events-none opacity-60")}>
+        {/* The visit */}
+        <section aria-label="Your visit" className="divide-y divide-border rounded-3xl border border-border bg-surface">
+          <ReviewRow icon={CalendarClock} label="When" onEdit={() => onEdit("time")}>
+            <span className="font-medium text-foreground">{dayText(quote.date)}</span>
+            <span className="block text-muted-foreground">
+              {timeText(quote.startAt)}–{timeText(quote.endAt)} · {quote.expert ? quote.expert.name : "Any available expert"}
+            </span>
+          </ReviewRow>
+          <ReviewRow icon={MapPin} label="Where" onEdit={() => onEdit("address")}>
+            <span className="font-medium text-foreground">{addressText}</span>
+            <span className="block text-muted-foreground">For {recipient}</span>
+          </ReviewRow>
+        </section>
+
+        {/* The money */}
+        <section aria-label="Price" className="rounded-3xl border border-border bg-surface p-4 sm:p-5">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h3 className="font-semibold text-foreground">Price details</h3>
+            <button
+              type="button"
+              onClick={() => onEdit("services")}
+              className="cursor-pointer text-sm font-medium text-primary hover:underline"
+            >
+              Edit services
+            </button>
+          </div>
+          <dl className="space-y-2 text-sm">
+            {quote.items.map((it) => (
+              <div key={it.id} className="flex justify-between gap-3">
+                <dt className="min-w-0 text-muted-foreground">
+                  {it.name} <span className="text-xs">· {durationText(it.durationMin)}</span>
+                </dt>
+                <dd className="tabular-nums text-foreground">{formatBDT(it.priceMinor)}</dd>
+              </div>
+            ))}
             <div className="flex justify-between gap-3">
               <dt className="text-muted-foreground">Travel fee</dt>
-              <dd className="tabular-nums">{formatBDT(quote.travelFeeMinor)}</dd>
+              <dd className={cn("tabular-nums", quote.travelFeeMinor === 0 ? "font-medium text-success" : "text-foreground")}>
+                {quote.travelFeeMinor === 0 ? "Free" : formatBDT(quote.travelFeeMinor)}
+              </dd>
             </div>
-          )}
-          <div className="flex justify-between gap-3 border-t border-border pt-2 font-semibold">
-            <dt>Total</dt>
-            <dd className="tabular-nums">{formatBDT(quote.totalMinor)}</dd>
-          </div>
-        </dl>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-2xl bg-primary-soft p-3">
-            <p className="text-xs text-muted-foreground">Pay now</p>
-            <p className="text-lg font-semibold text-foreground tabular-nums">{formatBDT(quote.advanceMinor)}</p>
-          </div>
-          <div className="rounded-2xl bg-muted p-3">
-            <p className="text-xs text-muted-foreground">Pay at home</p>
-            <p className="text-lg font-semibold text-foreground tabular-nums">{formatBDT(quote.balanceMinor)}</p>
-          </div>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {quote.expert ? quote.expert.name : "Any available expert"} · {dayText(quote.date)} · {timeText(quote.startAt)}–
-          {timeText(quote.endAt)}
-        </p>
+            <div className="flex justify-between gap-3 border-t border-border pt-2.5 text-base font-semibold text-foreground">
+              <dt>Total</dt>
+              <dd className="tabular-nums">{formatBDT(quote.totalMinor)}</dd>
+            </div>
+          </dl>
+          <ol className="mt-4 grid gap-2 sm:grid-cols-2">
+            <li className="rounded-2xl border border-primary/30 bg-primary-soft p-3">
+              <p className="text-xs font-medium text-muted-foreground">Today, online · {quote.advancePercent}% advance</p>
+              <p className="text-lg font-semibold text-foreground tabular-nums">{formatBDT(quote.advanceMinor)}</p>
+            </li>
+            <li className="rounded-2xl border border-border bg-surface-subtle p-3">
+              <p className="text-xs font-medium text-muted-foreground">After the service, at home</p>
+              <p className="text-lg font-semibold text-foreground tabular-nums">{formatBDT(quote.balanceMinor)}</p>
+              <p className="text-xs text-muted-foreground">Cash or bKash to your expert</p>
+            </li>
+          </ol>
+        </section>
+
+        <DisclaimerBox
+          policy={quote.policy.policy}
+          text={quote.disclaimer}
+          lang={lang}
+          onLangChange={onLang}
+          accepted={accepted}
+          onAcceptedChange={quote.requiresAcceptance ? onAccepted : undefined}
+        />
+
+        {pay}
       </div>
-
-      <DisclaimerBox
-        policy={quote.policy.policy}
-        text={quote.disclaimer}
-        lang={lang}
-        onLangChange={onLang}
-        accepted={accepted}
-        onAcceptedChange={quote.requiresAcceptance ? onAccepted : undefined}
-      />
-
-      {pay}
     </Panel>
+  );
+}
+
+function ReviewRow({
+  icon: Icon,
+  label,
+  onEdit,
+  children,
+}: {
+  icon: typeof Clock;
+  label: string;
+  onEdit: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-3 p-4 text-sm sm:px-5">
+      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary-soft text-primary">
+        <Icon className="size-4" aria-hidden />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+        <div className="mt-0.5">{children}</div>
+      </div>
+      <button
+        type="button"
+        onClick={onEdit}
+        aria-label={`Change ${label.toLowerCase()}`}
+        className="cursor-pointer text-sm font-medium text-primary hover:underline"
+      >
+        Change
+      </button>
+    </div>
   );
 }
