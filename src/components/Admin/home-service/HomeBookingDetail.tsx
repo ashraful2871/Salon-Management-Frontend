@@ -229,7 +229,9 @@ export function HomeBookingDetail({ booking, permissions }: { booking: AdminHome
                   {booking.salon.name}
                 </Link>
               </Fact>
-              <Fact label="Expert">{booking.expert.name}</Fact>
+              <Fact label="Expert">
+                {booking.expertAssignedAt ? booking.expert.name : `Not assigned yet (time held with ${booking.expert.name})`}
+              </Fact>
             </dl>
           </Panel>
 

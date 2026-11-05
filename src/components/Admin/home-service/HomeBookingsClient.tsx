@@ -101,7 +101,9 @@ function Explorer({ response, filters }: Props) {
       cell: (b) => (
         <div className="min-w-0">
           <p className="truncate">{b.salon.name}</p>
-          <p className="truncate text-xs text-muted-foreground">{b.expert.name}</p>
+          <p className="truncate text-xs text-muted-foreground">
+            {b.expertAssignedAt ? b.expert.name : "Expert not assigned yet"}
+          </p>
         </div>
       ),
     },

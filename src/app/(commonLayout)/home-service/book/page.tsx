@@ -52,9 +52,15 @@ export default async function HomeBookPage({ searchParams }: { searchParams: Pro
 
   const saved = parseSavedLocation((await cookies()).get(LOCATION_COOKIE)?.value);
   const point = saved ? { lat: saved.lat, lng: saved.lng, label: saved.label } : null;
-  const [expertRes, role] = await Promise.all([
+  // The role is read from the cookie here (no API call), so every API read
+  // below goes out in one round instead of the customer's waiting on the expert.
+  const role = await getUserRoles();
+  const isCustomer = role === "CUSTOMER";
+  const [expertRes, addressesRes, meRes, methodsRes] = await Promise.all([
     getHomeExpert(expertId, point ? { lat: point.lat, lng: point.lng } : {}),
-    getUserRoles(),
+    isCustomer ? getHomeAddresses() : null,
+    isCustomer ? getMe() : null,
+    isCustomer ? getPaymentMethods() : null,
   ]);
   if (!expertRes.success || !expertRes.data) {
     const gone = expertRes.errorCode === "EXPERT_UNAVAILABLE" || /not found/i.test(expertRes.message);
@@ -66,11 +72,6 @@ export default async function HomeBookPage({ searchParams }: { searchParams: Pro
     );
   }
   const expert = expertRes.data;
-
-  const isCustomer = role === "CUSTOMER";
-  const [addressesRes, meRes, methodsRes] = isCustomer
-    ? await Promise.all([getHomeAddresses(), getMe(), getPaymentMethods()])
-    : [null, null, null];
 
   // The cart from the URL, kept to what this expert still offers.
   const menuIds = new Set(expert.menu.map((m) => m.id));

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useOptimistic, useState, useTransition } from "react";
-import { CalendarCheck, EllipsisVertical, Loader2 } from "lucide-react";
+import { CalendarCheck, EllipsisVertical, Loader2, UserRoundSearch } from "lucide-react";
 import { toast } from "sonner";
 
 import { DataList, type Column } from "@/components/Shared/DataList";
@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { markExpertNoShow } from "@/services/home-service/markExpertNoShow";
 import { overrideStartHome } from "@/services/home-service/overrideStartHome";
 import { ownerCancelHome } from "@/services/home-service/ownerCancelHome";
+import { assignHomeExpert } from "@/services/home-service/assignHomeExpert";
 import { reassignHome } from "@/services/home-service/reassignHome";
 import type {
   HomeAudience,
@@ -37,13 +38,16 @@ import type {
   OwnerHomeExpert,
 } from "@/services/home-service/types";
 import { dayOf, dayText, HOME_STATUS_LABEL, timeText } from "../booking/format";
-import { ReasonDialog, ReassignDialog } from "./BoardDialogs";
+import { ExpertPickDialog, ReasonDialog } from "./BoardDialogs";
 import { ADVANCE_TEXT, firstName, HOME_BASE, SIDE_LABEL } from "./format";
 
 /** An expert can be marked as not arrived from this long after the start (the API refuses before). */
 const NO_SHOW_AFTER_MS = 45 * 60 * 1000;
 
-const TABS: { value: OwnerHomeBookingTab; label: string }[] = [
+/** "needs": visits whose customer chose "any available expert" and the branch hasn't assigned yet. */
+export type BoardTab = OwnerHomeBookingTab | "needs";
+
+const TABS: { value: BoardTab; label: string }[] = [
   { value: "today", label: "Today" },
   { value: "upcoming", label: "Upcoming" },
   { value: "past", label: "Past" },
@@ -55,16 +59,20 @@ const FILTER_STATUSES = Object.keys(HOME_STATUS_LABEL).filter(
 ) as HomeBookingStatus[];
 
 export type BoardFilters = {
-  tab: OwnerHomeBookingTab;
+  tab: BoardTab;
   audience?: HomeAudience;
   expertId?: string;
   status?: HomeBookingStatus;
 };
 
-type Patch = Partial<Pick<OwnerHomeBooking, "status" | "expert" | "advanceStatus">>;
+type Patch = Partial<Pick<OwnerHomeBooking, "status" | "expert" | "advanceStatus" | "expertAssigned">>;
 const NO_PATCHES: Record<string, Patch> = {};
 
-type Target = { kind: "reassign" | "cancel" | "override" | "noShow"; booking: OwnerHomeBooking; opening: number };
+type Target = {
+  kind: "assign" | "reassign" | "cancel" | "override" | "noShow";
+  booking: OwnerHomeBooking;
+  opening: number;
+};
 
 /** The branch's visits. Rows change at once and spin alone; the server's page replaces them when the action ends. */
 export function BookingsBoard({
@@ -76,6 +84,7 @@ export function BookingsBoard({
   pageSize,
   totalPages,
   heldMinor,
+  needsExpertCount,
   experts,
   sides,
   showMoneyLink,
@@ -89,6 +98,8 @@ export function BookingsBoard({
   pageSize: number;
   totalPages: number;
   heldMinor: number;
+  /** Upcoming visits of the branch still waiting for an expert, whatever the filters. */
+  needsExpertCount: number;
   experts: OwnerHomeExpert[];
   sides: HomeAudience[];
   /** Money is the owner's alone. */
@@ -128,6 +139,19 @@ export function BookingsBoard({
     }
     const back = res.data.outcome.refundMinor + res.data.balanceReleasedMinor + res.data.outcome.salonCreditMinor;
     toast.success(`${res.message}. ${formatBDT(back)} back to the customer.`);
+  };
+
+  const assign = (booking: OwnerHomeBooking, expert: HomeReassignCandidate) => {
+    setDialogOpen(false);
+    start(async () => {
+      addPatch({
+        id: booking.id,
+        patch: { expert: { ...booking.expert, id: expert.id, name: expert.name }, expertAssigned: true },
+      });
+      const res = await assignHomeExpert(salonId, booking.id, expert.id);
+      if (res.success) toast.success(`${expert.name} is assigned. The customer has been emailed.`);
+      else showResultToast(res);
+    });
   };
 
   const reassign = (booking: OwnerHomeBooking, expert: HomeReassignCandidate, reason: string) => {
@@ -172,7 +196,20 @@ export function BookingsBoard({
       cell: (b) => (filters.tab === "today" ? timeText(b.startAt) : `${dayText(dayOf(b.startAt))} · ${timeText(b.startAt)}`),
     },
     { key: "customer", header: "Customer", mobile: "primary", cell: (b) => firstName(b.customerName) },
-    { key: "expert", header: "Expert", mobile: "secondary", cell: (b) => b.expert.name },
+    {
+      key: "expert",
+      header: "Expert",
+      mobile: "secondary",
+      // An unassigned visit's expert only holds the time; never show them as the one going.
+      cell: (b) =>
+        b.expertAssigned ? (
+          b.expert.name
+        ) : (
+          <ToneBadge status="UNASSIGNED" tone="warning">
+            Not assigned
+          </ToneBadge>
+        ),
+    },
     { key: "area", header: "Area", mobile: "secondary", cell: (b) => b.address.area ?? "—" },
     {
       key: "advance",
@@ -198,35 +235,48 @@ export function BookingsBoard({
   const actionsFor = (b: OwnerHomeBooking) => {
     const pending = b.id in patches;
     const late = now >= Date.parse(b.startAt) + NO_SHOW_AFTER_MS;
-    const canReassign = b.status === "CONFIRMED";
+    const canAssign = b.status === "CONFIRMED" && !b.expertAssigned;
+    const canReassign = b.status === "CONFIRMED" && b.expertAssigned;
     const canCancel = b.status === "CONFIRMED" || b.status === "EN_ROUTE" || b.status === "ARRIVED";
     const canOverride = b.status === "ARRIVED";
     const canNoShow = late && (b.status === "CONFIRMED" || b.status === "EN_ROUTE");
     if (pending) return <Loader2 aria-label="Saving" className="size-4 animate-spin text-muted-foreground" />;
-    if (!canReassign && !canCancel && !canOverride && !canNoShow) return null;
+    if (!canAssign && !canReassign && !canCancel && !canOverride && !canNoShow) return null;
 
     return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label={`Actions for ${b.code}`}>
-            <EllipsisVertical aria-hidden="true" />
+      <div className="flex items-center gap-1">
+        {canAssign && (
+          <Button size="sm" onClick={() => open("assign", b)}>
+            Assign expert
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {canReassign && <DropdownMenuItem onSelect={() => open("reassign", b)}>Reassign</DropdownMenuItem>}
-          {canOverride && <DropdownMenuItem onSelect={() => open("override", b)}>Override start</DropdownMenuItem>}
-          {canNoShow && <DropdownMenuItem onSelect={() => open("noShow", b)}>Expert didn&apos;t come</DropdownMenuItem>}
-          {canCancel && (
-            <DropdownMenuItem variant="destructive" onSelect={() => open("cancel", b)}>
-              Cancel as salon
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label={`Actions for ${b.code}`}>
+              <EllipsisVertical aria-hidden="true" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {canReassign && <DropdownMenuItem onSelect={() => open("reassign", b)}>Reassign</DropdownMenuItem>}
+            {canOverride && <DropdownMenuItem onSelect={() => open("override", b)}>Override start</DropdownMenuItem>}
+            {canNoShow && <DropdownMenuItem onSelect={() => open("noShow", b)}>Expert didn&apos;t come</DropdownMenuItem>}
+            {canCancel && (
+              <DropdownMenuItem variant="destructive" onSelect={() => open("cancel", b)}>
+                Cancel as salon
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     );
   };
 
+  const needsTab = filters.tab === "needs";
   const active = [filters.audience, filters.expertId, filters.status].filter(Boolean).length;
+  const tabs =
+    needsExpertCount > 0 || needsTab
+      ? [...TABS, { value: "needs" as const, label: "Needs an expert", count: needsExpertCount }]
+      : TABS;
   const sideExperts = experts.filter((e) => !filters.audience || e.audience === filters.audience);
 
   return (
@@ -246,13 +296,43 @@ export function BookingsBoard({
         </p>
       )}
 
+      {needsExpertCount > 0 && !needsTab && (
+        <section
+          role="status"
+          className="flex flex-col gap-3 rounded-2xl border border-warning/40 bg-warning-soft p-4 text-sm sm:flex-row sm:items-center"
+        >
+          <UserRoundSearch aria-hidden="true" className="size-5 shrink-0 text-warning" />
+          <p className="flex-1">
+            <span className="font-semibold">
+              {needsExpertCount} {needsExpertCount === 1 ? "visit is" : "visits are"} waiting for an expert.
+            </span>{" "}
+            The customer chose &ldquo;any available expert&rdquo;. Assign someone so they get their expert&apos;s
+            name by email.
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => navigate(hrefFor({ tab: "needs", expertId: undefined, status: undefined }))}
+          >
+            Assign now
+          </Button>
+        </section>
+      )}
+
       <FilterBar
         pending={isPending}
         chips={{
           value: filters.tab,
-          options: TABS,
+          options: tabs,
           label: "When",
-          onChange: (tab) => navigate(hrefFor({ tab: tab as OwnerHomeBookingTab })),
+          onChange: (tab) =>
+            navigate(
+              hrefFor(
+                tab === "needs"
+                  ? { tab: "needs", expertId: undefined, status: undefined }
+                  : { tab: tab as OwnerHomeBookingTab },
+              ),
+            ),
         }}
         activeCount={active}
         onClear={() => navigate(`${HOME_BASE}/bookings?tab=${filters.tab}`)}
@@ -278,38 +358,42 @@ export function BookingsBoard({
                 </SelectContent>
               </Select>
             )}
-            <Select
-              value={filters.expertId ?? ANY}
-              onValueChange={(v) => navigate(hrefFor({ expertId: v === ANY ? undefined : v }))}
-            >
-              <SelectTrigger aria-label="Expert" className="w-full md:w-44">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent position="popper">
-                <SelectItem value={ANY}>All experts</SelectItem>
-                {sideExperts.map((e) => (
-                  <SelectItem key={e.id} value={e.id}>
-                    {e.staff.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={filters.status ?? ANY}
-              onValueChange={(v) => navigate(hrefFor({ status: v === ANY ? undefined : (v as HomeBookingStatus) }))}
-            >
-              <SelectTrigger aria-label="Status" className="w-full md:w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent position="popper">
-                <SelectItem value={ANY}>All statuses</SelectItem>
-                {FILTER_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {HOME_STATUS_LABEL[s]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {!needsTab && (
+              <>
+                <Select
+                  value={filters.expertId ?? ANY}
+                  onValueChange={(v) => navigate(hrefFor({ expertId: v === ANY ? undefined : v }))}
+                >
+                  <SelectTrigger aria-label="Expert" className="w-full md:w-44">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    <SelectItem value={ANY}>All experts</SelectItem>
+                    {sideExperts.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.staff.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={filters.status ?? ANY}
+                  onValueChange={(v) => navigate(hrefFor({ status: v === ANY ? undefined : (v as HomeBookingStatus) }))}
+                >
+                  <SelectTrigger aria-label="Status" className="w-full md:w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    <SelectItem value={ANY}>All statuses</SelectItem>
+                    {FILTER_STATUSES.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {HOME_STATUS_LABEL[s]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
+            )}
           </>
         }
       />
@@ -326,8 +410,14 @@ export function BookingsBoard({
           empty={
             <EmptyState
               icon={CalendarCheck}
-              title={active ? "No visits match" : "No visits here"}
-              description={active ? "Try clearing the filters." : "Booked home visits show here."}
+              title={needsTab && !active ? "Every visit has an expert" : active ? "No visits match" : "No visits here"}
+              description={
+                needsTab && !active
+                  ? "Visits booked with “any available expert” wait here until you assign someone."
+                  : active
+                    ? "Try clearing the filters."
+                    : "Booked home visits show here."
+              }
             />
           }
         />
@@ -345,9 +435,20 @@ export function BookingsBoard({
         />
       )}
 
-      {target?.kind === "reassign" && (
-        <ReassignDialog
+      {target?.kind === "assign" && (
+        <ExpertPickDialog
           key={target.opening}
+          mode="assign"
+          booking={target.booking}
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          onConfirm={(expert) => assign(target.booking, expert)}
+        />
+      )}
+      {target?.kind === "reassign" && (
+        <ExpertPickDialog
+          key={target.opening}
+          mode="reassign"
           booking={target.booking}
           open={dialogOpen}
           onOpenChange={setDialogOpen}

@@ -184,17 +184,20 @@ export function RescheduleDialog({
   const [pending, setPending] = useState(false);
   const [blocked, setBlocked] = useState<string | null>(null);
 
+  // An assigned visit keeps its expert; one still waiting for the salon looks
+  // at every free expert of the branch (the salon assigns again after a move).
+  const assignedId = booking.expert?.id ?? null;
   const source = useMemo(
     () =>
       open
         ? {
             offeringIds: booking.items.map((i) => i.offeringId),
-            expertId: booking.expert.id,
+            ...(assignedId ? { expertId: assignedId } : { salonId: booking.salon.id }),
             lat: booking.address.latitude,
             lng: booking.address.longitude,
           }
         : null,
-    [open, booking.items, booking.expert.id, booking.address.latitude, booking.address.longitude],
+    [open, booking.items, assignedId, booking.salon.id, booking.address.latitude, booking.address.longitude],
   );
   const { days, times, reload } = useHomeSlots(source, open ? date : null);
 
@@ -205,7 +208,11 @@ export function RescheduleDialog({
   const submit = async () => {
     if (!date || !time) return;
     setPending(true);
-    const res = await rescheduleHomeBooking(booking.id, { date, startAt: time }, booking.expert.id);
+    const res = await rescheduleHomeBooking(
+      booking.id,
+      { date, startAt: time, ...(assignedId ? {} : { expertId: "ANY" as const }) },
+      booking.bookAgain.expertId,
+    );
     setPending(false);
     if (!res.success || !res.data) {
       if (res.errorCode === "RESCHEDULE_NOT_ALLOWED") return void setBlocked(res.message || homeErrorMessage(res));

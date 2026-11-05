@@ -70,18 +70,26 @@ export function ReasonDialog({
   );
 }
 
-/** The API's list of who is free and able, so nobody of the wrong side can be picked. Mounted per open. */
-export function ReassignDialog({
+/**
+ * Pick an expert from the API's list of who is free and able, so nobody of the
+ * wrong side can be picked. "assign" gives an "any available expert" visit its
+ * first expert (no reason; the customer is emailed the name); "reassign" moves
+ * an assigned one and keeps a reason. Mounted per open.
+ */
+export function ExpertPickDialog({
+  mode,
   booking,
   open,
   onOpenChange,
   onConfirm,
 }: {
+  mode: "assign" | "reassign";
   booking: OwnerHomeBooking;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (expert: HomeReassignCandidate, reason: string) => void;
 }) {
+  const assigning = mode === "assign";
   const [candidates, setCandidates] = useState<HomeReassignCandidate[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expertId, setExpertId] = useState<string | null>(null);
@@ -97,21 +105,25 @@ export function ReassignDialog({
   }, [booking.id]);
 
   const chosen = candidates?.find((c) => c.id === expertId);
-  const valid = !!chosen && reason.trim().length >= REASON_MIN;
+  const valid = !!chosen && (assigning || reason.trim().length >= REASON_MIN);
 
   return (
     <ResponsiveDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Reassign this visit"
-      description={`Now with ${booking.expert.name}. Only experts of the same side who are free then and do every service are listed.`}
+      title={assigning ? "Assign an expert" : "Reassign this visit"}
+      description={
+        assigning
+          ? `${booking.customerName.split(" ")[0]} chose any available expert. Only verified experts of the same side who are free then and do every service are listed. We email the customer their name, and the visit appears in the expert's jobs.`
+          : `Now with ${booking.expert.name}. Only experts of the same side who are free then and do every service are listed.`
+      }
       footer={
         <>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Back
           </Button>
           <Button disabled={!valid} onClick={() => chosen && onConfirm(chosen, reason.trim())}>
-            Reassign
+            {assigning ? "Assign" : "Reassign"}
           </Button>
         </>
       }
@@ -122,7 +134,11 @@ export function ReassignDialog({
         ) : error ? (
           <p className="text-sm text-danger">{error}</p>
         ) : candidates?.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No other expert is free at that time.</p>
+          <p className="text-sm text-muted-foreground">
+            {assigning
+              ? "No verified expert is free at that time. Reschedule with the customer or cancel the visit."
+              : "No other expert is free at that time."}
+          </p>
         ) : (
           <fieldset className="space-y-2">
             <legend className="sr-only">Expert</legend>
@@ -148,7 +164,9 @@ export function ReassignDialog({
             ))}
           </fieldset>
         )}
-        {!!candidates?.length && <ReasonField id="home-reassign-reason" value={reason} onChange={setReason} />}
+        {!!candidates?.length && !assigning && (
+          <ReasonField id="home-reassign-reason" value={reason} onChange={setReason} />
+        )}
       </div>
     </ResponsiveDialog>
   );

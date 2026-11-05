@@ -450,7 +450,12 @@ export type HomeBookingSummary = {
   refundedMinor: number | null;
   createdAt: string;
   salon: { id: string; name: string; area: string | null; image: string | null };
-  expert: HomeExpertSummary;
+  /** Null while an "any available expert" visit waits for the salon to assign someone. */
+  expert: HomeExpertSummary | null;
+  expertAssigned: boolean;
+  expertAssignedAt: string | null;
+  /** Where "Book again" starts (an expert who does the cart, plus whether "any" was chosen). */
+  bookAgain: { expertId: string; any: boolean };
   services: string[];
 };
 
@@ -849,7 +854,11 @@ export type OwnerHomeBooking = {
   startAt: string;
   endAt: string;
   salon: { id: string; name: string };
+  /** While `expertAssigned` is false this expert only holds the time; nobody has been told. */
   expert: { id: string; name: string; audience: HomeAudience };
+  /** False: the customer chose "any available expert" and the branch hasn't picked one yet. */
+  expertAssigned: boolean;
+  expertAssignedAt: string | null;
   customerName: string;
   recipientName: string;
   contactPhone: string;
@@ -885,6 +894,8 @@ export type OwnerHomeBookingQuery = {
   status?: HomeBookingStatus;
   audience?: HomeAudience;
   expertId?: string;
+  /** "1": only visits still waiting for an expert. */
+  needsExpert?: "1";
   from?: string;
   to?: string;
   page?: number;
@@ -942,6 +953,8 @@ export type AdminHomeBookingRow = {
   appealStatus: HomeAppealStatus | null;
   isTest: boolean;
   createdAt: string;
+  /** Null: an "any available expert" visit the branch hasn't assigned; `expert` only holds the time. */
+  expertAssignedAt: string | null;
   salon: { id: string; name: string };
   customer: { id: string; name: string; email: string };
   expert: { id: string; name: string };
@@ -1073,6 +1086,8 @@ export type HomePageMeta = {
   statusCounts?: Partial<Record<HomeReportStatus, number>>;
   /** The owner's board only: advances held for the branch's open visits, whatever the filters. */
   heldMinor?: number;
+  /** The owner's board only: upcoming visits with no expert assigned yet, whatever the filters. */
+  needsExpert?: number;
 };
 
 /** `GET /home-service/salons/:salonId/menu`: one branch's home menu for an audience. */

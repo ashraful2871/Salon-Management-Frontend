@@ -394,7 +394,7 @@ export default function HomeBookingFlow({
                   <span className="min-w-0">
                     <span className="block font-semibold text-foreground">Any available expert</span>
                     <span className="block text-sm text-muted-foreground">
-                      A verified expert from {expert.salon.name} who&apos;s free at your time
+                      {expert.salon.name} assigns a verified expert for your time and emails you their name
                     </span>
                   </span>
                 </Choice>
@@ -695,6 +695,7 @@ function Summary({
         <div className="min-w-0">
           <p className="truncate font-semibold text-foreground">{any ? "Any available expert" : expert.name}</p>
           <p className="truncate text-sm text-muted-foreground">{expert.salon.name}</p>
+          {any && <p className="text-xs text-muted-foreground">The salon assigns your expert after you book</p>}
         </div>
       </div>
       {(date || timeLabel) && (
@@ -787,7 +788,7 @@ function Review({
           <ReviewRow icon={CalendarClock} label="When" onEdit={() => onEdit("time")}>
             <span className="font-medium text-foreground">{dayText(quote.date)}</span>
             <span className="block text-muted-foreground">
-              {timeText(quote.startAt)}–{timeText(quote.endAt)} · {quote.expert ? quote.expert.name : "Any available expert"}
+              {timeText(quote.startAt)}–{timeText(quote.endAt)} · {quote.expert ? quote.expert.name : "Expert assigned by the salon"}
             </span>
           </ReviewRow>
           <ReviewRow icon={MapPin} label="Where" onEdit={() => onEdit("address")}>

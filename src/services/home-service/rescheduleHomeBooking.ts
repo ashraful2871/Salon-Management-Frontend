@@ -28,7 +28,7 @@ export const rescheduleHomeBooking = async (
     updateTag(TAGS.homeBooking(id));
     updateTag(TAGS.myHomeBookings);
     revalidateTag(TAGS.homeJobs, "max");
-    revalidateTag(TAGS.homeAvailability(result.data.expert.id), "max");
+    revalidateTag(TAGS.homeAvailability(result.data.bookAgain.expertId), "max");
     if (previousExpertId) revalidateTag(TAGS.homeAvailability(previousExpertId), "max");
     revalidateTag(TAGS.ownerHomeServiceBookings(result.data.salon.id), "max");
   }

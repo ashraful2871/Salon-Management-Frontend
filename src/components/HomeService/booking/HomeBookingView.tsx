@@ -16,6 +16,7 @@ import {
   RotateCcw,
   TimerOff,
   TriangleAlert,
+  UserRoundSearch,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -105,7 +106,7 @@ const ics = (b: HomeBooking) => {
     `DTEND:${stamp(b.endAt)}`,
     `SUMMARY:${esc(`${SIDES[b.audience].title}: ${b.services.join(", ")} (${b.code})`)}`,
     `LOCATION:${esc(where)}`,
-    `DESCRIPTION:${esc(`${b.expert.name} from ${b.salon.name}. Booking ${b.code}.`)}`,
+    `DESCRIPTION:${esc(`${b.expert ? `${b.expert.name} from ${b.salon.name}` : b.salon.name}. Booking ${b.code}.`)}`,
     "END:VEVENT",
     "END:VCALENDAR",
   ].join("\r\n");
@@ -123,7 +124,11 @@ const downloadIcs = (b: HomeBooking) => {
 };
 
 const rebookHref = (b: HomeBooking) =>
-  `/home-service/book?${new URLSearchParams({ expert: b.expert.id, items: b.items.map((i) => i.offeringId).join(",") }).toString()}`;
+  `/home-service/book?${new URLSearchParams({
+    expert: b.bookAgain.expertId,
+    items: b.items.map((i) => i.offeringId).join(","),
+    ...(b.bookAgain.any ? { any: "1" } : {}),
+  }).toString()}`;
 
 /**
  * One visit as its customer sees it: pay (with the window's countdown), then
@@ -424,6 +429,22 @@ export default function HomeBookingView({
         <>
           <StatusSteps index={stepIndex} />
 
+          {!b.expertAssigned && (
+            <section
+              role="status"
+              className={cn("flex gap-3 rounded-3xl border border-warning/40 p-4 sm:p-5", TONE_CLASSES.warning.soft)}
+            >
+              <UserRoundSearch className="mt-0.5 size-6 shrink-0 text-warning" aria-hidden />
+              <div className="space-y-1 text-sm">
+                <p className="font-semibold text-foreground">Your expert is being assigned</p>
+                <p className="text-muted-foreground">
+                  Your time is booked. {b.salon.name} is choosing a verified expert for your visit, and we&apos;ll email
+                  you their name as soon as they do. You don&apos;t need to do anything.
+                </p>
+              </div>
+            </section>
+          )}
+
           {b.startCode && (
             <section
               aria-label="Start code"
@@ -464,23 +485,35 @@ export default function HomeBookingView({
       />
 
       <Card>
-        <div className="flex items-center gap-3">
-          <ExpertAvatar
-            name={b.expert.name}
-            photo={b.expert.photo}
-            className="size-12"
-          />
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold text-foreground">{b.expert.name}</p>
-            <p className="truncate text-sm text-muted-foreground">
-              {b.salon.name}
-            </p>
-            <RatingLine
-              rating={b.expert.rating}
-              reviews={b.expert.totalReviews}
+        {b.expert ? (
+          <div className="flex items-center gap-3">
+            <ExpertAvatar
+              name={b.expert.name}
+              photo={b.expert.photo}
+              className="size-12"
             />
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-foreground">{b.expert.name}</p>
+              <p className="truncate text-sm text-muted-foreground">
+                {b.salon.name}
+              </p>
+              <RatingLine
+                rating={b.expert.rating}
+                reviews={b.expert.totalReviews}
+              />
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <span className="grid size-12 shrink-0 place-items-center rounded-full bg-warning-soft text-warning">
+              <UserRoundSearch className="size-6" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-foreground">Expert not assigned yet</p>
+              <p className="truncate text-sm text-muted-foreground">{b.salon.name}</p>
+            </div>
+          </div>
+        )}
         <dl className="mt-4 space-y-3 text-sm">
           <Row icon={Clock} label="When">
             {when}

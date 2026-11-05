@@ -19,7 +19,7 @@ const filtersFrom = (sp: SearchParams): BoardFilters => {
   const audience = one(sp.audience);
   const status = one(sp.status);
   return {
-    tab: tab === "upcoming" || tab === "past" ? tab : "today",
+    tab: tab === "upcoming" || tab === "past" || tab === "needs" ? tab : "today",
     audience: audience === "LADIES" || audience === "GENTS" ? (audience as HomeAudience) : undefined,
     expertId: one(sp.expertId),
     status: status && status in HOME_STATUS_LABEL ? (status as HomeBookingStatus) : undefined,
@@ -29,7 +29,11 @@ const filtersFrom = (sp: SearchParams): BoardFilters => {
 async function Board({ home, filters, page }: { home: OwnerHomeProfile; filters: BoardFilters; page: number }) {
   const salonId = home.salon.id;
   const [res, experts] = await Promise.all([
-    getOwnerHomeBookings({ salonId, ...filters, page }),
+    getOwnerHomeBookings(
+      filters.tab === "needs"
+        ? { salonId, audience: filters.audience, needsExpert: "1", page }
+        : { salonId, ...filters, tab: filters.tab, page },
+    ),
     getOwnerHomeExperts(salonId),
   ]);
   if (!res.success || !res.data) {
@@ -46,6 +50,7 @@ async function Board({ home, filters, page }: { home: OwnerHomeProfile; filters:
       pageSize={res.meta?.limit ?? PAGE_SIZE}
       totalPages={Math.ceil(total / (res.meta?.limit ?? PAGE_SIZE))}
       heldMinor={res.meta?.heldMinor ?? 0}
+      needsExpertCount={res.meta?.needsExpert ?? 0}
       experts={experts.data ?? []}
       sides={home.allowedSides}
       showMoneyLink={home.canSwitch}
