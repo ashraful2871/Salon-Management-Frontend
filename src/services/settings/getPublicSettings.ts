@@ -82,7 +82,7 @@ type HomeServiceKey = Extract<keyof PublicSettings, `homeService.${string}`>;
 export const HOME_SERVICE_DEFAULTS = {
   "homeService.enabled": true,
   "homeService.ladiesEnabled": true,
-  "homeService.gentsEnabled": false,
+  "homeService.gentsEnabled": true,
   "homeService.customerCancelPolicy": "FREE",
   "homeService.nonRefundableGraceMinutes": 0,
   "homeService.disclaimer.free": "",

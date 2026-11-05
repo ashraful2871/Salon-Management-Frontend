@@ -350,6 +350,38 @@
   * {
     @apply border-border outline-ring/50;
   }
+
+  /* Slim scrollbars everywhere: a soft rounded thumb on a clear track and no
+     arrow buttons, instead of the OS's thick grey bar. Chrome, Edge and Safari
+     read the pseudo-elements; Firefox only the standard pair below. Utilities
+     such as [scrollbar-width:none] still win, so hidden bars stay hidden. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background-clip: padding-box;
+    background-color: color-mix(in oklab, var(--muted-foreground) 30%, transparent);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    border-width: 2px;
+    background-color: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
+  }
+  ::-webkit-scrollbar-button {
+    display: none;
+  }
+  @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: color-mix(in oklab, var(--muted-foreground) 35%, transparent) transparent;
+    }
+  }
   body {
     @apply bg-background text-foreground;
   }

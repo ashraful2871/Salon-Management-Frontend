@@ -23,9 +23,12 @@ export default function SalonHomeBand({
           <House className="size-5" aria-hidden />
         </span>
         <div>
-          <p className="font-display font-semibold text-foreground">This salon also comes to your home</p>
+          <p className="font-display font-semibold text-foreground">
+            This salon also comes to your home
+          </p>
           <p className="text-sm text-muted-foreground">
-            {sides.ladies ? "Female, ID-verified experts for ladies. " : ""}Pay an advance now, the rest at home.
+            {sides.ladies ? "Female, ID-verified experts for ladies. " : ""}Pay
+            an advance now, the rest at home.
           </p>
         </div>
       </div>

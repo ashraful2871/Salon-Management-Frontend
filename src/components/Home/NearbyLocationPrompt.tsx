@@ -50,11 +50,7 @@ export default function NearbyLocationPrompt({
             aria-busy={locating}
             className="w-full sm:w-auto"
           >
-            {locating ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <LocateFixed />
-            )}
+            {locating ? <Loader2 className="animate-spin" /> : <LocateFixed />}
             {locating ? "Finding you…" : "Use my current location"}
           </Button>
           <Button

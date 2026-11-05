@@ -117,6 +117,16 @@ const canAssign = (row: AppointmentRow, role: string) =>
 
 /* ---------- Cells ---------- */
 
+/** "TS" from "Tahmina Sultana", "T" from "tahmina@…". */
+const initialsOf = (name: string) =>
+  name
+    .replace(/@.*$/, "")
+    .split(/[\s._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("") || "?";
+
 const SerialPill = ({ serial }: { serial: number }) => (
   <span className="inline-flex h-6 min-w-7 items-center justify-center rounded-md bg-primary-soft px-1.5 text-xs font-bold text-primary-hover tabular-nums">
     #{serial}
@@ -155,7 +165,14 @@ export const salonColumns = ({
       ) : (
         <div className="flex flex-col items-start gap-1">
           {r.serial !== null && <SerialPill serial={r.serial} />}
-          {r.token && <TokenPill token={r.token} />}
+          {r.token && (
+            <span
+              className="whitespace-nowrap font-mono text-[11px] font-medium tracking-wider text-muted-foreground"
+              title="Booking token"
+            >
+              {r.token}
+            </span>
+          )}
         </div>
       ),
     mobileCell: (r) => (r.serial !== null ? `#${r.serial}` : null),
@@ -165,11 +182,22 @@ export const salonColumns = ({
     header: "Customer",
     mobile: "primary",
     cell: (r) => (
-      <div className="min-w-0">
-        <p className="break-words font-medium text-foreground">{r.customer}</p>
-        {r.contact && (
-          <p className="break-all text-xs text-muted-foreground">{r.contact}</p>
-        )}
+      <div className="flex min-w-0 items-center gap-3">
+        <span
+          aria-hidden="true"
+          className="grid size-9 shrink-0 place-items-center rounded-full bg-primary-soft text-xs font-semibold text-primary-hover"
+        >
+          {initialsOf(r.customer)}
+        </span>
+        <div className="min-w-0">
+          <p className="break-words font-medium text-foreground">{r.customer}</p>
+          {r.contact && (
+            // Phone first: it is what the desk calls.
+            <p className="max-w-[20rem] truncate text-xs text-muted-foreground" title={r.contact}>
+              {r.contact.split(" · ").reverse().join(" · ")}
+            </p>
+          )}
+        </div>
       </div>
     ),
     mobileCell: (r) => r.customer,

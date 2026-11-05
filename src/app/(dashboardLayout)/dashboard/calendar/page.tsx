@@ -35,7 +35,11 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
   const header = (
     <PageHeader
       title="Calendar"
-      description={role === "STAFF" ? "Your bookings, by time." : "Run the day: every stylist or counter, by time."}
+      description={
+        role === "STAFF"
+          ? "Your bookings for the day and the week, by time."
+          : "See who is free and when, and book customers at the desk in a few taps."
+      }
     />
   );
 
@@ -53,7 +57,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
   }
 
   const [calendar, list] = await Promise.all([
-    getCalendar({ salonId, from: view === "week" ? weekStart(date) : date, view }),
+    // The whole week either way: the day view's strip shows every day's free times.
+    getCalendar({ salonId, from: weekStart(date), view: "week" }),
     view === "day" ? getAllAppointments({ date, salonId, limit: 100 }) : null,
   ]);
 
@@ -85,6 +90,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Sea
         today={today}
         nowHHmm={dhakaNow()}
         openId={first(params.open)}
+        openBook={first(params.book) === "1"}
       />
     </>
   );
