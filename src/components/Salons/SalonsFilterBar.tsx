@@ -1,10 +1,9 @@
 "use client";
 import { track } from "@/lib/track";
-import { MapPin, Search, SlidersHorizontal, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowUpDown, Search, SlidersHorizontal, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
 import {
   Select,
   SelectContent,
@@ -13,72 +12,81 @@ import {
   SelectValue,
 } from "../ui/select";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "../ui/sheet";
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "../ui/drawer";
 import { PendingBar } from "../Shared/PendingRegion";
-import { BANGLADESH_LOCATIONS } from "@/constants/bangladesh-locations";
 import { SERVICE_CATEGORIES } from "@/constants/service-categories";
 import { cn } from "@/lib/utils";
+import type { ApiResponse, SalonArea } from "@/lib/api-types";
+import LocationFilter from "./LocationFilter";
+import type { ListLocation, ListNoun, SalonSort } from "./types";
 import { useSalonsUrl } from "./useSalonsUrl";
 
-const ALL_DIVISIONS = BANGLADESH_LOCATIONS.map((d) => d.division).sort();
-
 const CHIP =
-  "inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:h-11";
+  "inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const CHIP_IDLE =
   "border-border bg-surface text-foreground hover:border-primary/40 hover:bg-primary-soft";
-const CHIP_SELECTED = "border-transparent bg-foreground text-background";
+const CHIP_SELECTED =
+  "border-primary bg-primary text-primary-foreground shadow-xs hover:bg-primary-hover";
 
-type Place = { division: string; district: string; area: string };
+export const SORT_LABELS: Record<SalonSort, string> = {
+  distance: "Nearest",
+  rating: "Top rated",
+  newest: "Newest",
+};
 
 // Each also lists unisex salons, which serve both.
 const AUDIENCE_OPTIONS = [
+  { value: null, label: "All" },
   { value: "LADIES", label: "Ladies" },
   { value: "GENTS", label: "Gents" },
 ] as const;
 
+type AudienceValue = (typeof AUDIENCE_OPTIONS)[number]["value"];
+
 /**
- * The salon list's search, area and service filters. It sticks under the
- * navbar and never waits for the list: every change is a URL navigation, and
- * the results below dim until the new list is ready.
+ * The salon list's search, location, sort and service filters. It sticks
+ * under the navbar and never waits for the list: every change is a URL
+ * navigation, and the results below dim until the new list is ready.
  */
 export default function SalonsFilterBar({
   audience: pinnedAudience,
+  location,
+  areas,
+  sort,
+  noun,
 }: {
-  /** The page lists one audience only (the gents parlour page): no Ladies / Gents switch. */
-  audience?: (typeof AUDIENCE_OPTIONS)[number]["value"];
+  /** The page lists one audience only (the ladies and gents pages): no Ladies / Gents switch. */
+  audience?: "LADIES" | "GENTS";
+  location: ListLocation;
+  areas: Promise<ApiResponse<SalonArea[]>>;
+  /** The order the list is in (the default when the URL names none). */
+  sort: SalonSort;
+  noun: ListNoun;
 }) {
   const { searchParams, navigate } = useSalonsUrl();
   const barRef = useRef<HTMLDivElement>(null);
-
-  const placeFromUrl = (): Place => ({
-    division: searchParams.get("division") || "",
-    district: searchParams.get("district") || "",
-    area: searchParams.get("area") || "",
-  });
+  const chipRowRef = useRef<HTMLDivElement>(null);
 
   const [search, setSearch] = useState(searchParams.get("searchTerm") || "");
-  const [place, setPlace] = useState<Place>(placeFromUrl);
-  // Phones keep the three area selects in a bottom sheet.
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  // Back/forward changes the URL without remounting: pull the inputs back in
+  // Back/forward changes the URL without remounting: pull the input back in
   // line with it during render rather than in an effect.
   const paramsKey = searchParams.toString();
   const [syncedParams, setSyncedParams] = useState(paramsKey);
   if (syncedParams !== paramsKey) {
     setSyncedParams(paramsKey);
     setSearch(searchParams.get("searchTerm") || "");
-    setPlace(placeFromUrl());
   }
 
   // The results below offset their scroll targets and the sticky map by the
-  // bar's height, which changes as the chips wrap.
+  // bar's height.
   useEffect(() => {
     const bar = barRef.current;
     const holder = bar?.parentElement;
@@ -90,354 +98,428 @@ export default function SalonsFilterBar({
     return () => observer.disconnect();
   }, []);
 
-  const updateUrl = (newDiv: string, newDist: string, newArea: string) => {
-    navigate({
-      searchTerm: search.trim(),
-      division: newDiv,
-      district: newDist,
-      area: newArea,
-    });
-  };
+  const hasPoint = location.kind === "near";
+  const sortOptions: SalonSort[] = hasPoint
+    ? ["distance", "rating", "newest"]
+    : ["rating", "newest"];
 
   const category = searchParams.get("category");
-  const setCategory = (value: string | null) => navigate({ category: value });
 
-  const audience = pinnedAudience
+  // A service picked in the drawer (or from a shared link) may sit past the
+  // edge of the swipeable row: bring its chip into view, without moving the
+  // page itself.
+  useEffect(() => {
+    const row = chipRowRef.current;
+    const chip = row?.querySelector<HTMLElement>(
+      `[data-category="${category ?? ""}"]`,
+    );
+    if (!row || !chip || row.scrollWidth <= row.clientWidth) return;
+    const left = chip.offsetLeft - row.offsetLeft;
+    if (left < row.scrollLeft || left + chip.offsetWidth > row.scrollLeft + row.clientWidth) {
+      row.scrollTo({ left: Math.max(0, left - 16), behavior: "smooth" });
+    }
+  }, [category]);
+
+  const audience: AudienceValue = pinnedAudience
     ? null
     : (AUDIENCE_OPTIONS.find((o) => o.value === searchParams.get("audience"))
         ?.value ?? null);
-  const setAudience = (value: string | null) => navigate({ audience: value });
 
-  const clearFilters = () => {
-    setSearch("");
-    setPlace({ division: "", district: "", area: "" });
-    navigate({
-      searchTerm: null,
-      division: null,
-      district: null,
-      area: null,
-      category: null,
-      audience: null,
-    });
+  const submitSearch = (value: string) => {
+    track("search_submitted", "source:salons_page");
+    navigate({ searchTerm: value.trim() || null });
   };
 
-  const locationFilterCount = [
-    searchParams.get("division"),
-    searchParams.get("district"),
-    searchParams.get("area"),
-  ].filter(Boolean).length;
-  const activeFilterCount =
-    locationFilterCount +
-    [searchParams.get("searchTerm"), category, audience].filter(Boolean).length;
+  // What the phone's Filters button counts: what lives behind it.
+  const sheetCount = (category ? 1 : 0) + (audience ? 1 : 0);
 
-  // Closing the sheet without "Show salons" drops what was picked in it.
-  const closeSheet = (apply: boolean) => {
-    if (apply) updateUrl(place.division, place.district, place.area);
-    else setPlace(placeFromUrl());
-    setFiltersOpen(false);
-  };
+  const serviceChips = (
+    <>
+      <button
+        type="button"
+        onClick={() => navigate({ category: null })}
+        aria-pressed={!category}
+        data-category=""
+        className={cn(CHIP, category ? CHIP_IDLE : CHIP_SELECTED)}
+      >
+        All services
+      </button>
+      {SERVICE_CATEGORIES.map((c) => {
+        const Icon = c.icon;
+        const selected = category === c.value;
+        return (
+          <button
+            key={c.value}
+            type="button"
+            onClick={() => navigate({ category: selected ? null : c.value })}
+            aria-pressed={selected}
+            data-category={c.value}
+            className={cn(CHIP, selected ? CHIP_SELECTED : CHIP_IDLE)}
+          >
+            <Icon className="size-3.5" aria-hidden="true" />
+            {c.label}
+          </button>
+        );
+      })}
+    </>
+  );
 
   return (
     <div
       ref={barRef}
-      className="sticky top-16 z-20 border-b border-border/60 bg-background/95"
+      className="sticky top-16 z-20 border-b border-border/60 bg-background/95 shadow-[0_1px_0_0_rgb(0_0_0/0.02)] supports-[backdrop-filter]:bg-background/90"
     >
-      <div className="container mx-auto space-y-3 px-4 py-3 sm:px-6 lg:px-8">
-        {/* Row 1: search, and the area selects beside it from md. */}
-        <div className="md:grid md:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))] md:gap-3">
-          <form
-            role="search"
-            className="flex items-center gap-1.5 rounded-full border border-border bg-surface p-1.5 transition-colors focus-within:border-primary/60"
-            onSubmit={(e) => {
-              e.preventDefault();
-              track("search_submitted", "source:salons_page");
-              updateUrl(place.division, place.district, place.area);
-            }}
-          >
-            <div className="relative min-w-0 flex-1">
-              <Search
-                aria-hidden="true"
-                className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground"
-              />
-              <Input
-                type="search"
-                placeholder="Search salon or service"
-                aria-label="Search salons"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-10 rounded-full border-0 bg-transparent pl-10 pr-9 text-base shadow-none focus-visible:ring-0 md:text-sm [&::-webkit-search-cancel-button]:hidden"
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch("")}
-                  aria-label="Clear search"
-                  className="absolute right-1 top-1/2 grid size-8 -translate-y-1/2 cursor-pointer place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                >
-                  <X className="size-4" />
-                </button>
-              )}
-            </div>
-            <Button type="submit" className="shrink-0">
-              <Search className="sm:hidden" aria-hidden="true" />
-              <span className="max-sm:sr-only">Search</span>
-            </Button>
-          </form>
-
-          <LocationSelects
-            place={place}
-            onChange={(next) => {
-              setPlace(next);
-              updateUrl(next.division, next.district, next.area);
-            }}
-            wrapperClassName="hidden md:block"
-            triggerClassName="rounded-full data-[size=default]:h-13 md:data-[size=default]:h-13"
+      <div className="container mx-auto space-y-2.5 px-4 py-2.5 sm:px-6 md:space-y-3 md:py-3 lg:px-8">
+        {/* Row 1: search; from md also location, sort and Ladies / Gents. */}
+        <div className="flex items-center gap-2 md:gap-3">
+          <SearchField
+            value={search}
+            onChange={setSearch}
+            onSubmit={submitSearch}
+            placeholder="Search by name or service"
           />
-        </div>
 
-        {/* Row 2: the Filters sheet on phones and Ladies / Gents, then the
-            service chips (their own swipeable row on phones). */}
-        <div className="flex flex-col gap-2 md:flex-row md:items-center">
-          <div className={cn("flex items-center gap-2", pinnedAudience && "md:hidden")}>
-            <Button
-              type="button"
-              variant="outline"
-              className="shrink-0 md:hidden"
-              onClick={() => setFiltersOpen(true)}
-              aria-haspopup="dialog"
+          <LocationFilter
+            variant="field"
+            location={location}
+            areas={areas}
+            noun={noun}
+            className="hidden w-60 shrink-0 md:flex lg:w-72"
+          />
+
+          <div className="hidden shrink-0 md:block">
+            <Select
+              value={sort}
+              onValueChange={(value) => navigate({ sort: value })}
             >
-              <SlidersHorizontal aria-hidden="true" />
-              Filters
-              {locationFilterCount > 0 && (
-                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">
-                  {locationFilterCount}
-                </span>
-              )}
-            </Button>
-
-            {!pinnedAudience && (
-              <>
-                <div
-                  role="group"
-                  aria-label="Ladies or gents"
-                  className="inline-flex shrink-0 rounded-full border border-border bg-surface p-1"
-                >
-                  {[{ value: null, label: "All" }, ...AUDIENCE_OPTIONS].map((o) => (
-                    <button
-                      key={o.label}
-                      type="button"
-                      onClick={() => setAudience(o.value)}
-                      aria-pressed={audience === o.value}
-                      className={cn(
-                        "h-8 cursor-pointer rounded-full px-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:h-9",
-                        audience === o.value
-                          ? "bg-foreground text-background"
-                          : "text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {o.label}
-                    </button>
-                  ))}
-                </div>
-
-                <span aria-hidden="true" className="hidden h-6 w-px shrink-0 bg-border md:block" />
-              </>
-            )}
+              <SelectTrigger
+                aria-label={`Sort ${noun.many}`}
+                className="w-40 rounded-full border-border bg-surface shadow-none data-[size=default]:h-12 md:data-[size=default]:h-12"
+              >
+                <span className="text-muted-foreground">Sort:</span>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="end">
+                {sortOptions.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {SORT_LABELS[value]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div
-            role="group"
-            aria-label="Filter by service"
-            className="-mx-4 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto px-4 py-0.5 [scrollbar-width:none] sm:-mx-6 sm:px-6 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden"
+          {!pinnedAudience && (
+            <AudienceSwitch
+              value={audience}
+              onChange={(value) => navigate({ audience: value })}
+              className="hidden lg:inline-flex"
+            />
+          )}
+
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="relative size-11 shrink-0 rounded-full md:hidden"
+            onClick={() => setFiltersOpen(true)}
+            aria-haspopup="dialog"
+            aria-label={sheetCount ? `Filters, ${sheetCount} set` : "Filters"}
           >
-            <button
-              type="button"
-              onClick={() => setCategory(null)}
-              aria-pressed={!category}
-              className={cn(CHIP, category ? CHIP_IDLE : CHIP_SELECTED)}
-            >
-              All
-            </button>
-            {SERVICE_CATEGORIES.map((c) => (
-              <button
-                key={c.value}
-                type="button"
-                onClick={() => setCategory(c.value)}
-                aria-pressed={category === c.value}
-                className={cn(
-                  CHIP,
-                  category === c.value ? CHIP_SELECTED : CHIP_IDLE,
-                )}
-              >
-                {c.label}
-              </button>
-            ))}
-            {activeFilterCount > 0 && (
-              <Button
-                type="button"
-                variant="link"
-                size="sm"
-                className="shrink-0 px-2"
-                onClick={clearFilters}
-              >
-                Clear all
-              </Button>
+            <SlidersHorizontal aria-hidden="true" />
+            {sheetCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">
+                {sheetCount}
+              </span>
             )}
+          </Button>
+        </div>
+
+        {/* Row 2, phones: where (left) and in what order (right). Services
+            live in the Filters drawer, so the bar stays two short rows. */}
+        <div className="flex items-center justify-between gap-3 md:hidden">
+          <LocationFilter
+            variant="chip"
+            location={location}
+            areas={areas}
+            noun={noun}
+            className="min-w-0 max-w-[62%]"
+          />
+          <Select value={sort} onValueChange={(value) => navigate({ sort: value })}>
+            <SelectTrigger
+              aria-label={`Sort ${noun.many}`}
+              className="h-9 shrink-0 gap-1.5 rounded-full border-border bg-surface px-3 text-sm font-medium shadow-none data-[size=default]:h-9 [&>svg:last-child]:size-3.5"
+            >
+              <ArrowUpDown className="size-3.5 text-muted-foreground" aria-hidden="true" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end">
+              {sortOptions.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {SORT_LABELS[value]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Row 2, tablets and up: the services, one swipeable line. */}
+        <div className="hidden items-center gap-2 md:flex">
+          <div className="relative min-w-0 flex-1">
+            <div
+              ref={chipRowRef}
+              role="group"
+              aria-label="Filter by service"
+              className="-mr-4 flex items-center gap-2 overflow-x-auto py-0.5 pr-4 [scrollbar-width:none] sm:-mr-6 sm:pr-6 lg:mr-0 lg:pr-0 [&::-webkit-scrollbar]:hidden"
+            >
+              {!pinnedAudience && (
+                <AudienceSwitch
+                  value={audience}
+                  onChange={(value) => navigate({ audience: value })}
+                  className="hidden md:inline-flex lg:hidden"
+                />
+              )}
+              {serviceChips}
+            </div>
+            {/* A fade at the right edge says the row scrolls. */}
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 -right-4 w-10 bg-gradient-to-l from-background to-transparent sm:-right-6 lg:right-0"
+            />
           </div>
         </div>
       </div>
 
       <PendingBar className="absolute inset-x-0 -bottom-px rounded-none" />
 
-      <Sheet
+      <FiltersDrawer
         open={filtersOpen}
-        onOpenChange={(open) => (open ? setFiltersOpen(true) : closeSheet(false))}
-      >
-        <SheetContent
-          side="bottom"
-          className="rounded-t-2xl pb-[env(safe-area-inset-bottom)]"
-        >
-          <SheetHeader>
-            <SheetTitle>Filter by area</SheetTitle>
-            <SheetDescription>
-              Pick a division, then narrow it down to a district and area.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="grid gap-3 px-4">
-            <LocationSelects
-              place={place}
-              onChange={setPlace}
-              triggerClassName="data-[size=default]:h-12 md:data-[size=default]:h-12"
-            />
-          </div>
-          <SheetFooter className="flex-row">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setPlace({ division: "", district: "", area: "" })}
-            >
-              Clear
-            </Button>
-            <Button
-              type="button"
-              className="flex-1"
-              onClick={() => closeSheet(true)}
-            >
-              Show salons
-            </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+        onOpenChange={setFiltersOpen}
+        category={category}
+        audience={audience}
+        showAudience={!pinnedAudience}
+        onApply={(next) => {
+          navigate({
+            category: next.category,
+            ...(pinnedAudience ? {} : { audience: next.audience }),
+          });
+          setFiltersOpen(false);
+        }}
+      />
     </div>
   );
 }
 
-/** Division → district → area; picking one clears the levels below it. */
-function LocationSelects({
-  place,
+function SearchField({
+  value,
   onChange,
-  wrapperClassName,
-  triggerClassName,
+  onSubmit,
+  placeholder,
 }: {
-  place: Place;
-  onChange: (next: Place) => void;
-  wrapperClassName?: string;
-  triggerClassName?: string;
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: (value: string) => void;
+  placeholder: string;
 }) {
-  const { division, district, area } = place;
-
-  const AVAILABLE_DISTRICTS = useMemo(() => {
-    if (!division) return [];
-    const div = BANGLADESH_LOCATIONS.find((d) => d.division === division);
-    return div ? div.districts.map((d) => d.district).sort() : [];
-  }, [division]);
-
-  const AVAILABLE_AREAS = useMemo(() => {
-    if (!division || !district) return [];
-    const div = BANGLADESH_LOCATIONS.find((d) => d.division === division);
-    if (!div) return [];
-    const dist = div.districts.find((d) => d.district === district);
-    return dist ? [...dist.areas].sort() : [];
-  }, [division, district]);
-
-  const trigger = cn(
-    "w-full border-border bg-surface pl-10 shadow-none",
-    triggerClassName,
-  );
-  const pin = (dim: boolean) => (
-    <MapPin
-      aria-hidden="true"
-      className={cn(
-        "pointer-events-none absolute left-3.5 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground",
-        dim && "opacity-60",
+  return (
+    <form
+      role="search"
+      className="flex h-11 min-w-0 flex-1 items-center gap-1 rounded-full border border-border bg-surface pl-3.5 pr-1 transition-colors focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/15 md:h-12"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit(value);
+      }}
+    >
+      <Search aria-hidden="true" className="size-4.5 shrink-0 text-muted-foreground" />
+      <input
+        type="search"
+        enterKeyHint="search"
+        placeholder={placeholder}
+        aria-label={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-base outline-none placeholder:text-muted-foreground md:text-sm [&::-webkit-search-cancel-button]:hidden"
+      />
+      {value && (
+        <button
+          type="button"
+          onClick={() => {
+            onChange("");
+            onSubmit("");
+          }}
+          aria-label="Clear search"
+          className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          <X className="size-4" />
+        </button>
       )}
-    />
+      <Button type="submit" size="sm" className="hidden h-9 shrink-0 rounded-full px-4 md:inline-flex md:h-10">
+        Search
+      </Button>
+    </form>
   );
-  const fromSelect = (value: string) => (value === "all" ? "" : value);
+}
+
+function AudienceSwitch({
+  value,
+  onChange,
+  className,
+}: {
+  value: AudienceValue;
+  onChange: (value: AudienceValue) => void;
+  className?: string;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Ladies or gents"
+      className={cn(
+        "shrink-0 rounded-full border border-border bg-surface p-1",
+        className,
+      )}
+    >
+      {AUDIENCE_OPTIONS.map((o) => (
+        <button
+          key={o.label}
+          type="button"
+          onClick={() => onChange(o.value)}
+          aria-pressed={value === o.value}
+          className={cn(
+            "h-8 cursor-pointer rounded-full px-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:h-9",
+            value === o.value
+              ? "bg-primary text-primary-foreground shadow-xs"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+type DrawerChoice = {
+  category: string | null;
+  audience: AudienceValue;
+};
+
+/**
+ * Phones: the service (and Ladies / Gents on /salons) in one short bottom
+ * drawer; sort has its own dropdown in the bar. The picks apply together on
+ * "Show results"; dismissing it drops them.
+ */
+function FiltersDrawer({
+  open,
+  onOpenChange,
+  category,
+  audience,
+  showAudience,
+  onApply,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  category: string | null;
+  audience: AudienceValue;
+  showAudience: boolean;
+  onApply: (choice: DrawerChoice) => void;
+}) {
+  const current: DrawerChoice = { category, audience };
+  const [draft, setDraft] = useState<DrawerChoice>(current);
+  // Every open starts from what the list shows now.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setDraft(current);
+  }
+
+  const pill = (selected: boolean) =>
+    cn(
+      "inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      selected ? CHIP_SELECTED : CHIP_IDLE,
+    );
 
   return (
-    <>
-      <div className={cn("relative", wrapperClassName)}>
-        {pin(false)}
-        <Select
-          value={division || "all"}
-          onValueChange={(value) =>
-            onChange({ division: fromSelect(value), district: "", area: "" })
-          }
-        >
-          <SelectTrigger aria-label="Division" className={trigger}>
-            <SelectValue placeholder="Select division" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All divisions</SelectItem>
-            {ALL_DIVISIONS.map((div) => (
-              <SelectItem key={div} value={div}>{div}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent className="max-h-[85dvh] data-[vaul-drawer-direction=bottom]:max-h-[85dvh] data-[vaul-drawer-direction=bottom]:rounded-t-3xl">
+        <DrawerHeader className="pb-1 text-left">
+          <DrawerTitle className="text-base">Filters</DrawerTitle>
+          <DrawerDescription className="text-xs">
+            Narrow the list, then show the results.
+          </DrawerDescription>
+        </DrawerHeader>
 
-      <div className={cn("relative", wrapperClassName)}>
-        {pin(true)}
-        <Select
-          value={district || "all"}
-          onValueChange={(value) =>
-            onChange({ division, district: fromSelect(value), area: "" })
-          }
-          disabled={!division}
-        >
-          <SelectTrigger aria-label="District" className={trigger}>
-            <SelectValue placeholder="Select district" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All districts</SelectItem>
-            {AVAILABLE_DISTRICTS.map((dist) => (
-              <SelectItem key={dist} value={dist}>{dist}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-4 py-3">
+          {showAudience && (
+            <fieldset className="space-y-2">
+              <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                For
+              </legend>
+              <div className="flex flex-wrap gap-2">
+                {AUDIENCE_OPTIONS.map((o) => (
+                  <button
+                    key={o.label}
+                    type="button"
+                    aria-pressed={draft.audience === o.value}
+                    onClick={() => setDraft((d) => ({ ...d, audience: o.value }))}
+                    className={pill(draft.audience === o.value)}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          )}
 
-      <div className={cn("relative", wrapperClassName)}>
-        {pin(true)}
-        <Select
-          value={area || "all"}
-          onValueChange={(value) =>
-            onChange({ division, district, area: fromSelect(value) })
-          }
-          disabled={!district}
-        >
-          <SelectTrigger aria-label="Area" className={trigger}>
-            <SelectValue placeholder="Select area" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All areas</SelectItem>
-            {AVAILABLE_AREAS.map((a) => (
-              <SelectItem key={a} value={a}>{a}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    </>
+          <fieldset className="space-y-2">
+            <legend className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Service
+            </legend>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                aria-pressed={!draft.category}
+                onClick={() => setDraft((d) => ({ ...d, category: null }))}
+                className={pill(!draft.category)}
+              >
+                All services
+              </button>
+              {SERVICE_CATEGORIES.map((c) => {
+                const Icon = c.icon;
+                const selected = draft.category === c.value;
+                return (
+                  <button
+                    key={c.value}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() =>
+                      setDraft((d) => ({ ...d, category: selected ? null : c.value }))
+                    }
+                    className={pill(selected)}
+                  >
+                    <Icon className="size-3.5" aria-hidden="true" />
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        </div>
+
+        <DrawerFooter className="flex-row gap-2 border-t border-border/70 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() =>
+              setDraft({ category: null, audience: null })
+            }
+          >
+            Reset
+          </Button>
+          <Button type="button" className="flex-1" onClick={() => onApply(draft)}>
+            Show results
+          </Button>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   );
 }

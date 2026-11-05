@@ -1,11 +1,12 @@
-import { MapPin } from "lucide-react";
+import { MapPin, Navigation } from "lucide-react";
 
 import { PublicPageHero } from "@/components/Shared/PublicPageHero";
+import { locationName, type ListLocation } from "./types";
 
 export type SalonsIntroCopy = {
-  /** Leads the title once there is a point: "Salons near Mirpur". */
+  /** Leads the title once there is a place: "Salons near Mirpur". */
   noun?: string;
-  /** The title when there is no point to measure from. */
+  /** The title when the list is not narrowed to a place. */
   title?: string;
   description?: string;
 };
@@ -16,14 +17,36 @@ export type SalonsIntroCopy = {
  * loads.
  */
 export default function SalonsIntro({
-  point,
+  location,
   noun = "Salons",
   title = "Find a salon",
   description = "Compare ratings, prices and opening hours, then book your slot in a few taps.",
-}: SalonsIntroCopy & {
-  point: { label?: string } | null;
-}) {
-  const place = point?.label?.split(",")[0];
+}: SalonsIntroCopy & { location: ListLocation }) {
+  const place = locationName(location);
+
+  const heading =
+    location.kind === "near"
+      ? place
+        ? `${noun} near ${place}`
+        : location.fromCookie
+          ? `${noun} near you`
+          : `${noun} near this spot`
+      : location.kind === "area"
+        ? `${noun} in ${location.area}`
+        : place
+          ? `${noun} in ${place}`
+          : title;
+
+  const overline =
+    location.kind === "near"
+      ? location.fromCookie
+        ? "Near you"
+        : "Near a pinned spot"
+      : location.kind === "area"
+        ? [location.area, location.district].filter(Boolean).join(", ")
+        : place || "Bangladesh";
+
+  const Icon = location.kind === "near" ? Navigation : MapPin;
 
   return (
     <PublicPageHero
@@ -31,17 +54,11 @@ export default function SalonsIntro({
       align="left"
       overline={
         <>
-          <MapPin className="mr-1.5 size-3.5" aria-hidden="true" />
-          {point ? "Near you" : "Bangladesh"}
+          <Icon className="mr-1.5 size-3.5" aria-hidden="true" />
+          {overline}
         </>
       }
-      title={
-        place
-          ? `${noun} near ${place}`
-          : point
-            ? `${noun} near you`
-            : title
-      }
+      title={heading}
       description={description}
     />
   );

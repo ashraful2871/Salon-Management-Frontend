@@ -1,8 +1,9 @@
 "use client";
 
-// The /salons nearby-mode map: clustered pins for whatever area is in view,
-// the point the list is measured from, and "Search this area". Touches
-// `window` at import time; load it through ./MapClient only.
+// The salon list map: clustered pins for whatever is in view (only salons the
+// list beside it would show), the point a nearby list is measured from, and
+// "Search this area". Touches `window` at import time; load it through
+// ./MapClient only.
 import "react-leaflet-cluster/dist/assets/MarkerCluster.css";
 
 import {
@@ -23,8 +24,13 @@ import { Button } from "@/components/ui/button";
 import SafeImage from "@/components/Shared/SafeImage";
 import { cn } from "@/lib/utils";
 import { formatBDT } from "@/lib/money";
-import { formatDistance, haversineMeters, type LatLng } from "@/lib/geo";
-import type { Bbox, SalonMarker } from "@/lib/api-types";
+import {
+  DHAKA_CENTER,
+  formatDistance,
+  haversineMeters,
+  type LatLng,
+} from "@/lib/geo";
+import type { Bbox, SalonMarker, SalonMarkerFilters } from "@/lib/api-types";
 import { getSalonMarkers } from "@/services/salon/getSalonMarkers";
 import LeafletMap, { LocateControl, PinMarker } from "./LeafletMap";
 import { clusterIcon } from "./pin";
@@ -38,6 +44,11 @@ const FETCH_PAD = 0.25;
 // as moved by the user.
 const MOVED_PX = 80;
 const MAX_FIT_ZOOM = 16;
+// A framed area never zooms closer than this, so its streets stay readable.
+const MAX_AREA_ZOOM = 15;
+const CITY_ZOOM = 12;
+// A one-salon area is a single point: frame this much around it.
+const POINT_FRAME_M = 800;
 const FIT_PADDING = L.point(32, 32);
 // Gold like the search-centre marker: this is the area searched, which is not
 // necessarily where the customer is standing (that is the blue live dot).
@@ -52,10 +63,16 @@ const REACH_STYLE: L.PathOptions = {
 export type SearchArea = { lat: number; lng: number; halfWidthKm: number };
 
 export type SalonsMapProps = {
-  // Where the list is measured from. The map frames `radiusKm` around it.
-  origin: LatLng;
+  // Where a nearby list is measured from. The map frames `radiusKm` around
+  // it and loads only the pins within that reach.
+  origin?: LatLng | null;
   originLabel?: string;
-  radiusKm: number;
+  radiusKm?: number;
+  // Without an origin, the box framed first: the chosen area's pins, or
+  // every area's. With neither, Dhaka.
+  frame?: Bbox | null;
+  // The list's filters, so a pin is always a salon the list would show.
+  filters?: SalonMarkerFilters;
   // The card hovered in the list; its pin is drawn larger and darker.
   activeId?: string | null;
   onPinClick?: (id: string) => void;
@@ -107,9 +124,45 @@ function halfWidthKm(map: L.Map): number {
   return map.distance(left, right) / 2000;
 }
 
+// The view a new search opens on: the reach around a point, a box, or Dhaka.
+function frameView(
+  map: L.Map,
+  origin: LatLng | null,
+  radiusKm: number,
+  box: Bbox | null,
+): { center: L.LatLng; zoom: number } {
+  if (origin) {
+    const center = L.latLng(origin[0], origin[1]);
+    return {
+      center,
+      zoom: Math.min(
+        map.getBoundsZoom(center.toBounds(radiusKm * 2000), false, FIT_PADDING),
+        MAX_FIT_ZOOM,
+      ),
+    };
+  }
+  if (box) {
+    const [w, s, e, n] = box;
+    const bounds =
+      w === e && s === n
+        ? L.latLng(s, w).toBounds(POINT_FRAME_M * 2)
+        : L.latLngBounds([s, w], [n, e]);
+    return {
+      center: bounds.getCenter(),
+      zoom: Math.min(
+        map.getBoundsZoom(bounds, false, FIT_PADDING),
+        MAX_AREA_ZOOM,
+      ),
+    };
+  }
+  return { center: L.latLng(DHAKA_CENTER), zoom: CITY_ZOOM };
+}
+
 type ControllerProps = {
-  origin: LatLng;
+  origin: LatLng | null;
   radiusKm: number;
+  frameBox: Bbox | null;
+  filters: SalonMarkerFilters;
   mapRef: RefObject<L.Map | null>;
   setMoved: Dispatch<SetStateAction<boolean>>;
   setLayer: Dispatch<SetStateAction<Layer>>;
@@ -120,12 +173,19 @@ type ControllerProps = {
 function MapController({
   origin,
   radiusKm,
+  frameBox,
+  filters,
   mapRef,
   setMoved,
   setLayer,
 }: ControllerProps) {
   const map = useMap();
-  const [lat, lng] = origin;
+  // Primitive keys, so a re-render with equal values neither re-frames the
+  // map nor reloads its pins.
+  const lat = origin?.[0];
+  const lng = origin?.[1];
+  const frameKey = frameBox ? frameBox.join(",") : "";
+  const filterKey = JSON.stringify(filters);
   // The view framed for the current search; any other view is the user's.
   const frame = useRef<{ center: L.LatLng; zoom: number } | null>(null);
   const fetches = useRef({
@@ -144,24 +204,26 @@ function MapController({
   }, [map, mapRef]);
 
   useEffect(() => {
-    const center = L.latLng(lat, lng);
-    const zoom = Math.min(
-      map.getBoundsZoom(center.toBounds(radiusKm * 2000), false, FIT_PADDING),
-      MAX_FIT_ZOOM,
-    );
+    const point: LatLng | null =
+      lat !== undefined && lng !== undefined ? [lat, lng] : null;
+    const box = frameKey ? (frameKey.split(",").map(Number) as Bbox) : null;
+    const view = frameView(map, point, radiusKm, box);
     const first = frame.current === null;
-    frame.current = { center, zoom };
+    frame.current = view;
+    setMoved(false);
     // No fly-in on first paint; later searches glide so the jump is legible.
-    map.setView(center, zoom, { animate: !first });
-  }, [map, lat, lng, radiusKm]);
+    map.setView(view.center, view.zoom, { animate: !first });
+  }, [map, lat, lng, radiusKm, frameKey, setMoved]);
 
   useEffect(() => {
     const f = fetches.current;
-    // Pins are limited to the reach around the origin, so a new origin makes
-    // every cached box stale.
+    // Pins depend on the reach and the filters, so a new one makes every
+    // cached box stale.
     f.key = "";
     f.box = null;
-    const near = { lat, lng, radiusKm };
+    const near =
+      lat !== undefined && lng !== undefined ? { lat, lng, radiusKm } : undefined;
+    const pinFilters = JSON.parse(filterKey) as SalonMarkerFilters;
 
     const load = async () => {
       const view = toBox(map.getBounds());
@@ -175,7 +237,7 @@ function MapController({
       if (key === f.key) return;
 
       const id = ++f.id;
-      const res = await getSalonMarkers(box, near);
+      const res = await getSalonMarkers(box, near, pinFilters);
       if (id !== f.id) return;
       if (!res.success || !res.data) {
         // Keep the pins we have; the next move retries.
@@ -216,17 +278,25 @@ function MapController({
       clearTimeout(f.timer);
       f.id++; // drop a response still in flight
     };
-  }, [map, setMoved, setLayer, lat, lng, radiusKm]);
+  }, [map, setMoved, setLayer, lat, lng, radiusKm, filterKey]);
 
   return null;
 }
 
-function SalonPopup({ marker, origin }: { marker: SalonMarker; origin: LatLng }) {
+function SalonPopup({
+  marker,
+  origin,
+}: {
+  marker: SalonMarker;
+  origin: LatLng | null;
+}) {
   const approximate = marker.locationAccuracy === "APPROXIMATE";
-  const distance = formatDistance(
-    haversineMeters(origin, [marker.latitude, marker.longitude]),
-    approximate,
-  );
+  const distance = origin
+    ? formatDistance(
+        haversineMeters(origin, [marker.latitude, marker.longitude]),
+        approximate,
+      )
+    : "";
 
   return (
     <div>
@@ -276,9 +346,11 @@ function SalonPopup({ marker, origin }: { marker: SalonMarker; origin: LatLng })
 }
 
 export default function SalonsMap({
-  origin,
+  origin = null,
   originLabel,
-  radiusKm,
+  radiusKm = 1,
+  frame = null,
+  filters = {},
   activeId,
   onPinClick,
   onSearchArea,
@@ -309,25 +381,33 @@ export default function SalonsMap({
 
   return (
     <div className={cn("relative", className)}>
-      <LeafletMap center={origin} className="h-full">
+      <LeafletMap center={origin ?? DHAKA_CENTER} className="h-full">
         <MapController
           origin={origin}
           radiusKm={radiusKm}
+          frameBox={frame}
+          filters={filters}
           mapRef={mapRef}
           setMoved={setMoved}
           setLayer={setLayer}
         />
-        <Circle
-          center={origin}
-          radius={radiusKm * 1000}
-          pathOptions={REACH_STYLE}
-          interactive={false}
-        />
-        <PinMarker
-          position={origin}
-          kind="center"
-          title={originLabel ? `Searching near ${originLabel}` : "Search centre"}
-        />
+        {origin && (
+          <>
+            <Circle
+              center={origin}
+              radius={radiusKm * 1000}
+              pathOptions={REACH_STYLE}
+              interactive={false}
+            />
+            <PinMarker
+              position={origin}
+              kind="center"
+              title={
+                originLabel ? `Searching near ${originLabel}` : "Search centre"
+              }
+            />
+          </>
+        )}
         <LocateControl zoom={15} />
         <MarkerClusterGroup
           chunkedLoading
@@ -362,7 +442,7 @@ export default function SalonsMap({
           className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full shadow-md"
         >
           <RotateCw />
-          Search this area
+          {origin ? "Search this area" : "Search near here"}
         </Button>
       )}
 

@@ -1,6 +1,7 @@
 "use server";
 
 import { serverFetch } from "@/lib/server-fetch";
+import { clientIpHeaders } from "@/lib/client-ip-headers";
 import type { ApiResponse, GeoPlace } from "@/lib/api-types";
 
 // `bias` ranks results near that point first. The backend caches lookups, so
@@ -17,8 +18,10 @@ export const searchPlaces = async (
       params.set("lng", String(bias.lng));
     }
 
+    // The geo limiter is per visitor (contract 4).
     const response = await serverFetch.get(`/geo/search?${params}`, {
       cache: "no-store",
+      headers: await clientIpHeaders(),
     });
 
     const result: ApiResponse<GeoPlace[]> = await response.json();

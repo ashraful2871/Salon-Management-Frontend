@@ -93,6 +93,10 @@ type LocationDialogProps = {
   onDone?: () => void;
   // "map" opens straight on the pin screen ("Pick on map" buttons).
   initialStep?: "options" | "map";
+  // Takes over what happens after a location is saved (the cookie is
+  // written either way): a salon list keeps its other filters this way
+  // instead of restarting from the point alone.
+  onSaved?: (location: SavedLocation) => void;
 };
 
 const LocationDialog = ({
@@ -100,6 +104,7 @@ const LocationDialog = ({
   onOpenChange,
   onDone,
   initialStep = "options",
+  onSaved,
 }: LocationDialogProps) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent
@@ -115,6 +120,7 @@ const LocationDialog = ({
       {/* Mounted only while open, so every open starts fresh. */}
       <LocationPicker
         initialStep={initialStep}
+        onSaved={onSaved}
         onDone={() => {
           onOpenChange(false);
           onDone?.();
@@ -127,9 +133,11 @@ const LocationDialog = ({
 const LocationPicker = ({
   onDone,
   initialStep,
+  onSaved,
 }: {
   onDone: () => void;
   initialStep: "options" | "map";
+  onSaved?: (location: SavedLocation) => void;
 }) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -189,7 +197,9 @@ const LocationPicker = ({
       return;
     }
     onDone();
-    if (isSalonListPath(pathname)) {
+    if (onSaved) {
+      onSaved(stored);
+    } else if (isSalonListPath(pathname)) {
       router.push(
         `${pathname}?lat=${stored.lat}&lng=${stored.lng}&r=5&sort=distance`,
       );
