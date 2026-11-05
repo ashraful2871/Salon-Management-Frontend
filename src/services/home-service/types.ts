@@ -880,12 +880,30 @@ export type OwnerHomeBooking = {
 export type OwnerHomeBookingTab = "today" | "upcoming" | "past";
 
 /** `GET /home-service/owner/bookings/:id/eligible-experts`: free at that time and able to do every service. */
+/** Why an expert can't take the visit (`reassignCandidates` in the API's home.lifecycle.ts). */
+export type HomeCandidateReason =
+  | "CURRENT"
+  | "NOT_VERIFIED"
+  | "SUSPENDED"
+  | "PAUSED"
+  | "MISSING_SERVICE"
+  | "DAY_FULL"
+  | "OFF_SHIFT"
+  | "TIME_OFF"
+  | "BUSY"
+  | "NOT_FREE";
+
+/** Every expert of the branch on the visit's side; free ones first. */
 export type HomeReassignCandidate = {
   id: string;
   name: string;
   photo: string | null;
   rating: number;
   completedJobs: number;
+  available: boolean;
+  reasonCode: HomeCandidateReason | null;
+  /** Why not, in words ("Has another booking at that time"); null when available. */
+  reason: string | null;
 };
 
 export type OwnerHomeBookingQuery = {

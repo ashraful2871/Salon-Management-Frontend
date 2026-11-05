@@ -71,8 +71,9 @@ export function ReasonDialog({
 }
 
 /**
- * Pick an expert from the API's list of who is free and able, so nobody of the
- * wrong side can be picked. "assign" gives an "any available expert" visit its
+ * Pick an expert. The API lists every expert of the branch on the visit's
+ * side: the free ones can be picked, the rest are shown greyed out with why
+ * (busy, off shift, doesn't do a service, ...). Nobody of the wrong side is listed. "assign" gives an "any available expert" visit its
  * first expert (no reason; the customer is emailed the name); "reassign" moves
  * an assigned one and keeps a reason. Mounted per open.
  */
@@ -104,8 +105,10 @@ export function ExpertPickDialog({
     });
   }, [booking.id]);
 
-  const chosen = candidates?.find((c) => c.id === expertId);
+  const chosen = candidates?.find((c) => c.id === expertId && c.available);
   const valid = !!chosen && (assigning || reason.trim().length >= REASON_MIN);
+  const free = candidates?.filter((c) => c.available) ?? [];
+  const busy = candidates?.filter((c) => !c.available) ?? [];
 
   return (
     <ResponsiveDialog
@@ -114,8 +117,8 @@ export function ExpertPickDialog({
       title={assigning ? "Assign an expert" : "Reassign this visit"}
       description={
         assigning
-          ? `${booking.customerName.split(" ")[0]} chose any available expert. Only verified experts of the same side who are free then and do every service are listed. We email the customer their name, and the visit appears in the expert's jobs.`
-          : `Now with ${booking.expert.name}. Only experts of the same side who are free then and do every service are listed.`
+          ? `${booking.customerName.split(" ")[0]} chose any available expert. Pick someone who is free at that time and does every service. We email the customer their name, and the visit appears in the expert's jobs.`
+          : `Now with ${booking.expert.name}. Pick someone who is free at that time and does every service.`
       }
       footer={
         <>
@@ -130,41 +133,98 @@ export function ExpertPickDialog({
     >
       <div className="space-y-4">
         {loading || (!candidates && !error) ? (
-          <p className="text-sm text-muted-foreground">Finding free experts…</p>
+          <p className="text-sm text-muted-foreground">Checking your experts…</p>
         ) : error ? (
           <p className="text-sm text-danger">{error}</p>
         ) : candidates?.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            {assigning
-              ? "No verified expert is free at that time. Reschedule with the customer or cancel the visit."
-              : "No other expert is free at that time."}
+            This branch has no {booking.audience === "GENTS" ? "Gents" : "Ladies"} home experts yet. Add one under Home
+            Service → Experts.
           </p>
         ) : (
-          <fieldset className="space-y-2">
+          <fieldset className="space-y-4">
             <legend className="sr-only">Expert</legend>
-            {candidates?.map((c) => (
-              <label
-                key={c.id}
-                className={cn(
-                  "flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border p-2.5 text-sm",
-                  expertId === c.id ? "border-primary bg-primary-soft" : "border-border",
-                )}
-              >
-                <input
-                  type="radio"
-                  name="home-reassign"
-                  className="size-4 shrink-0 accent-primary"
-                  checked={expertId === c.id}
-                  onChange={() => setExpertId(c.id)}
-                />
-                <ExpertAvatar name={c.name} photo={c.photo} className="size-8 text-xs" />
-                <span className="min-w-0 flex-1 truncate font-medium">{c.name}</span>
-                <span className="shrink-0 text-muted-foreground">★ {formatRating(c.rating)}</span>
-              </label>
-            ))}
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-success">
+                Free at that time ({free.length})
+              </p>
+              {free.length ? (
+                free.map((c) => (
+                  <label
+                    key={c.id}
+                    className={cn(
+                      "flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border p-2.5 text-sm",
+                      expertId === c.id ? "border-primary bg-primary-soft" : "border-border",
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="home-reassign"
+                      className="size-4 shrink-0 accent-primary"
+                      checked={expertId === c.id}
+                      onChange={() => setExpertId(c.id)}
+                    />
+                    <ExpertAvatar name={c.name} photo={c.photo} className="size-8 text-xs" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">{c.name}</span>
+                      <span className="block text-xs text-muted-foreground">
+                        {c.completedJobs} visit{c.completedJobs === 1 ? "" : "s"} done
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-muted-foreground">★ {formatRating(c.rating)}</span>
+                  </label>
+                ))
+              ) : (
+                <p className="rounded-xl border border-dashed border-border p-3 text-sm text-muted-foreground">
+                  {assigning
+                    ? "Nobody is free at that time. Reschedule with the customer or cancel the visit."
+                    : "No other expert is free at that time."}
+                </p>
+              )}
+            </div>
+
+            {busy.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Not available ({busy.length})
+                </p>
+                {busy.map((c) => (
+                  <label
+                    key={c.id}
+                    aria-disabled="true"
+                    className="flex min-h-11 cursor-not-allowed items-center gap-3 rounded-xl border border-border bg-surface-subtle p-2.5 text-sm"
+                  >
+                    <input
+                      type="radio"
+                      name="home-reassign"
+                      className="size-4 shrink-0"
+                      disabled
+                      checked={false}
+                      readOnly
+                      aria-describedby={`home-reassign-why-${c.id}`}
+                    />
+                    <ExpertAvatar name={c.name} photo={c.photo} className="size-8 text-xs opacity-60" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium text-muted-foreground">{c.name}</span>
+                      <span
+                        id={`home-reassign-why-${c.id}`}
+                        className={cn(
+                          "block text-xs",
+                          c.reasonCode === "CURRENT" ? "text-primary" : "text-danger",
+                        )}
+                      >
+                        {c.reason ?? "Not free at that time"}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-muted-foreground">★ {formatRating(c.rating)}</span>
+                  </label>
+                ))}
+              </div>
+            )}
           </fieldset>
         )}
-        {!!candidates?.length && !assigning && (
+        {free.length > 0 && !assigning && (
           <ReasonField id="home-reassign-reason" value={reason} onChange={setReason} />
         )}
       </div>
