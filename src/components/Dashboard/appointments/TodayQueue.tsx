@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ListOrdered } from "lucide-react";
+import { CheckCircle2, Clock, ListOrdered } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { Appointment } from "@/lib/api-types";
@@ -84,14 +84,21 @@ export const TodayQueue = ({
         Today&apos;s queue
       </h2>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">{waiting} waiting</span>
-          {" · "}
-          {shown.length - waiting} done
-          {" · "}
-          {/* The server's render and the browser's can straddle a minute. */}
-          <span suppressHydrationWarning>Updated {clock.format(updatedAt)}</span>
-        </p>
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-warning-soft px-3 py-1 font-medium text-warning">
+            <Clock aria-hidden="true" className="size-3.5" />
+            {waiting} waiting
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-3 py-1 font-medium text-success">
+            <CheckCircle2 aria-hidden="true" className="size-3.5" />
+            {shown.length - waiting} done
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-1 text-xs text-muted-foreground">
+            <span aria-hidden="true" className="size-1.5 rounded-full bg-success" />
+            {/* The server's render and the browser's can straddle a minute. */}
+            <span suppressHydrationWarning>Live · updated {clock.format(updatedAt)}</span>
+          </span>
+        </div>
         <div className="flex items-center gap-2">
           <Switch
             id="queue-show-cancelled"

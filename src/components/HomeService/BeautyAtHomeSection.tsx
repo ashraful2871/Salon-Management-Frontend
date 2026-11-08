@@ -9,8 +9,8 @@ import { sideEnabled } from "./content";
 import { SideLink } from "./HomeTrack";
 
 /**
- * The home page's "Beauty at home" band. Ladies only for now (Gents follows
- * `homeService.gentsEnabled`, off at launch). Visits are booked from a
+ * The home page's "Beauty at home" band. Ladies-led (Gents follows
+ * `homeService.gentsEnabled` and is booked from a Gents salon). Visits are booked from a
  * parlour's page, so it leads to how it works and to the parlour list. Reads
  * only the public settings (60 s cache), so `/` stays static; renders nothing
  * while the Ladies side is off.

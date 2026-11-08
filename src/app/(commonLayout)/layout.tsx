@@ -27,14 +27,18 @@ const CommonLayout = async ({ children }: { children: React.ReactNode }) => {
         {/* Renews the token in the background so a page left open - a booking
             half filled in, say - does not expire underneath the user. */}
         <SessionKeeper />
-        {/* Cookieless, aggregated page counts (lib/track.ts). */}
+        {/* Cookie less, aggregated page counts (lib/track.ts). */}
         <PageViewTracker />
         {/* Read-only "View as" bar; the navbar and main move down under it. */}
         <Suspense fallback={null}>
           <ImpersonationBanner />
         </Suspense>
         <Navbar />
-        <main id="main" tabIndex={-1} className="flex-1 pt-[calc(4rem+var(--imp-offset,0px))] outline-none">
+        <main
+          id="main"
+          tabIndex={-1}
+          className="flex-1 pt-[calc(4rem+var(--imp-offset,0px))] outline-none"
+        >
           {/* The navbar is fixed, so the announcement sits directly under it,
               at the top of the page flow. */}
           <AnnouncementBar />

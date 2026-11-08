@@ -2,7 +2,10 @@
 
 import { runsBranch } from "@/lib/owner-access";
 import { useState, useTransition } from "react";
-import { MoveRight } from "lucide-react";
+import { Banknote, Clock, LayoutGrid, MoveRight, Phone, Scissors, UserRound, type LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
+import { formatBDT } from "@/lib/money";
+import { PaymentBadge, hasPaymentBadge } from "@/components/Dashboard/appointments/PaymentBadge";
 import { Button } from "@/components/ui/button";
 import { ResponsiveDialog } from "@/components/Shared/ResponsiveDialog";
 import { showResultToast } from "@/components/Shared/showResultToast";
@@ -103,21 +106,45 @@ export function BookingSheet({
       }
     >
       {row && (
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2 text-sm">
+        <div className="space-y-5">
+          <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={row.status} />
+            {hasPaymentBadge(row.raw.paymentState) && <PaymentBadge appointment={row.raw} />}
             {row.token && <TokenPill token={row.token} />}
-            {row.staffName && <span className="text-muted-foreground">with {row.staffName}</span>}
-            {row.counterName && <span className="text-muted-foreground">· {row.counterName}</span>}
           </div>
-          {row.contact && <p className="text-sm text-muted-foreground">{row.contact}</p>}
+
+          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border text-sm">
+            <Detail icon={Clock} label="Time">
+              {row.time}
+              {row.duration && <span className="text-muted-foreground"> · {row.duration}</span>}
+            </Detail>
+            <Detail icon={Scissors} label="Service">
+              {row.service}
+            </Detail>
+            <Detail icon={UserRound} label="Stylist">
+              {row.staffName ?? <span className="text-muted-foreground">Not assigned</span>}
+            </Detail>
+            <Detail icon={Banknote} label="Price">
+              {formatBDT(row.priceMinor)}
+            </Detail>
+            {row.counterName && (
+              <Detail icon={LayoutGrid} label="Counter">
+                {row.counterName}
+              </Detail>
+            )}
+            {row.contact && (
+              <Detail icon={Phone} label="Contact" wide={!row.counterName}>
+                <span className="[overflow-wrap:anywhere]">{row.contact}</span>
+              </Detail>
+            )}
+          </dl>
 
           {moving && (
-            <section aria-label="Free times" className="space-y-2">
-              <p className="text-sm font-medium">Move to a free time on {formatDay(row.date)}</p>
+            <section aria-label="Free times" className="space-y-2 rounded-2xl border border-border bg-surface-subtle p-4">
+              <p className="text-sm font-semibold">Move to another free time on {formatDay(row.date)}</p>
               {freeSlots.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  No free {row.service} slots left that day. Open more on the Slots page.
+                  No free {row.service} times left that day. Open more on the Slots page.
                 </p>
               ) : (
                 <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -126,7 +153,7 @@ export function BookingSheet({
                       <Button
                         variant="outline"
                         size="sm"
-                        className={cn("w-full tabular-nums")}
+                        className={cn("w-full bg-surface tabular-nums")}
                         loading={pending && target === slot.id}
                         disabled={pending}
                         onClick={() => move(slot)}
@@ -137,11 +164,33 @@ export function BookingSheet({
                   ))}
                 </ul>
               )}
-              <p className="text-xs text-muted-foreground">Price and deposit stay the same.</p>
+              <p className="text-xs text-muted-foreground">Price and deposit stay the same. The customer gets an email.</p>
             </section>
           )}
         </div>
       )}
     </ResponsiveDialog>
+  );
+}
+
+function Detail({
+  icon: Icon,
+  label,
+  wide = false,
+  children,
+}: {
+  icon: LucideIcon;
+  label: string;
+  wide?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className={cn("min-w-0 bg-surface px-3.5 py-3", wide && "col-span-2")}>
+      <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Icon aria-hidden="true" className="size-3.5" />
+        {label}
+      </dt>
+      <dd className="mt-0.5 truncate font-medium text-foreground">{children}</dd>
+    </div>
   );
 }

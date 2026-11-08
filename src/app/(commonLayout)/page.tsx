@@ -34,8 +34,8 @@ export default function Home() {
       <Suspense fallback={null}>
         <RecentReviews />
       </Suspense>
-      <PartnerCtaSection />
       <CtaSection />
+      <PartnerCtaSection />
       {/* Navbar's "/#hair-try-on" from another page: land on it once / settles. */}
       <ScrollToHash />
     </>

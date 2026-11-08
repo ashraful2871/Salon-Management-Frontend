@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Search, X } from "lucide-react";
+import { Ticket, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Appointment } from "@/lib/api-types";
@@ -47,10 +47,7 @@ export const TokenLookup = () => {
   const name = found?.customer?.name?.trim() || found?.customer?.email || "Unknown";
 
   return (
-    <section
-      aria-label="Find a booking by token"
-      className="space-y-4 rounded-2xl border border-border bg-surface p-4"
-    >
+    <section aria-label="Find a booking by token" className="space-y-3">
       <form
         className="flex gap-2"
         onSubmit={(e) => {
@@ -59,22 +56,26 @@ export const TokenLookup = () => {
         }}
       >
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Ticket
+            aria-hidden="true"
+            className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+          />
           <Input
             value={token}
             onChange={(e) => setToken(e.target.value)}
-            placeholder="Enter token, e.g. 7KQ2M"
-            aria-label="Booking token"
-            className="rounded-full bg-surface pl-9 font-mono uppercase placeholder:normal-case placeholder:font-sans"
+            placeholder="Check in by token, e.g. 7KQ2M"
+            aria-label="Booking token, the code on the customer's booking"
+            title="The code on the customer's booking"
+            className="h-10 rounded-full bg-surface pl-10 font-mono uppercase placeholder:normal-case placeholder:font-sans"
           />
         </div>
-        <Button type="submit" loading={isPending} disabled={!token.trim()}>
+        <Button type="submit" className="h-10" loading={isPending} disabled={!token.trim()}>
           Find
         </Button>
       </form>
 
       {found && shown && (
-        <div className="space-y-3 rounded-xl border border-border bg-surface-subtle p-4">
+        <div className="space-y-3 rounded-2xl border border-primary/25 bg-surface p-4 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <span className="inline-flex h-10 min-w-10 items-center justify-center rounded-md bg-primary-soft px-2 font-bold text-primary-hover tabular-nums">

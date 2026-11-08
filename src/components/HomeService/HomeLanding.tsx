@@ -47,8 +47,8 @@ type Item = { icon: LucideIcon; title: string; text: string };
 /**
  * /home-service: how Home Service works and its policies. There is no expert
  * list here: a home visit is booked from a salon's own page, so every call to
- * action leads to the parlour list. Ladies only for now (Gents follows
- * `homeService.gentsEnabled`, off at launch). Reads only the public settings
+ * action leads to the parlour list. Ladies-led; Gents follows
+ * `homeService.gentsEnabled` (on since 2026-11-05; the men's FAQ answer). Reads only the public settings
  * (60 s cache), so the page stays static and every number is the live one.
  */
 export default async function HomeLanding() {
@@ -72,7 +72,7 @@ export default async function HomeLanding() {
         <ComingSoon />
       )}
 
-      <Faq />
+      <Faq gents={sideEnabled(s, "GENTS")} />
       {open && <FinalCta />}
     </>
   );
@@ -447,19 +447,22 @@ function Policies({ s }: { s: HomeServiceSettings }) {
 
 // ------------------------------------------------------------------ faq and cta
 
-const PAGE_FAQS: { q: string; a: string }[] = [
+/** The men's answer follows `homeService.gentsEnabled`. */
+const pageFaqs = (gents: boolean): { q: string; a: string }[] => [
   {
     q: "How do I book a home visit?",
     a: "Open a parlour near you that comes to your home, tap Book now and choose At home. Pick your services, then a date and time, add your address and pay the advance.",
   },
   {
     q: "Is Home Service available for men?",
-    a: "Not yet. Home Service is open for ladies for now, with female experts only. For men, book a visit at a salon from the Gents page.",
+    a: gents
+      ? "Yes. Open a salon from the Gents page, tap Book now and choose At home. Gents visits are done by male experts only."
+      : "Not yet. Home Service is open for ladies for now, with female experts only. For men, book a visit at a salon from the Gents page.",
   },
   ...FAQS,
 ];
 
-function Faq() {
+function Faq({ gents }: { gents: boolean }) {
   return (
     <Section labelledBy="home-faq">
       {/* The heading sits level with the middle of the questions; the wrapper drops its bottom margin so the grid gap spaces it on phones. */}
@@ -485,7 +488,7 @@ function Faq() {
           collapsible
           className="rounded-3xl border border-border bg-surface px-5 shadow-soft sm:px-8"
         >
-          {PAGE_FAQS.map((faq) => (
+          {pageFaqs(gents).map((faq) => (
             <AccordionItem key={faq.q} value={faq.q} className="border-border/70">
               <AccordionTrigger className="min-h-16 items-center font-display text-base font-semibold hover:text-primary-hover hover:no-underline">
                 {faq.q}

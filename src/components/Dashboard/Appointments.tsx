@@ -4,7 +4,15 @@ import { runsBranch } from "@/lib/owner-access";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, CheckCircle2, Clock, SearchX, User } from "lucide-react";
+import {
+  Armchair,
+  CalendarDays,
+  CalendarRange,
+  CheckCircle2,
+  Clock,
+  Plus,
+  SearchX,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type {
   Appointment,
@@ -195,31 +203,70 @@ const Appointments = ({
       <PageHeader
         title={isCustomer ? "My bookings" : "Appointments"}
         description={`${dayLabel} · ${plural(dayTotal, "booking")}`}
+        actions={
+          opensOnToday && (
+            <>
+              <Button asChild variant="outline">
+                <Link href="/dashboard/calendar">
+                  <CalendarRange aria-hidden="true" />
+                  Calendar
+                </Link>
+              </Button>
+              {runsBranch(userRole) && (
+                <Button asChild>
+                  <Link href={`/dashboard/calendar?view=day&date=${today}&book=1`}>
+                    <Plus aria-hidden="true" />
+                    New booking
+                  </Link>
+                </Button>
+              )}
+            </>
+          )
+        }
       />
 
       {!isCustomer && (
+        // The day as a funnel: everything booked, still to come, being served, done.
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-          <StatCard label="Total" value={dayTotal} icon={CalendarDays} />
-          <StatCard label="Pending" value={countOf("PENDING")} icon={Clock} tone="warning" />
-          <StatCard label="Confirmed" value={countOf("CONFIRMED")} icon={User} tone="info" />
+          <StatCard
+            label="Bookings"
+            value={dayTotal}
+            icon={CalendarDays}
+            tone="info"
+            hint={countOf("CANCELLED") ? `${countOf("CANCELLED")} cancelled` : dayLabel}
+          />
+          <StatCard
+            label="Still to come"
+            value={countOf("PENDING") + countOf("CONFIRMED")}
+            icon={Clock}
+            tone="warning"
+            hint={
+              countOf("PENDING")
+                ? `${countOf("PENDING")} waiting for a stylist`
+                : "Not checked in yet"
+            }
+          />
+          <StatCard
+            label="In the salon"
+            value={countOf("CHECKED_IN") + countOf("IN_PROGRESS")}
+            icon={Armchair}
+            tone="primary"
+            hint="Checked in or in the chair"
+          />
           <StatCard
             label="Completed"
             value={countOf("COMPLETED")}
             icon={CheckCircle2}
             tone="success"
+            hint={countOf("NO_SHOW") ? `${countOf("NO_SHOW")} no-show` : "Served and closed"}
           />
         </div>
       )}
 
-      {/* Counter desk: token lookup and the day's takings */}
-      {opensOnToday && (
-        <div className="space-y-4">
-          <TokenLookup />
-          {cashSlot}
-        </div>
-      )}
+      {/* The day's takings (owners only), streamed in on their own. */}
+      {opensOnToday && cashSlot}
 
-      <QueueTabs enabled={opensOnToday} queue={queueSlot}>
+      <QueueTabs enabled={opensOnToday} queue={queueSlot} aside={opensOnToday && <TokenLookup />}>
         <AppointmentsToolbar
           filters={filters}
           statusOptions={statusOptions}
