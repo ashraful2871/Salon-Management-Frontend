@@ -368,7 +368,7 @@ export default function HomeBookingFlow({
         <Stepper index={index} onPick={(i) => i < index && go(STEPS[i].key)} />
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
         <div className="min-w-0 space-y-6">
           {step === "services" && (
             <Panel title="Pick services" hint="Choose one or more. The total time and price update as you go.">
@@ -379,7 +379,7 @@ export default function HomeBookingFlow({
 
           {step === "expert" && (
             <Panel title="Who comes to you?">
-              <div role="radiogroup" aria-label="Expert" className="grid gap-3 sm:grid-cols-2">
+              <div role="radiogroup" aria-label="Expert" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Choice on={!any} onClick={() => (setAny(false), setTime(null), setQuote(null))}>
                   <ExpertAvatar name={expert.name} photo={expert.photo} className="size-12" />
                   <span className="min-w-0">
@@ -829,7 +829,7 @@ function Review({
               <dd className="tabular-nums">{formatBDT(quote.totalMinor)}</dd>
             </div>
           </dl>
-          <ol className="mt-4 grid gap-2 sm:grid-cols-2">
+          <ol className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
             <li className="rounded-2xl border border-primary/30 bg-primary-soft p-3">
               <p className="text-xs font-medium text-muted-foreground">Today, online · {quote.advancePercent}% advance</p>
               <p className="text-lg font-semibold text-foreground tabular-nums">{formatBDT(quote.advanceMinor)}</p>
@@ -875,7 +875,7 @@ function ReviewRow({
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-        <div className="mt-0.5">{children}</div>
+        <div className="mt-0.5 break-words">{children}</div>
       </div>
       <button
         type="button"

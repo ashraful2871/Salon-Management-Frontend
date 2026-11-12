@@ -74,7 +74,9 @@ export default function AddressStep({
   return (
     <div className="space-y-6">
       {saved.length > 0 && (
-        <div role="radiogroup" aria-label="Address" className="grid gap-2 sm:grid-cols-2">
+        // `grid-cols-1` (minmax(0, 1fr)): a bare `grid` sizes its one column to
+        // the longest address and pushes the page sideways on phones.
+        <div role="radiogroup" aria-label="Address" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {saved.map((a) => {
             const on = draft.savedId === a.id;
             return (
@@ -85,14 +87,14 @@ export default function AddressStep({
                 aria-checked={on}
                 onClick={() => onChange(fromSaved(a, draft))}
                 className={cn(
-                  "flex cursor-pointer items-start gap-3 rounded-2xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "flex min-w-0 cursor-pointer items-start gap-3 rounded-2xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   on ? "border-primary bg-primary-soft" : "border-border bg-surface hover:border-primary/60",
                 )}
               >
                 <Home className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
                 <span className="min-w-0 flex-1">
-                  <span className="block font-semibold text-foreground">{a.label}</span>
-                  <span className="block truncate text-sm text-muted-foreground">
+                  <span className="block truncate font-semibold text-foreground">{a.label}</span>
+                  <span className="line-clamp-2 break-words text-sm text-muted-foreground">
                     {[a.addressLine, a.area].filter(Boolean).join(", ")}
                   </span>
                 </span>
@@ -133,7 +135,7 @@ export default function AddressStep({
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field id="hs-line" label="House, flat, floor & road" className="sm:col-span-2">
           <Input
             id="hs-line"
@@ -210,7 +212,7 @@ export default function AddressStep({
         )}
         {isNew && saved.length < 10 && (
           <div className="flex flex-wrap items-center gap-3">
-            <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-foreground">
+            <label className="flex shrink-0 cursor-pointer items-center gap-3 text-sm font-medium text-foreground">
               <input
                 type="checkbox"
                 checked={draft.save}
@@ -225,7 +227,7 @@ export default function AddressStep({
                 value={draft.label}
                 maxLength={30}
                 placeholder="Home"
-                className="h-9 w-36"
+                className="h-9 w-36 max-w-full"
                 onChange={(e) => onChange({ label: e.target.value })}
               />
             )}
