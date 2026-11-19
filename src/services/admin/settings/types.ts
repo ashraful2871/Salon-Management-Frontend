@@ -7,7 +7,8 @@ export type SettingGroup =
   | "retention"
   | "system"
   | "content"
-  | "homeService";
+  | "homeService"
+  | "referral";
 
 export type SettingKind = "int" | "number" | "boolean" | "announcement" | "list" | "text" | "choice";
 
@@ -30,7 +31,7 @@ export type AdminSetting = {
   approval: boolean;
   tier: 2 | 3;
   /** What a change needs: flags.manage, content.manage, homeservice.policy or settings.manage. */
-  permission: "flags.manage" | "content.manage" | "homeservice.policy" | "settings.manage";
+  permission: "flags.manage" | "content.manage" | "homeservice.policy" | "referrals.policy" | "settings.manage";
   /** The allowed values of a `choice`; null for every other kind. */
   options: string[] | null;
   version: number;

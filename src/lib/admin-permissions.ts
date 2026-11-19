@@ -46,7 +46,10 @@ export type Permission =
   | "homeservice.view"
   | "homeservice.manage"
   | "homeservice.experts_verify"
-  | "homeservice.policy";
+  | "homeservice.policy"
+  | "referrals.view"
+  | "referrals.manage"
+  | "referrals.policy";
 
 /** True when `perms` (from `getAdminMe`) holds `p`. A missing list holds nothing. */
 export const can = (
