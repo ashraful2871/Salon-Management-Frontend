@@ -255,6 +255,7 @@ export const DashboardShell = ({
   notifications = false,
   homeExpert = false,
   homeBranch = false,
+  referralOn = false,
   children,
 }: {
   user: ShellUser;
@@ -269,6 +270,8 @@ export const DashboardShell = ({
   homeExpert?: boolean;
   /** The owner, and a manager once the branch has Home Service: its page. */
   homeBranch?: boolean;
+  /** Customers while `referral.enabled` is on: the Refer & earn link. */
+  referralOn?: boolean;
   children: ReactNode;
 }) => {
   const pathname = usePathname();
@@ -277,7 +280,12 @@ export const DashboardShell = ({
   const closeRef = useRef<HTMLButtonElement>(null);
   const moreRef = useRef<HTMLButtonElement>(null);
 
-  const groups = navGroupsFor(user.role, admin?.permissions, { approvals: admin?.approvals, homeExpert, homeBranch });
+  const groups = navGroupsFor(user.role, admin?.permissions, {
+    approvals: admin?.approvals,
+    homeExpert,
+    homeBranch,
+    referralOn,
+  });
   const items = groups.flatMap((g) => g.items);
   const active = activeItem(pathname, items)?.path;
   const { trail, title } = pageTrail(pathname, items, user.role);

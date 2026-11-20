@@ -57,6 +57,10 @@ const STATUS_TONE: Record<string, Tone> = {
   ARRIVED: "primary",
   DRAFT: "neutral",
   PENDING_REVIEW: "warning",
+  // Referral rewards (AVAILABLE, PENDING_REVIEW and EXPIRED are above).
+  RESERVED: "info",
+  REDEEMED: "neutral",
+  REVOKED: "neutral",
   // Safety reports.
   REVIEWING: "info",
   ACTIONED: "success",

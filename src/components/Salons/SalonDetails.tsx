@@ -5,6 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import {
   Award,
+  BadgePercent,
   CalendarCheck,
   ChevronRight,
   Clock,
@@ -67,11 +68,14 @@ export default function SalonDetails({
   salon,
   viewer,
   takesDeposit,
+  rewardHint = null,
 }: {
   salon: SalonView;
   viewer?: Viewer;
   /** Booking holds a deposit (platform switch on and this salon asks for one). */
   takesDeposit: boolean;
+  /** A signed-in customer's usable referral reward: "Your 5% reward applies at checkout". */
+  rewardHint?: string | null;
 }) {
   const mounted = useMounted();
   const status = mounted
@@ -396,6 +400,12 @@ export default function SalonDetails({
                     ? "The rest is paid at the salon."
                     : "No payment now. Pay at the salon after your visit."}
                 </p>
+                {rewardHint && bookHref && (
+                  <p className="mt-3 flex items-center gap-2 rounded-xl bg-success-soft px-3 py-2 text-sm font-medium text-success">
+                    <BadgePercent className="size-4 shrink-0" aria-hidden />
+                    {rewardHint}
+                  </p>
+                )}
 
                 <div className="mt-4">
                   <BookingNotices salon={salon} />
@@ -471,11 +481,18 @@ export default function SalonDetails({
             <p className="truncate text-sm font-semibold text-foreground">
               {salon.name}
             </p>
-            <p className="truncate text-xs text-muted-foreground">
-              {takesDeposit
-                ? "Small deposit · rest at the salon"
-                : "Free to book · pay at the salon"}
-            </p>
+            {rewardHint && bookHref ? (
+              <p className="flex items-center gap-1 text-xs font-medium text-success">
+                <BadgePercent className="size-3.5 shrink-0" aria-hidden />
+                <span className="truncate">{rewardHint}</span>
+              </p>
+            ) : (
+              <p className="truncate text-xs text-muted-foreground">
+                {takesDeposit
+                  ? "Small deposit · rest at the salon"
+                  : "Free to book · pay at the salon"}
+              </p>
+            )}
           </div>
           {bookHref ? (
             <Button asChild size="lg" className="shrink-0 px-7">

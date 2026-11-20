@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   DollarSign,
   FileClock,
+  Gift,
   LayoutDashboard,
   ChartLine,
   History,
@@ -73,8 +74,11 @@ export type NavItem = {
 
 export type NavGroup = { title?: string; items: NavItem[] };
 
-/** Shell state some links depend on: `GET /admin/me`, and `GET /home-service/jobs` for experts. */
-export type NavFlags = { approvals?: boolean; homeExpert?: boolean; homeBranch?: boolean };
+/**
+ * Shell state some links depend on: `GET /admin/me`, `GET /home-service/jobs`
+ * for experts, and `referral.enabled` (public settings) for customers.
+ */
+export type NavFlags = { approvals?: boolean; homeExpert?: boolean; homeBranch?: boolean; referralOn?: boolean };
 
 // Admin items carry the permission their page checks, so an admin role that
 // lacks it never sees the link. Each later admin phase adds its own items
@@ -210,6 +214,9 @@ export const NAV_GROUPS: NavGroup[] = [
     title: "Money",
     items: [
       { path: "/dashboard/wallet", icon: Wallet, label: "Wallet" },
+      // Customers, while the program is on. The page stays open when it is
+      // paused (rewards still work), so its title is in OTHER_PAGES too.
+      { path: "/dashboard/referrals", icon: Gift, label: "Refer & earn", onlyWhen: "referralOn" },
       // The owner money hub (Overview · Transactions · Payouts · Payout settings).
       { path: "/dashboard/money", icon: DollarSign, label: "Money" },
       {
@@ -461,8 +468,11 @@ const SUB_PAGES: Record<string, { crumb: string; title: string }> = {
 /** The nav items that are a role's home: the breadcrumb starts at them. */
 const HOME_PATHS = new Set<string>(["/dashboard", "/dashboard/admin"]);
 
-/** Pages in the dashboard frame that have no nav item. */
-const OTHER_PAGES: Record<string, string> = { "/my-profile": "My profile" };
+/** Pages in the dashboard frame that have no nav item, or whose item can be hidden. */
+const OTHER_PAGES: Record<string, string> = {
+  "/my-profile": "My profile",
+  "/dashboard/referrals": "Refer & earn",
+};
 
 export type Crumb = { label: string; href?: string };
 

@@ -5,6 +5,7 @@ import BookingConfirmed from "@/components/Salons/BookingConfirmed";
 import { Button } from "@/components/ui/button";
 import { getAppointmentById } from "@/services/appoinments/getAppointmentById";
 import { getUserRoles } from "@/services/get-roles/getUserRoles";
+import { inviteCardFor } from "@/lib/referral-invite";
 
 export const metadata = {
   title: "Booking confirmed",
@@ -30,7 +31,11 @@ const BookingConfirmedPage = async ({
     redirect(`/login?redirect=${encodeURIComponent(`/salons/${id}/book/confirmed`)}`);
   }
 
-  const res = ref ? await getAppointmentById(ref) : null;
+  const [res, invite] = await Promise.all([
+    ref ? getAppointmentById(ref) : null,
+    // "Enjoyed booking?": customers only, while the program is on.
+    inviteCardFor(role),
+  ]);
   const booking = res?.success ? res.data : undefined;
 
   // The booking itself succeeded — the only thing that can fail here is reading
@@ -85,6 +90,7 @@ const BookingConfirmedPage = async ({
         serialNumber: booking.serialNumber,
         token: booking.token,
       }}
+      invite={invite}
     />
   );
 };

@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { getMyWallet, type Wallet } from "@/services/wallet/getMyWallet";
 import { getDisplayUser } from "@/services/auth/displayUser";
 import NavbarClient from "./NavbarClient";
-import { getPublicSettings } from "@/services/settings/getPublicSettings";
+import { getPublicSettings, referralSettingsOf } from "@/services/settings/getPublicSettings";
 import { bookingPaymentsEnabled } from "@/lib/deposit";
 
 // Only the account half of the header waits on the API. The logo, links and
@@ -24,6 +24,10 @@ async function NavbarAccount() {
   const showBalance = bookingPaymentsEnabled(
     settings.success ? settings.data : null,
   );
+  // "Refer & earn" in a customer's menu while the program is on.
+  const referralOn =
+    user?.role === "CUSTOMER" &&
+    referralSettingsOf(settings.success ? settings.data : null)["referral.enabled"];
 
   // The header balance is a signed-in-only affordance, so the wallet read only
   // happens once the token has verified. A failed read degrades to `null` — the
@@ -53,6 +57,7 @@ async function NavbarAccount() {
       ownerRevenueMinor={ownerRevenueMinor}
       adminRevenueMinor={adminRevenueMinor}
       showBalance={showBalance}
+      referralOn={referralOn}
     />
   );
 }

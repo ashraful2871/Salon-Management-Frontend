@@ -13,6 +13,7 @@ import {
   Mail,
   Menu,
   Flower2,
+  Gift,
   Scissors,
   Sparkles,
   Store,
@@ -67,6 +68,8 @@ interface NavbarClientProps {
    * payments come back.
    */
   showBalance?: boolean;
+  /** A customer while `referral.enabled` is on: "Refer & earn" in the account menu. */
+  referralOn?: boolean;
 }
 
 // `wide`: in the desktop bar only from 2xl; below that the bar has no room
@@ -129,6 +132,7 @@ const NavbarClient = ({
   adminRevenueMinor: initialAdminRevenueMinor,
   accountLoading = false,
   showBalance = false,
+  referralOn = false,
 }: NavbarClientProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -250,6 +254,9 @@ const NavbarClient = ({
                 label: "My wallet",
                 icon: WalletIcon,
               },
+              ...(referralOn
+                ? [{ href: "/dashboard/referrals", label: "Refer & earn", icon: Gift }]
+                : []),
             ]
           : []),
         ...(user.role === "SALON_OWNER"

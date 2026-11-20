@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Separator } from "../ui/separator";
 import CopyButton from "@/components/Wallet/CopyButton";
 import { ToneBadge } from "@/components/Shared/ToneBadge";
+import { InviteCard, type InviteCardData } from "@/components/Referral/InviteCard";
 import { formatBDT } from "@/lib/money";
 import {
   bookingEventDescription,
@@ -89,7 +90,14 @@ const Row = ({
   </div>
 );
 
-const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
+const BookingConfirmed = ({
+  booking,
+  invite = null,
+}: {
+  booking: ConfirmedBooking;
+  /** "Enjoyed booking?": a customer while the program is on (`inviteCardFor`). */
+  invite?: InviteCardData | null;
+}) => {
   const reference = booking.id.slice(0, 8).toUpperCase();
   const prepaidMinor = booking.prepaidMinor ?? 0;
   const paidInFull = prepaidMinor > 0;
@@ -298,6 +306,8 @@ const BookingConfirmed = ({ booking }: { booking: ConfirmedBooking }) => {
               </span>
             </p>
           )}
+
+          {invite && <InviteCard {...invite} />}
         </div>
       </div>
     </div>

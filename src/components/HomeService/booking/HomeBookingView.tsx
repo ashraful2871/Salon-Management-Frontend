@@ -22,6 +22,7 @@ import {
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { InviteCard, type InviteCardData } from "@/components/Referral/InviteCard";
 import { formatBDT } from "@/lib/money";
 import { gatewayRefLabel, providerLabel, type ProviderId } from "@/lib/payment-providers";
 import { TONE_CLASSES, toneOf } from "@/lib/status-tone";
@@ -144,6 +145,7 @@ export default function HomeBookingView({
   retryMethod,
   embedded = false,
   ask = null,
+  invite = null,
 }: {
   initial: HomeBooking;
   methods: PaymentMethodOption[];
@@ -155,6 +157,8 @@ export default function HomeBookingView({
   embedded?: boolean;
   /** From an email's link: go straight to the review or the appeal. */
   ask?: "review" | "appeal" | null;
+  /** "Enjoyed booking?", shown while the visit is CONFIRMED (`inviteCardFor`: customers, program on). */
+  invite?: InviteCardData | null;
 }) {
   const [b, setB] = useState(initial);
   const [checkingPayment, setCheckingPayment] = useState(
@@ -476,6 +480,8 @@ export default function HomeBookingView({
           )}
         </>
       )}
+
+      {invite && b.status === "CONFIRMED" && <InviteCard {...invite} />}
 
       <VisitAftercare
         booking={b}

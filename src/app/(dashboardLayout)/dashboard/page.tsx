@@ -11,6 +11,9 @@ import { ROLE_HOME } from "@/lib/route-access";
 import { getSelectedSalonId } from "@/lib/branch-cookie";
 import { getOwnerMoneySummary } from "@/services/owner/getOwnerMoneySummary";
 import { getOwnerHome } from "@/services/owner/getOwnerHome";
+import { DashboardReferral } from "@/components/Referral/DashboardReferral";
+import { getRewardSummary } from "@/services/referral/getRewardSummary";
+import { getPublicSettings, referralSettingsOf } from "@/services/settings/getPublicSettings";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -33,7 +36,7 @@ export default async function DashboardPage() {
 
   const load = STATS_FOR[role];
   // The services return the whole envelope; the stats are under `data`.
-  const [result, money, home] = await Promise.all([
+  const [result, money, home, referral] = await Promise.all([
     load ? load() : null,
     role === "SALON_OWNER"
       ? getSelectedSalonId().then((salonId) => getOwnerMoneySummary(salonId))
@@ -42,7 +45,24 @@ export default async function DashboardPage() {
     role === "SALON_OWNER" || role === "BRANCH_MANAGER"
       ? getSelectedSalonId().then((salonId) => getOwnerHome(salonId))
       : null,
+    // Customers: a usable reward's banner, else the invite card (program on).
+    role === "CUSTOMER" ? Promise.all([getRewardSummary(), getPublicSettings()]) : null,
   ]);
+  const referralSlot = referral
+    ? (() => {
+        const [summary, settings] = referral;
+        const s = referralSettingsOf(settings.success ? settings.data : null);
+        return (
+          <DashboardReferral
+            summary={summary.success ? (summary.data ?? null) : null}
+            programOn={s["referral.enabled"]}
+            youPercent={s["referral.referrerPercent"]}
+            friendPercent={s["referral.refereePercent"]}
+            now={new Date()}
+          />
+        );
+      })()
+    : null;
   const stats = result?.success ? (result.data ?? null) : null;
 
   const { greeting, now } = dashboardGreeting(display);
@@ -53,6 +73,7 @@ export default async function DashboardPage() {
       moneySummary={money?.success ? (money.data ?? null) : null}
       ownerHome={home?.success ? (home.data ?? null) : null}
       loadError={result && !result.success ? result.message : null}
+      referral={referralSlot}
       userRole={role}
       greeting={greeting}
       now={now}

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { homeBookingPath } from "@/lib/booking-resume";
 import type { ProviderId } from "@/lib/payment-providers";
 import { getUserRoles } from "@/services/get-roles/getUserRoles";
+import { inviteCardFor } from "@/lib/referral-invite";
 import { getHomeBooking } from "@/services/home-service/getHomeBooking";
 import { ACTIVE_HOME_STATUSES } from "@/services/home-service/types";
 import { getPaymentMethods } from "@/services/payments/getPaymentMethods";
@@ -35,7 +36,11 @@ export default async function HomeBookingPage({
   const role = await getUserRoles();
   if (!role) redirect(`/login?redirect=${encodeURIComponent(homeBookingPath(id))}`);
 
-  const res = await getHomeBooking(id);
+  const [res, invite] = await Promise.all([
+    getHomeBooking(id),
+    // "Enjoyed booking?" once the visit is CONFIRMED: customers only, while the program is on.
+    inviteCardFor(role),
+  ]);
   if (!res.success || !res.data) {
     return (
       <div className="container mx-auto px-4 py-16 sm:px-6 lg:px-8">
@@ -67,6 +72,7 @@ export default async function HomeBookingPage({
       payOutcome={payOutcome === "failed" || payOutcome === "cancelled" ? payOutcome : null}
       retryMethod={method === "BKASH" || method === "SSLCOMMERZ" ? (method as ProviderId) : null}
       ask={one(sp.review) ? "review" : one(sp.appeal) ? "appeal" : null}
+      invite={invite}
     />
   );
 }

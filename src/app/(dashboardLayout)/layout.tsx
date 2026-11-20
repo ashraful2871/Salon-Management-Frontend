@@ -11,6 +11,7 @@ import { getMyJobs } from "@/services/home-service/getMyJobs";
 import { getOwnerHomeProfile } from "@/services/home-service/getOwnerHomeProfile";
 import { getMyAccess } from "@/services/owner/getMyAccess";
 import { getSelectedBranch } from "@/lib/branch-cookie";
+import { getPublicSettings, referralSettingsOf } from "@/services/settings/getPublicSettings";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import React from "react";
@@ -81,6 +82,11 @@ const CommonDashboardLayout = async ({
       !!branches &&
       branches.selected !== "all" &&
       (await getOwnerHomeProfile(branches.selected)).data?.profile.exists === true);
+  // Customers get Refer & earn while the program is on (`referral.enabled`,
+  // public settings, 60 s cache; a failed read counts as off).
+  const referralOn =
+    user.role === "CUSTOMER" &&
+    referralSettingsOf(await getPublicSettings().then((s) => (s.success ? s.data : null)))["referral.enabled"];
   // Same session, with the real name filled in for the top bar.
   const display = (await getDisplayUser()) ?? user;
   // The sidebar's collapse toggle writes this, so a reload renders it as left.
@@ -94,6 +100,7 @@ const CommonDashboardLayout = async ({
       branches={branches}
       homeExpert={homeExpert}
       homeBranch={homeBranch}
+      referralOn={referralOn}
       notifications={user.role === "SALON_OWNER" || user.role === "BRANCH_MANAGER" || user.role === "STAFF"}
     >
       <SessionKeeper />

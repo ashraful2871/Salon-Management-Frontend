@@ -106,6 +106,7 @@ const Dashboard = ({
   moneySummary = null,
   ownerHome = null,
   loadError,
+  referral = null,
   userRole,
   greeting,
   now,
@@ -116,6 +117,8 @@ const Dashboard = ({
   /** Owner Today v2 (`GET /owner/home`); null falls back to the stat tiles. */
   ownerHome?: OwnerHomeData | null;
   loadError: string | null;
+  /** Customers: the reward banner or invite card, rendered on the server (`DashboardReferral`). */
+  referral?: ReactNode;
   userRole: string;
   greeting: string;
   now: Now;
@@ -148,6 +151,8 @@ const Dashboard = ({
       )}
 
       {isOwner && moneySummary?.dues && <OwnerDuesAlerts dues={moneySummary.dues} />}
+
+      {isCustomer && referral}
 
       {isCustomer && hasData && (
         <div className="grid gap-4 lg:grid-cols-3 lg:gap-6">
