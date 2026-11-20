@@ -3,6 +3,8 @@
 import { Loader2 } from "lucide-react";
 import { useEffect, useState, type MouseEvent } from "react";
 
+import { track } from "@/lib/track";
+
 /**
  * "Continue with Google", in Google's own branding (white, `#dadce0` border,
  * the four-colour G).
@@ -12,13 +14,24 @@ import { useEffect, useState, type MouseEvent } from "react";
  * marks it busy and later clicks are swallowed, so a double click cannot start
  * two flows. Coming back from Google with the Back button can restore this
  * page from the back/forward cache still busy, so `pageshow` resets it.
+ *
+ * `referralCode` rides to the start route as `?ref=` (used only if Google
+ * creates a new account); `referralFromLink` adds `src=link` when that code
+ * came from an invite link rather than being typed. `signup` counts the click
+ * as `signup_started` (method google).
  */
 const GoogleButton = ({
   redirect,
   label = "Continue with Google",
+  referralCode,
+  referralFromLink = false,
+  signup = false,
 }: {
   redirect?: string;
   label?: "Continue with Google";
+  referralCode?: string | null;
+  referralFromLink?: boolean;
+  signup?: boolean;
 }) => {
   const [busy, setBusy] = useState(false);
 
@@ -30,15 +43,21 @@ const GoogleButton = ({
     return () => window.removeEventListener("pageshow", reset);
   }, []);
 
-  const href = redirect
-    ? `/api/auth/google/start?redirect=${encodeURIComponent(redirect)}`
-    : "/api/auth/google/start";
+  const query = new URLSearchParams();
+  if (redirect) query.set("redirect", redirect);
+  if (referralCode) {
+    query.set("ref", referralCode);
+    if (referralFromLink) query.set("src", "link");
+  }
+  const search = query.toString();
+  const href = search ? `/api/auth/google/start?${search}` : "/api/auth/google/start";
 
   const onClick = (e: MouseEvent<HTMLAnchorElement>) => {
     if (busy) {
       e.preventDefault();
       return;
     }
+    if (signup) track("signup_started", "method:google");
     setBusy(true);
   };
 

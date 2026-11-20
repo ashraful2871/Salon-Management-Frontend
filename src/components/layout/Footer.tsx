@@ -34,8 +34,8 @@ type FooterColumn = { title: string; links: FooterLink[] };
 const LADIES_HREF = "/ladies-parlour";
 const GENTS_HREF = "/gents-parlour";
 
-// Every link here goes to a page that exists. Privacy and Terms join once
-// those pages are written.
+// Every link here goes to a page that exists. Privacy and Terms join LEGAL
+// once those pages are written.
 const EXPLORE: FooterColumn = {
   title: "Explore",
   links: [
@@ -76,6 +76,9 @@ const COMPANY: FooterColumn = {
 };
 
 const ALL_COLUMNS = [EXPLORE, SERVICES, BUSINESS, COMPANY];
+
+// The bottom bar's legal links, next to the copyright.
+const LEGAL: FooterLink[] = [{ label: "Referral terms", href: "/referral-terms" }];
 
 // Phones get these two as big tap targets above the folded columns.
 const QUICK_LINKS: (FooterLink & { hint: string })[] = [
@@ -358,10 +361,26 @@ const Footer = () => {
 
         {/* Bottom bar: copyright on the left; payment gateways and back to top on the right. */}
         <div className="flex flex-col gap-4 border-t border-border py-5 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
-          <p>
-            &copy; {year} {SITE.name}. All rights reserved.
-            <span className="hidden sm:inline"> · Made in Bangladesh</span>
-          </p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <p>
+              &copy; {year} {SITE.name}. All rights reserved.
+              <span className="hidden sm:inline"> · Made in Bangladesh</span>
+            </p>
+            <nav aria-label="Legal">
+              <ul className="flex flex-wrap items-center gap-x-4">
+                {LEGAL.map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      className={`inline-flex min-h-11 items-center font-medium text-foreground/70 transition-colors hover:text-primary-hover md:min-h-0 ${FOCUS_RING}`}
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </div>
           <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 md:justify-end">
             <div className="flex items-center gap-3">
               <span className="inline-flex items-center gap-1.5 text-xs font-medium">

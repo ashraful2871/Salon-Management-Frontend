@@ -6,6 +6,7 @@ import type { ApiResponse } from "@/lib/api-types";
 import type { AuthResult } from "@/lib/auth-types";
 import { applySession, extractTokens } from "@/lib/auth-session";
 import { clientIpHeaders } from "@/lib/client-ip-headers";
+import { clearRefCookie } from "@/lib/referral-cookie";
 import { clearVerifyCookie, readVerifyCookie } from "@/lib/verify-cookie";
 import { setTwoFactorCookie } from "@/lib/two-factor-cookie";
 
@@ -76,6 +77,9 @@ export const verifyOtpAction = async (
 
       await applySession(tokens);
       await clearVerifyCookie();
+      // Verified and signed in: an invite link's code must not carry over to
+      // another sign-up on this device.
+      await clearRefCookie();
     }
   } catch (error) {
     console.error("verifyOtpAction error:", error);

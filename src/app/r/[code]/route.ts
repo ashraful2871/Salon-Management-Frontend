@@ -8,7 +8,7 @@ import { getPublicSettings, referralSettingsOf } from "@/services/settings/getPu
  * `/r/<code>`: the invite link. Remembers the code in `sm_ref` for
  * `referral.attributionDays` (the last link clicked wins; a code typed in the
  * form still beats it), then sends a visitor to the invite landing and a
- * signed-in user to their own Refer page - invites are for new accounts.
+ * signed-in customer to their own Refer page - invites are for new accounts.
  *
  * Outside the route groups, never cached. Link to it with a plain `<a>`, not
  * `<Link>`, so nothing prefetches it.
@@ -27,7 +27,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const [settings, role] = await Promise.all([getPublicSettings(), getUserRoles()]);
   const days = referralSettingsOf(settings.success ? settings.data : null)["referral.attributionDays"] || 30;
 
-  const target = role ? "/dashboard/referrals?invite=own" : `/join/${code}`;
+  // The Refer page is customers only; any other account gets the invite
+  // page's signed-in state instead of a "not available" bounce.
+  const target = role === "CUSTOMER" ? "/dashboard/referrals?invite=own" : `/join/${code}`;
   const response = NextResponse.redirect(new URL(target, request.url), 307);
   response.cookies.set(REF_COOKIE, code, {
     httpOnly: true,

@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import type { ApiResponse } from "@/lib/api-types";
 import { clientIpHeaders } from "@/lib/client-ip-headers";
+import { deviceHeaders } from "@/lib/device-headers";
+import { normalizeCode, REF_COOKIE } from "@/lib/referral";
 import {
   NO_STORE,
   OAUTH_COOKIE,
@@ -23,8 +25,24 @@ export const dynamic = "force-dynamic";
 
 type GoogleStart = { authorizeUrl: string; flowToken: string };
 
+/**
+ * The invite code for a Google sign-up: `?ref=` (the field's checked value on
+ * register, or the invite page's code), else the `sm_ref` link cookie. It
+ * counts as a link referral when it came from the cookie, matches it, or the
+ * button said `src=link`. The API keeps it only if Google creates a new
+ * account; a bad code there is skipped, never an error.
+ */
+const referralOf = (req: NextRequest): { code: string; fromLink: boolean } | null => {
+  const params = req.nextUrl.searchParams;
+  const cookie = normalizeCode(req.cookies.get(REF_COOKIE)?.value ?? "");
+  const typed = normalizeCode(params.get("ref") ?? "");
+  if (typed) return { code: typed, fromLink: params.get("src") === "link" || typed === cookie };
+  return cookie ? { code: cookie, fromLink: true } : null;
+};
+
 export async function GET(req: NextRequest) {
   const redirect = safeInAppPath(req.nextUrl.searchParams.get("redirect"));
+  const referral = referralOf(req);
 
   let result: ApiResponse<GoogleStart> | null = null;
   try {
@@ -35,8 +53,13 @@ export async function GET(req: NextRequest) {
         headers: {
           "Content-Type": "application/json",
           ...(await clientIpHeaders()),
+          ...(await deviceHeaders()),
+          ...(referral?.fromLink ? { "X-Referral-Source": "link" } : {}),
         },
-        body: JSON.stringify(redirect ? { redirect } : {}),
+        body: JSON.stringify({
+          ...(redirect ? { redirect } : {}),
+          ...(referral ? { referralCode: referral.code } : {}),
+        }),
         cache: "no-store",
       },
     );

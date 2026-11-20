@@ -28,7 +28,19 @@ export type TwoFactorRequired = {
   expiresIn: number;
 };
 
-export type AuthResult = SignedIn | VerificationRequired | TwoFactorRequired;
+/**
+ * Google sign-in only, when the flow carried an invite code: whether it was
+ * attached. `REFERRAL_NOT_NEW_ACCOUNT` means the Google account was already
+ * ours; any other reason is a refused code (the account is ready either way).
+ */
+export type ReferralOutcome = {
+  applied: boolean;
+  reason?: "REFERRAL_NOT_NEW_ACCOUNT" | "REFERRAL_PROGRAM_OFF" | "REFERRAL_CODE_INVALID" | "REFERRAL_SELF";
+};
+
+export type AuthResult = (SignedIn | VerificationRequired | TwoFactorRequired) & {
+  referral?: ReferralOutcome;
+};
 
 /** `resend-otp` success: fresh timings for the code screen. */
 export type OtpTimings = {

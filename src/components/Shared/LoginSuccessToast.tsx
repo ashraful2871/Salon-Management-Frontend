@@ -23,6 +23,21 @@ const FLAGS: Record<string, { message: string; variant: "success" | "error" }> =
     },
   };
 
+/**
+ * `?notice=<key>`: a one-off note that can ride along with a flag above. The
+ * Google callback sets the referral ones when an invite code didn't attach.
+ */
+const NOTICES: Record<string, { message: string; variant: "info" | "error" }> = {
+  referral_not_applied: {
+    message: "Referral codes only work on new accounts.",
+    variant: "info",
+  },
+  referral_invalid: {
+    message: "That referral code couldn't be used, but your account is ready.",
+    variant: "info",
+  },
+};
+
 const LoginSuccessToast = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -31,13 +46,16 @@ const LoginSuccessToast = () => {
     const flag = Object.keys(FLAGS).find(
       (key) => searchParams.get(key) === "true",
     );
-    if (!flag) return;
+    const noticeKey = searchParams.get("notice");
+    const notice = noticeKey ? NOTICES[noticeKey] : undefined;
+    if (!flag && !notice) return;
 
-    const { message, variant } = FLAGS[flag];
-    toast[variant](message);
+    if (flag) toast[FLAGS[flag].variant](FLAGS[flag].message);
+    if (notice) toast[notice.variant](notice.message);
 
     const newUrl = new URL(window.location.href);
-    newUrl.searchParams.delete(flag);
+    if (flag) newUrl.searchParams.delete(flag);
+    if (notice) newUrl.searchParams.delete("notice");
     router.replace(`${newUrl.pathname}${newUrl.search}`);
   }, [searchParams, router]);
 

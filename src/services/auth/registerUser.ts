@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import type { AuthResult } from "@/lib/auth-types";
 import { applySession, extractTokens } from "@/lib/auth-session";
 import { clientIpHeaders } from "@/lib/client-ip-headers";
+import { deviceHeaders } from "@/lib/device-headers";
+import { clearRefCookie } from "@/lib/referral-cookie";
 import { setVerifyCookie } from "@/lib/verify-cookie";
 import { safeInAppPath } from "@/lib/safe-path";
 
@@ -22,6 +24,7 @@ export const registerUser = async (
   // Where to go once signed in (e.g. back to a team invitation).
   const next = safeInAppPath(formData.get("redirect"));
   try {
+    const referralCode = String(formData.get("referralCode") ?? "").trim();
     inputs = {
       name: formData.get("name"),
       email: formData.get("email"),
@@ -29,6 +32,7 @@ export const registerUser = async (
       confirmPassword: formData.get("confirmPassword"),
       phoneNumber: formData.get("phoneNumber"),
       gender: formData.get("gender"),
+      referralCode,
     };
 
     if (inputs.password !== inputs.confirmPassword) {
@@ -39,9 +43,12 @@ export const registerUser = async (
       };
     }
 
-    // The form's field is `phoneNumber`; the API reads `phone`.
-    const { phoneNumber, ...rest } = inputs;
-    const payload = { ...rest, phone: phoneNumber };
+    // The form's field is `phoneNumber`; the API reads `phone`. The invite
+    // code goes only when there is one; `referralSource=link` means it is
+    // still the one an invite link brought (`?ref=` / `sm_ref`), not typed.
+    const { phoneNumber, referralCode: code, ...rest } = inputs;
+    const payload = { ...rest, phone: phoneNumber, ...(code ? { referralCode: code } : {}) };
+    const fromLink = !!referralCode && formData.get("referralSource") === "link";
 
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/auth/register`,
@@ -50,6 +57,8 @@ export const registerUser = async (
         headers: {
           "Content-Type": "application/json",
           ...(await clientIpHeaders()),
+          ...(await deviceHeaders()),
+          ...(fromLink ? { "X-Referral-Source": "link" } : {}),
         },
         body: JSON.stringify(payload),
       },
@@ -57,9 +66,15 @@ export const registerUser = async (
 
     const result = await res.json();
 
+    // A refused invite code comes back with `details.field = "referralCode"`
+    // (the form shows it on that field); nothing was created.
     if (!result.success) {
       return { ...result, inputs };
     }
+
+    // The account exists from here on, whichever way it continues: drop the
+    // invite link's code so a later sign-up on this device doesn't inherit it.
+    await clearRefCookie();
 
     const data = result.data as AuthResult | undefined;
     if (data?.status === "VERIFICATION_REQUIRED") {

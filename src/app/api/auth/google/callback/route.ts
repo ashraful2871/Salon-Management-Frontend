@@ -1,9 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import type { ApiResponse } from "@/lib/api-types";
-import type { AuthResult } from "@/lib/auth-types";
+import type { AuthResult, ReferralOutcome } from "@/lib/auth-types";
 import { applySessionOnResponse, extractTokens } from "@/lib/auth-session";
 import { clientIpHeaders } from "@/lib/client-ip-headers";
+import { deviceHeaders } from "@/lib/device-headers";
+import { clearRefCookieOnResponse } from "@/lib/referral-cookie";
 import {
   NO_STORE,
   OAUTH_COOKIE,
@@ -33,12 +35,23 @@ export const dynamic = "force-dynamic";
 
 type GoogleCallback = AuthResult & { redirect?: string | null };
 
-/** `redirect` (or `/`) with `loggedIn=true` added, and never off this origin. */
-const signedInUrl = (req: NextRequest, redirect: unknown): URL => {
+/**
+ * `redirect` (or `/`) with `loggedIn=true` added, and never off this origin.
+ * An invite code that didn't attach adds `notice=` for `LoginSuccessToast`:
+ * `referral_not_applied` (the Google account was already ours) or
+ * `referral_invalid` (refused; the account is ready anyway).
+ */
+const signedInUrl = (req: NextRequest, redirect: unknown, referral?: ReferralOutcome): URL => {
   const home = new URL("/", req.url);
   const target = new URL(safeInAppPath(redirect) ?? "/", req.url);
   const url = target.origin === home.origin ? target : home;
   url.searchParams.set("loggedIn", "true");
+  if (referral && referral.applied === false) {
+    url.searchParams.set(
+      "notice",
+      referral.reason === "REFERRAL_NOT_NEW_ACCOUNT" ? "referral_not_applied" : "referral_invalid",
+    );
+  }
   return url;
 };
 
@@ -65,6 +78,8 @@ const handle = async (req: NextRequest): Promise<NextResponse> => {
         headers: {
           "Content-Type": "application/json",
           ...(await clientIpHeaders()),
+          // The API reads a referral attach's device signal from this request.
+          ...(await deviceHeaders()),
         },
         body: JSON.stringify({ code, state, flowToken }),
         cache: "no-store",
@@ -84,6 +99,8 @@ const handle = async (req: NextRequest): Promise<NextResponse> => {
       headers: NO_STORE,
     });
     setVerifyCookieOnResponse(res, data, data.redirect, "google");
+    // The account exists from here on (sm_ref is cleared on every success path).
+    clearRefCookieOnResponse(req, res);
     return res;
   }
 
@@ -93,16 +110,18 @@ const handle = async (req: NextRequest): Promise<NextResponse> => {
       headers: NO_STORE,
     });
     setTwoFactorCookieOnResponse(res, data, data.redirect);
+    clearRefCookieOnResponse(req, res);
     return res;
   }
 
   const tokens = extractTokens(apiRes, result);
   if (!tokens) return loginErrorRedirect(req, "google_failed");
 
-  const res = NextResponse.redirect(signedInUrl(req, data.redirect), {
+  const res = NextResponse.redirect(signedInUrl(req, data.redirect, data.referral), {
     headers: NO_STORE,
   });
   applySessionOnResponse(res, tokens);
+  clearRefCookieOnResponse(req, res);
   return res;
 };
 

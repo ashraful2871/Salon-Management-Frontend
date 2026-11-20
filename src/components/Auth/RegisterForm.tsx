@@ -3,38 +3,72 @@
 import { track } from "@/lib/track";
 import { Lock, Mail, User, Phone, EyeOff, Eye } from "lucide-react";
 import Link from "next/link";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useCallback, useEffect, useMemo, useState } from "react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import GoogleButton, { OrDivider } from "./GoogleButton";
 import AuthShell from "./AuthShell";
 import { registerUser } from "@/services/auth/registerUser";
 import { toast } from "sonner";
+import { ReferralCodeField } from "@/components/Referral/ReferralCodeField";
+import type { ReferralSideTerms } from "@/services/referral/types";
 
 const RegisterForm = ({
   googleEnabled = false,
   lockedEmail,
   redirectTo,
+  initialReferralCode,
+  referralOn = false,
+  terms,
 }: {
   googleEnabled?: boolean;
   /** From a team invitation: the address it was sent to, prefilled and read-only. */
   lockedEmail?: string;
   /** Where to go once signed in (kept through the code screen). */
   redirectTo?: string;
+  /** From `?ref=` or the `sm_ref` invite-link cookie: opens the code field prefilled. */
+  initialReferralCode?: string;
+  /** `referral.enabled`; off hides the code field. */
+  referralOn?: boolean;
+  /** The friend's terms in force, for the code field's chip. */
+  terms?: ReferralSideTerms;
 }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [state, formAction, isPending] = useActionState(registerUser, null);
   const [showPassword, setShowPassword] = useState(false);
+  // The code field's checked code, for the Google button.
+  const [googleReferral, setGoogleReferral] = useState<{ code: string | null; fromLink: boolean }>({
+    code: null,
+    fromLink: false,
+  });
+  const onValidCode = useCallback(
+    (code: string | null, fromLink: boolean) => setGoogleReferral({ code, fromLink }),
+    [],
+  );
+
+  // Invite codes are for customer accounts, and a team invitation signs up
+  // staff, so that sign-up never shows the field (the form has no role pick).
+  const showReferral = referralOn && !lockedEmail;
+
+  // The API refused the invite code (REFERRAL_CODE_INVALID / _SELF / _PROGRAM_OFF):
+  // shown on the field, with every other value kept.
+  const referralError = useMemo(
+    () =>
+      state && !state.success && state.details?.field === "referralCode"
+        ? { code: String(state.inputs?.referralCode ?? ""), message: String(state.message ?? "") }
+        : null,
+    [state],
+  );
 
   // A successful registration redirects from inside the server action and
   // never comes back as state, so anything that lands here is a failure.
   useEffect(() => {
-    if (state && !state.success) {
+    if (state && !state.success && !referralError) {
       toast.error(
         state.message || state.error || "Registration failed. Please try again.",
       );
     }
-  }, [state]);
+  }, [state, referralError]);
 
   return (
     <AuthShell
@@ -44,10 +78,11 @@ const RegisterForm = ({
 
           {googleEnabled && (
             <>
-              {/* Capture: the button is a plain link that leaves the page. */}
-              <div onClickCapture={() => track("signup_started", "method:google")}>
-                <GoogleButton />
-              </div>
+              <GoogleButton
+                signup
+                referralCode={showReferral ? googleReferral.code : null}
+                referralFromLink={googleReferral.fromLink}
+              />
               <OrDivider />
             </>
           )}
@@ -218,6 +253,16 @@ const RegisterForm = ({
                 </button>
               </div>
             </div>
+
+            {showReferral && (
+              <ReferralCodeField
+                initialCode={initialReferralCode}
+                fallbackPercent={terms?.percent ?? 0}
+                serverError={referralError}
+                disabled={isPending}
+                onValidCode={onValidCode}
+              />
+            )}
 
             <Button
               loading={isPending}
