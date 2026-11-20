@@ -106,4 +106,13 @@ export const TAGS = {
   adminAreas: "admin-areas",
   adminAnalytics: "admin-analytics",
   adminSystem: "admin-system",
+  // Referrals (`/referrals/*`, `/admin/referrals/*`).
+  /** The Refer page: code, link, terms, stats and friends. */
+  myReferral: "my-referral",
+  /** The customer's rewards and the booking flow's reward summary. */
+  myRewards: "my-rewards",
+  /** The invite landing's lookup of one code. */
+  referralCode: (code: string) => `referral-code-${code}`,
+  /** Every back-office referral and reward view. */
+  adminReferrals: "admin-referrals",
 } as const;

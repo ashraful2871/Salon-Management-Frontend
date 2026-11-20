@@ -7,6 +7,7 @@ import {
   refreshCookieOptions,
 } from "@/lib/auth-cookies";
 import { decodeJwt, isTokenExpiring } from "@/lib/jwt";
+import { DEVICE_COOKIE } from "@/lib/referral";
 import {
   PATHNAME_HEADER,
   ROLE_HOME,
@@ -22,6 +23,15 @@ import { refreshSession } from "@/services/auth/refreshSession";
 import type { UserRole } from "@/services/auth/auth-utils";
 
 const RENEW_BEFORE_MS = 5 * 60 * 1000;
+
+/** `sm_did`: a random device id for the referral SAME_DEVICE signal (never an identity). */
+const DEVICE_COOKIE_OPTIONS = {
+  httpOnly: true,
+  sameSite: "lax",
+  secure: process.env.NODE_ENV === "production",
+  path: "/",
+  maxAge: 2 * 365 * 24 * 60 * 60,
+} as const;
 
 /**
  * Two jobs, in this order: keep the session alive, then decide where the
@@ -105,6 +115,12 @@ export async function proxy(request: NextRequest) {
   const accessToken = renewal.kind === "ended" ? null : renewal.accessToken;
   const role = claimedRole(accessToken);
 
+  // A first visit gets its device id now, and this request already carries it
+  // (set before the headers are copied), so a server action on this very
+  // request can forward it.
+  const newDeviceId = request.cookies.get(DEVICE_COOKIE)?.value ? null : crypto.randomUUID();
+  if (newDeviceId) request.cookies.set(DEVICE_COOKIE, newDeviceId);
+
   // Forwarded so a guard can build an accurate "come back here after signing
   // in" link. Set, never appended, so a client-supplied header cannot survive.
   const headers = new Headers(request.headers);
@@ -166,6 +182,8 @@ export async function proxy(request: NextRequest) {
     response.cookies.delete(ACCESS_TOKEN_COOKIE);
     response.cookies.delete(REFRESH_TOKEN_COOKIE);
   }
+
+  if (newDeviceId) response.cookies.set(DEVICE_COOKIE, newDeviceId, DEVICE_COOKIE_OPTIONS);
 
   return response;
 }

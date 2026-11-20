@@ -2,6 +2,7 @@
 
 import type { ApiResponse } from "@/lib/api-types";
 import { clientIpHeaders } from "@/lib/client-ip-headers";
+import { deviceHeaders } from "@/lib/device-headers";
 import { homeSend } from "./request";
 import type { HomeQuote, HomeQuoteInput } from "./types";
 
@@ -16,5 +17,5 @@ export const quoteHomeBooking = async (input: HomeQuoteInput): Promise<ApiRespon
     "/home-service/bookings/quote",
     input,
     "Couldn't price this visit. Please try again.",
-    await clientIpHeaders(),
+    { ...(await clientIpHeaders()), ...(await deviceHeaders()) },
   );

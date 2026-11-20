@@ -17,6 +17,11 @@ const ANALYTICS = /^analytics\/(overview|bookings|customers|salons|geo|funnel|se
  * (finance.export + finance.payout_accounts): the transfer file, full account numbers.
  */
 const PAYOUT_FILE = /^payout-files\/(bkash|beftn)\.csv$/;
+/**
+ * `referrals/<referrals|rewards>.csv` → `/admin/referrals/export?type=…`
+ * (referrals.view + analytics.export); the list filters pass through.
+ */
+const REFERRALS = /^referrals\/(referrals|rewards)\.csv$/;
 
 export const dynamic = "force-dynamic";
 
@@ -28,13 +33,20 @@ export async function GET(
   const report = ANALYTICS.exec(file)?.[1];
   const userId = USER_EXPORT.exec(file)?.[1];
   const payoutFormat = PAYOUT_FILE.exec(file)?.[1];
-  if (!report && !userId && !payoutFormat && !FILE.test(file)) {
+  const referralType = REFERRALS.exec(file)?.[1];
+  if (!report && !userId && !payoutFormat && !referralType && !FILE.test(file)) {
     return new Response("Unknown export", { status: 404 });
   }
 
   const payoutQuery = () => {
     const query = new URLSearchParams(request.nextUrl.searchParams);
     query.set("format", payoutFormat!);
+    return `?${query.toString()}`;
+  };
+
+  const referralQuery = () => {
+    const query = new URLSearchParams(request.nextUrl.searchParams);
+    query.set("type", referralType!);
     return `?${query.toString()}`;
   };
 
@@ -45,7 +57,9 @@ export async function GET(
         ? `/admin/analytics/${report}/export.csv${request.nextUrl.search}`
         : payoutFormat
           ? `/admin/finance/payouts/export.csv${payoutQuery()}`
-          : `/admin/finance/export/${file}${request.nextUrl.search}`,
+          : referralType
+            ? `/admin/referrals/export${referralQuery()}`
+            : `/admin/finance/export/${file}${request.nextUrl.search}`,
     { cache: "no-store" },
   );
 

@@ -31,6 +31,10 @@ export type TrackEvents = {
   home_booking_created: `audience:${HomeSide}`;
   home_booking_paid: `audience:${HomeSide},method:${"wallet" | "bkash" | "sslcommerz"}`;
   home_out_of_area: `audience:${HomeSide}`;
+  // Referrals: the invite landing, the Refer page's share buttons, the register form's code field.
+  referral_landing_view: `state:${"valid" | "invalid" | "signed_in" | "paused"}`;
+  referral_share: `channel:${"whatsapp" | "messenger" | "facebook" | "sms" | "copy_link" | "copy_code" | "native"}`;
+  referral_code_entered: `result:${"valid" | "invalid"}`;
 };
 
 type HomeSide = "ladies" | "gents";

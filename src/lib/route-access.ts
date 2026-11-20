@@ -122,6 +122,8 @@ export const ROUTE_ROLES = {
   "/dashboard/admin/home-service/bookings": ["ADMIN"],
   "/dashboard/admin/home-service/safety": ["ADMIN"],
   "/dashboard/admin/home-service/policy": ["ADMIN"],
+  // Referrals (referrals.view; the segment layout adds guardPermission).
+  "/dashboard/admin/referrals": ["ADMIN"],
   // Old admin URLs: the proxy sends admins on (`ADMIN_MOVED`), and nobody
   // else has a page here.
   "/dashboard/become-a-salon-owner-request": [],
@@ -129,6 +131,9 @@ export const ROUTE_ROLES = {
   "/dashboard/applications-status": ["SALON_OWNER", "CUSTOMER"],
   "/dashboard/settings": SIGNED_IN_ROLES,
   "/dashboard/wallet": ["CUSTOMER"],
+  // Refer & earn: only a customer invites friends (the API answers CUSTOMER_ONLY).
+  // /r, /join and /referral-terms are public and never listed here.
+  "/dashboard/referrals": ["CUSTOMER"],
   // Home Service. Only a customer books a home visit; the expert's jobs are
   // a staff member's (a manager can be an expert too, the page says if not);
   // the branch's home settings, menu, experts and board are the business's.

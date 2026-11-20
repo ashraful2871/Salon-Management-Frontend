@@ -395,6 +395,8 @@ export type HomeQuoteInput = {
   recipientIsWoman?: boolean;
   contactPhone: string;
   notes?: string;
+  /** Referral reward: absent = the best one, `null` = none, an id = that one. */
+  rewardId?: string | null;
 };
 
 export type HomeCreateInput = HomeQuoteInput & {

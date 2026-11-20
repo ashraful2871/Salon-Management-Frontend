@@ -74,6 +74,29 @@ export type PublicSettings = {
   "homeService.rescheduleCutoffHours"?: number;
   "homeService.maxRescheduleCount"?: number;
   "homeService.ladiesLastStart"?: string;
+  // Referrals: the public subset of the `referral.*` registry (two flags + terms).
+  /** Off (the default): no invite entry points, no new attaches. */
+  "referral.enabled"?: boolean;
+  /** Off: quotes apply no reward; reserved bookings keep theirs. */
+  "referral.redemptionsEnabled"?: boolean;
+  "referral.refereePercent"?: number;
+  /** 0 = no cap. */
+  "referral.refereeMaxDiscountMinor"?: number;
+  "referral.refereeValidDays"?: number;
+  "referral.refereeScope"?: "ALL" | "SALON" | "HOME";
+  "referral.referrerPercent"?: number;
+  "referral.referrerMaxDiscountMinor"?: number;
+  "referral.referrerValidDays"?: number;
+  "referral.referrerScope"?: "ALL" | "SALON" | "HOME";
+  "referral.referrerTrigger"?: "FIRST_BOOKING_COMPLETED" | "REFEREE_VERIFIED";
+  "referral.minOrderMinor"?: number;
+  /** 0 = no cap. */
+  "referral.maxRewardsPerMonth"?: number;
+  /** How long an invite link's `sm_ref` cookie lasts. */
+  "referral.attributionDays"?: number;
+  "referral.restoreOnCancel"?: boolean;
+  /** Placeholders `{percent}` `{code}` `{link}` `{site}` `{cap}` (`fillShareMessage`). */
+  "referral.shareMessage"?: string;
 };
 
 type HomeServiceKey = Extract<keyof PublicSettings, `homeService.${string}`>;
@@ -108,6 +131,44 @@ export type HomeServiceSettings = { -readonly [K in HomeServiceKey]-?: NonNullab
 export const homeSettingsOf = (settings?: Partial<PublicSettings> | null): HomeServiceSettings => {
   const out = { ...HOME_SERVICE_DEFAULTS } as HomeServiceSettings;
   for (const key of Object.keys(HOME_SERVICE_DEFAULTS) as HomeServiceKey[]) {
+    const value = settings?.[key];
+    if (value !== undefined && value !== null) (out as Record<string, unknown>)[key] = value;
+  }
+  return out;
+};
+
+type ReferralKey = Extract<keyof PublicSettings, `referral.${string}`>;
+
+/**
+ * The API registry's referral defaults, used when the settings call fails or a
+ * key is missing. `referral.enabled` is false, so a failed call hides every
+ * invite entry point rather than advertising a program that may be off.
+ */
+export const REFERRAL_DEFAULTS = {
+  "referral.enabled": false,
+  "referral.redemptionsEnabled": true,
+  "referral.refereePercent": 5,
+  "referral.refereeMaxDiscountMinor": 30_000,
+  "referral.refereeValidDays": 30,
+  "referral.refereeScope": "ALL",
+  "referral.referrerPercent": 10,
+  "referral.referrerMaxDiscountMinor": 50_000,
+  "referral.referrerValidDays": 90,
+  "referral.referrerScope": "SALON",
+  "referral.referrerTrigger": "FIRST_BOOKING_COMPLETED",
+  "referral.minOrderMinor": 0,
+  "referral.maxRewardsPerMonth": 10,
+  "referral.attributionDays": 30,
+  "referral.restoreOnCancel": true,
+  "referral.shareMessage": "Get {percent}% off your first booking on {site} with my code {code}: {link}",
+} as const satisfies Required<Pick<PublicSettings, ReferralKey>>;
+
+export type ReferralSettings = { -readonly [K in ReferralKey]-?: NonNullable<PublicSettings[K]> };
+
+/** Every public `referral.*` value, the default standing in for any the API didn't send. */
+export const referralSettingsOf = (settings?: Partial<PublicSettings> | null): ReferralSettings => {
+  const out = { ...REFERRAL_DEFAULTS } as ReferralSettings;
+  for (const key of Object.keys(REFERRAL_DEFAULTS) as ReferralKey[]) {
     const value = settings?.[key];
     if (value !== undefined && value !== null) (out as Record<string, unknown>)[key] = value;
   }
