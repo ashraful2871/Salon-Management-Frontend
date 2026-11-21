@@ -176,7 +176,7 @@ const NavbarClient = ({
             setAdminRevenueMinor(res.data.platformRevenueMinor);
           }
         }
-      } catch (error) {
+      } catch {
         // Ignore fetch errors; the UI will gracefully show "--"
       } finally {
         if (isMounted) setBalancesLoading(false);

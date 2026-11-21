@@ -267,7 +267,7 @@ const RegisterForm = ({
             <Button
               loading={isPending}
               type="submit"
-              className="md:col-span-2 w-full rounded-full font-bold mt-2"
+              className="md:col-span-2 w-full h-11 md:h-10 rounded-full font-bold mt-2"
             >
               Create account
             </Button>
@@ -291,7 +291,7 @@ const RegisterForm = ({
               Already have an account?{" "}
               <Link
                 href="/login"
-                className="text-primary font-bold hover:text-primary-hover transition-colors"
+                className="inline-flex min-h-11 items-center text-primary font-bold hover:text-primary-hover transition-colors"
               >
                 Sign in
               </Link>

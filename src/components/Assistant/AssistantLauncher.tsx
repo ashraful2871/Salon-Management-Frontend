@@ -48,7 +48,12 @@ const AssistantLauncher = () => {
     pathname?.startsWith("/dashboard") ||
     false;
 
-  const wantsGreeting = !seen && !dismissed && !hidden;
+  // An invite page (`/join/<code>`) is a sign-up page for a first-time visitor:
+  // on a phone the greeting would sit on its "Create my free account" button.
+  // The button stays; the greeting waits for their next page.
+  const quiet = pathname?.startsWith("/join/") ?? false;
+
+  const wantsGreeting = !seen && !dismissed && !hidden && !quiet;
   useEffect(() => {
     if (!wantsGreeting) return;
     const timer = window.setTimeout(() => setGreetingDue(true), GREETING_DELAY_MS);
