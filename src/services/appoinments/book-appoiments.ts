@@ -3,12 +3,14 @@
 import { serverFetch } from "@/lib/server-fetch";
 import type { ApiResponse, Appointment } from "@/lib/api-types";
 import { revalidateTag, updateTag } from "next/cache";
+import { redirect, RedirectType } from "next/navigation";
 import { TAGS } from "@/lib/cache-tags";
 
 export const bookingAppointment = async (
   _currentState: ApiResponse<Appointment> | null,
   formData: FormData,
 ): Promise<ApiResponse<Appointment>> => {
+  let result: ApiResponse<Appointment>;
   try {
     const appointmentData = {
       salonId: formData.get("salonId")?.toString(),
@@ -27,7 +29,7 @@ export const bookingAppointment = async (
       body: JSON.stringify(appointmentData),
     });
 
-    const result: ApiResponse<Appointment> = await res.json();
+    result = await res.json();
 
     if (result.success) {
       revalidateTag(TAGS.appointments, "max");
@@ -39,12 +41,7 @@ export const bookingAppointment = async (
       revalidateTag(TAGS.earnings, "max");
       revalidateTag(TAGS.slots, "max");
     }
-
-    return result;
   } catch (error) {
-    if ((error as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) {
-      throw error;
-    }
     console.error("bookingAppointment error:", error);
     return {
       success: false,
@@ -54,4 +51,20 @@ export const bookingAppointment = async (
           : "Failed to book appointment.",
     };
   }
+
+  // Straight to the confirmation, from the server. Returning and letting the
+  // page navigate instead re-rendered the review page first, against a slot
+  // that is now BOOKED, and anything that dropped the success state on the way
+  // (a second submit queued behind the first, a remount) left the customer
+  // looking at "this time has just been taken" for their own booking.
+  // Replace, so Back leads to the time list rather than to a spent review page.
+  const booked = result.success ? result.data : undefined;
+  if (booked?.id && booked.salon?.id) {
+    redirect(
+      `/salons/${encodeURIComponent(booked.salon.id)}/book/confirmed?ref=${encodeURIComponent(booked.id)}`,
+      RedirectType.replace,
+    );
+  }
+
+  return result;
 };

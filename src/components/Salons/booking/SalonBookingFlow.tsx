@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   ArrowRight,
   Check,
   Clock,
@@ -86,6 +87,8 @@ export type BookingFlowInitial = {
   notes?: string;
   step?: string;
   mode?: string;
+  /** Sent back from the review page: the chosen time is no longer free. */
+  taken?: boolean;
 };
 
 /**
@@ -201,6 +204,54 @@ export default function SalonBookingFlow({
   }, [slotsKey, salon.id, date, serviceId]);
   const slotsLoading = Boolean(slotsKey) && slotsRes?.key !== slotsKey;
   const slotsError = !slotsLoading ? (slotsRes?.error ?? null) : null;
+
+  // "That time isn't free any more": back from the review page, or the picked
+  // time vanished when the list was re-read. Cleared by the next choice.
+  const [timeGone, setTimeGone] = useState(Boolean(initial.taken));
+
+  // A list loaded a while ago can still offer a time that has since been
+  // booked (another customer, or this one in another tab). Coming back to the
+  // tab or window re-reads it quietly, keeping the grid on screen; a picked
+  // time that is gone is dropped. Not a poll - only on return.
+  useEffect(() => {
+    if (!slotsKey) return;
+    let live = true;
+    let lastRead = Date.now();
+    const reread = () => {
+      if (document.visibilityState !== "visible") return;
+      // Returning to a tab fires both events; one read is enough.
+      if (Date.now() - lastRead < 3000) return;
+      lastRead = Date.now();
+      getSlots({
+        salonId: salon.id,
+        date,
+        status: "AVAILABLE",
+        serviceId,
+        upcomingOnly: true,
+      })
+        .then((res) => {
+          if (!live || !res?.success || !Array.isArray(res.data)) return;
+          const fresh: Slot[] = res.data;
+          setSlotsRes((prev) =>
+            prev?.key === slotsKey
+              ? { key: slotsKey, data: fresh, error: null }
+              : prev,
+          );
+          if (time && !fresh.some((s) => s.startTime === time)) {
+            setTime(null);
+            setTimeGone(true);
+          }
+        })
+        .catch(() => {});
+    };
+    document.addEventListener("visibilitychange", reread);
+    window.addEventListener("focus", reread);
+    return () => {
+      live = false;
+      document.removeEventListener("visibilitychange", reread);
+      window.removeEventListener("focus", reread);
+    };
+  }, [slotsKey, salon.id, date, serviceId, time]);
 
   // Every start time, with the counters it can be booked on. A slot made for
   // one counter is only that counter's; an unassigned one fits any of them.
@@ -330,10 +381,12 @@ export default function SalonBookingFlow({
   const pickService = (id: string) => {
     setServiceId(id);
     setTime(null);
+    setTimeGone(false);
   };
   const pickDate = (ymd: string) => {
     setDate(ymd);
     setTime(null);
+    setTimeGone(false);
   };
   const review = () => {
     if (!service || !chosen?.option) return;
@@ -613,6 +666,24 @@ export default function SalonBookingFlow({
                       ))}
                     </div>
                   )}
+                  {timeGone && (
+                    <div
+                      role="status"
+                      className="mb-5 flex items-start gap-2.5 rounded-2xl border border-warning-soft bg-warning-soft px-4 py-3 text-sm text-warning"
+                    >
+                      <AlertTriangle
+                        className="mt-0.5 size-4 shrink-0"
+                        aria-hidden
+                      />
+                      <p>
+                        <span className="font-semibold">
+                          That time isn&apos;t free any more.
+                        </span>{" "}
+                        Someone booked it first. The times below are still
+                        open - pick another one.
+                      </p>
+                    </div>
+                  )}
                   <TimeGrid
                     loading={slotsLoading}
                     error={slotsError}
@@ -621,6 +692,7 @@ export default function SalonBookingFlow({
                     onRetry={() => setSlotNonce((n) => n + 1)}
                     onPick={(t) => {
                       setTime(t);
+                      setTimeGone(false);
                       track("slot_selected");
                     }}
                     onNextDay={() => pickDate(addDaysYmd(date, 1))}

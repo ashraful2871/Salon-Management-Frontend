@@ -189,6 +189,8 @@ export type BookingQuery = {
   step?: "service" | "time";
   /** Opens the flow on "At home". */
   mode?: "home";
+  /** Back from the review page because the chosen time is no longer free. */
+  taken?: "1";
 };
 
 /** The booking flow (`/salons/:id/book`); with a slot it is the review page instead. */

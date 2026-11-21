@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
 
 import BookingSummary from "@/components/Salons/BookingSummary";
@@ -11,6 +11,7 @@ import { dhakaToday } from "@/components/Salons/salon-time";
 import { Button } from "@/components/ui/button";
 import { getSingleSalon } from "@/services/salon/getSingleSalon";
 import { getSlots } from "@/services/slots/slot-api";
+import { getMyBookingForSlot } from "@/services/appoinments/getMyBookingForSlot";
 import { getMyWallet } from "@/services/wallet/getMyWallet";
 import { getPublicSettings } from "@/services/settings/getPublicSettings";
 import { getUserRoles } from "@/services/get-roles/getUserRoles";
@@ -192,6 +193,7 @@ const BookingPage = async ({
           notes,
           step: one(query.step),
           mode: one(query.mode),
+          taken: one(query.taken) === "1",
         }}
       />
     );
@@ -245,7 +247,7 @@ const BookingPage = async ({
     (s: any) => s.id === slotId,
   );
 
-  if (!service || !counter || !slot) {
+  if (!service || !counter || !slotRes?.success) {
     return (
       <InvalidSelection
         salonId={id}
@@ -253,6 +255,31 @@ const BookingPage = async ({
         message="The service or time you chose isn't available anymore. Pick another time to continue."
         retryHref={chooseHref}
       />
+    );
+  }
+
+  // A time that is booked, held, past or closed is never put in front of the
+  // customer to confirm. Their own booking goes to its confirmation (a second
+  // tab, a reload, a double submit); anything else goes back to the times that
+  // are still free, with a line saying why.
+  if (!slot || slot.isBooked === true || slot.status !== "AVAILABLE") {
+    const mine = slot ? await getMyBookingForSlot(slotId) : undefined;
+    if (mine) {
+      redirect(
+        `/salons/${id}/book/confirmed?ref=${encodeURIComponent(mine.id)}`,
+        RedirectType.replace,
+      );
+    }
+    redirect(
+      bookingHref(id, {
+        service: serviceId,
+        staff: staffId,
+        date,
+        notes: notes || undefined,
+        step: "time",
+        taken: "1",
+      }),
+      RedirectType.replace,
     );
   }
 
@@ -329,7 +356,6 @@ const BookingPage = async ({
         date: slot.date,
         startTime: slot.startTime,
         endTime: slot.endTime,
-        isTaken: slot.isBooked === true || slot.status !== "AVAILABLE",
       }}
       notes={notes}
       depositMinor={depositMinor}

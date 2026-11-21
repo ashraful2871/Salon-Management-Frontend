@@ -76,7 +76,6 @@ type SlotInfo = {
   date: string;
   startTime: string;
   endTime?: string;
-  isTaken: boolean;
 };
 
 type WalletInfo = {
@@ -215,9 +214,8 @@ const BookingSummary = ({
   const isFree = depositMinor <= 0 && !prepayAllowed;
   const lastHandled = React.useRef(state);
 
-  // Between the booking succeeding and the confirmation page arriving, this
-  // page re-renders against a slot that is now BOOKED. Without this, it would
-  // flash "this time has just been taken" at the person who just took it.
+  // A booking normally leaves this page by the action's own redirect; this
+  // covers a success answered without an id, until the confirmation arrives.
   const isCompleting = state?.success === true;
 
   const dueAtSalonMinor = Math.max(service.priceMinor - payNowMinor, 0);
@@ -230,12 +228,8 @@ const BookingSummary = ({
     /** `topup` opens the top-up here instead of following `href`. */
     action: { label: string; href: string; topup?: boolean };
   } | null => {
-    if (slot.isTaken)
-      return {
-        title: "This time has just been taken",
-        body: "Another customer booked this slot while you were reviewing. Pick a different time to continue.",
-        action: { label: "Choose another time", href: editHref },
-      };
+    // A taken time never reaches this page: the server sends it back to the
+    // time list (or, for the customer's own booking, to its confirmation).
     // A free booking takes nothing from the wallet, so a frozen one is no bar.
     if (wallet.isFrozen && !isFree)
       return {
@@ -257,7 +251,6 @@ const BookingSummary = ({
       };
     return null;
   }, [
-    slot.isTaken,
     isFree,
     wallet.isFrozen,
     wallet.available,
@@ -266,7 +259,6 @@ const BookingSummary = ({
     depositMinor,
     paysInFull,
     payNowMinor,
-    editHref,
   ]);
 
   useEffect(() => {
@@ -281,10 +273,16 @@ const BookingSummary = ({
           appointmentId ? `?ref=${appointmentId}` : ""
         }`,
       );
+    } else if (state.errorCode === "SLOT_TAKEN") {
+      // Someone else got the time while this page was open: back to the
+      // times that are still free, which say why.
+      router.replace(
+        `${editHref}${editHref.includes("?") ? "&" : "?"}taken=1`,
+      );
     } else {
       toast.error(state.message || "We could not confirm this booking");
     }
-  }, [state, router, salon.id]);
+  }, [state, router, salon.id, editHref]);
 
   const activeBlocker = isCompleting ? null : blocker;
   const isBusy = isPending || isCompleting;
