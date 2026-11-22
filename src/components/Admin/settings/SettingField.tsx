@@ -160,7 +160,8 @@ export function SettingField({
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <Label htmlFor={id} className="text-sm font-semibold">
-              {setting.label}
+              {/* The registry names the unit "(poisha)"; a taka control is typed in ৳. */}
+              {control === "taka" ? setting.label.replace(/\s*\(poisha\)/i, " (৳)") : setting.label}
             </Label>
             <ToneBadge status={setting.source} tone={source.tone}>
               {source.label}
