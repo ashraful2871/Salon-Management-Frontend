@@ -84,6 +84,18 @@ export type AdminUserDetail = {
     reviews: number;
   };
   wallet: { balanceMinor: number; heldMinor: number; isFrozen: boolean } | null;
+  /** Customers, for an admin with referrals.view; null otherwise. */
+  referral?: AdminUserReferral | null;
+};
+
+/** User 360's `referral` block (`user360Referral` in the API). */
+export type AdminUserReferral = {
+  code: string | null;
+  blocked: boolean;
+  blockedReason: string | null;
+  referredBy: { id: string; name: string; referralId: string; status: string } | null;
+  made: { total: number; qualified: number };
+  rewards: { available: number; redeemed: number; savedMinor: number; saved?: number };
 };
 
 export type AdminUserBooking = {

@@ -1,6 +1,13 @@
 "use client";
 
-import React, { useActionState, useEffect, useMemo, useState } from "react";
+import React, {
+  startTransition,
+  useActionState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -46,6 +53,22 @@ import { bookingAppointment } from "@/services/appoinments/book-appoiments";
 import TopUpModal from "@/components/Wallet/TopUpModal";
 import type { ProviderId } from "@/lib/payment-providers";
 import { SITE } from "@/lib/site";
+import { ConfirmDialog } from "@/components/Shared/ConfirmDialog";
+import { Input } from "../ui/input";
+import {
+  RewardLine,
+  isRewardError,
+  minusBDT,
+} from "@/components/Referral/RewardLine";
+import {
+  quoteAppointment,
+  type AppointmentQuote,
+} from "@/services/appoinments/quoteAppointment";
+import { updateMyPhone } from "@/services/users/updateMyPhone";
+import {
+  BD_MOBILE,
+  normalizePhone,
+} from "@/components/HomeService/booking/format";
 
 type SalonInfo = {
   id: string;
@@ -109,7 +132,15 @@ type BookingSummaryProps = {
   /** Open the top-up straight away (`?topup=1`, "Try again" after a failed
    *  payment), with this method preselected when given. */
   reopenTopup?: { method?: ProviderId };
+  /** `POST /appointments/quote` from the server (null when it failed: full price, no reward line). */
+  quote?: AppointmentQuote | null;
+  /** A welcome reward held back until the profile has a mobile number. */
+  phoneBlocked?: { rewardId: string; message: string } | null;
 };
+
+/** The hidden `rewardId` field: an id, "none" for without, empty for the best. */
+const rewardField = (choice: string | null | undefined) =>
+  choice === null ? "none" : (choice ?? "");
 
 const METHOD_ICONS: Record<
   string,
@@ -179,8 +210,10 @@ const BookingSummary = ({
   staff,
   slot,
   notes,
-  depositMinor,
-  prepayAllowed = false,
+  depositMinor: depositFallbackMinor,
+  prepayAllowed: prepayFallback = false,
+  quote: initialQuote = null,
+  phoneBlocked: initialPhoneBlocked = null,
   wallet,
   editHref,
   salonHref,
@@ -188,6 +221,27 @@ const BookingSummary = ({
   reopenTopup,
 }: BookingSummaryProps) => {
   const router = useRouter();
+  // The live quote: the reward switch and picker re-ask the server, and every
+  // payable figure below comes from it (the props are only the fallback when
+  // the first quote failed).
+  const [quote, setQuote] = useState<AppointmentQuote | null>(initialQuote);
+  const [quoting, setQuoting] = useState(false);
+  // undefined = let the server pick the best, null = without, id = that one.
+  const [rewardChoice, setRewardChoice] = useState<string | null | undefined>(
+    initialQuote ? (initialQuote.promo?.rewardId ?? null) : undefined,
+  );
+  const [phoneBlocked, setPhoneBlocked] = useState(initialPhoneBlocked);
+  const [phone, setPhone] = useState("");
+  const [savingPhone, setSavingPhone] = useState(false);
+  const [rewardProblem, setRewardProblem] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const totalMinor = quote?.totalMinor ?? service.priceMinor;
+  const promo = quote?.promo ?? null;
+  const promoMinor = promo?.discountMinor ?? 0;
+  const payableMinor = Math.max(totalMinor - promoMinor, 0);
+  const depositMinor = quote ? quote.depositMinor : depositFallbackMinor;
+  const prepayAllowed = quote ? quote.prepayAllowed : prepayFallback;
   // A free booking has nothing to top up for, even when `?topup=1` is left over.
   const [topupOpen, setTopupOpen] = useState(
     Boolean(reopenTopup) && (depositMinor > 0 || prepayAllowed),
@@ -208,7 +262,7 @@ const BookingSummary = ({
   // "Pay all now" or "deposit only" - one hold either way, released the same.
   const [payInFull, setPayInFull] = useState(false);
   const paysInFull = prepayAllowed && payInFull;
-  const payNowMinor = paysInFull ? service.priceMinor : depositMinor;
+  const payNowMinor = paysInFull ? payableMinor : depositMinor;
   // Nothing is taken in the app (booking payments switched off, or a salon
   // with no deposit): no payment method, no wallet, the whole bill at the salon.
   const isFree = depositMinor <= 0 && !prepayAllowed;
@@ -218,7 +272,71 @@ const BookingSummary = ({
   // covers a success answered without an id, until the confirmation arrives.
   const isCompleting = state?.success === true;
 
-  const dueAtSalonMinor = Math.max(service.priceMinor - payNowMinor, 0);
+  // The server's figure (total − reward − deposit); paying in full leaves nothing.
+  const dueAtSalonMinor = paysInFull
+    ? 0
+    : (quote?.dueAtSalonMinor ?? Math.max(payableMinor - payNowMinor, 0));
+
+  /** Re-price with another reward choice; only the reward row shows it is busy. */
+  const requote = async (rewardId: string | null | undefined) => {
+    setQuoting(true);
+    const res = await quoteAppointment({
+      salonId: salon.id,
+      serviceId: service.id,
+      counterId: counter.id,
+      slotId: slot.id,
+      ...(staff?.id ? { staffId: staff.id } : {}),
+      ...(rewardId === undefined ? {} : { rewardId }),
+    });
+    setQuoting(false);
+    if (res.success && res.data) {
+      setQuote(res.data);
+      setRewardChoice(res.data.promo?.rewardId ?? null);
+      if (!res.data.prepayAllowed) setPayInFull(false);
+      return res.data;
+    }
+    if (
+      res.details?.reason === "PHONE_REQUIRED" &&
+      typeof rewardId === "string"
+    ) {
+      setPhoneBlocked({ rewardId, message: res.message });
+      return null;
+    }
+    toast.error(res.message || "Couldn't update the price. Please try again.");
+    return null;
+  };
+
+  const savePhone = async () => {
+    if (!phoneBlocked) return;
+    const value = normalizePhone(phone);
+    if (!BD_MOBILE.test(value)) {
+      toast.error("Enter a Bangladeshi mobile number, like 01712345678.");
+      return;
+    }
+    setSavingPhone(true);
+    const saved = await updateMyPhone(value);
+    setSavingPhone(false);
+    if (!saved.success) {
+      toast.error(saved.message || "Couldn't save your mobile number.");
+      return;
+    }
+    const rewardId = phoneBlocked.rewardId;
+    setPhoneBlocked(null);
+    const fresh = await requote(rewardId);
+    if (fresh?.promo) toast.success("Number saved. Your reward is applied.");
+  };
+
+  /** "Book without reward" from the dialog: the same form, with rewardId = none. */
+  const bookWithoutReward = () => {
+    setRewardProblem(null);
+    setRewardChoice(null);
+    const form = formRef.current;
+    if (!form) return;
+    const data = new FormData(form);
+    data.set("rewardId", "none");
+    startTransition(() => formAction(data));
+  };
+
   const shortfallMinor = Math.max(payNowMinor - wallet.available, 0);
   const hasShortfall = shortfallMinor > 0;
 
@@ -273,6 +391,20 @@ const BookingSummary = ({
           appointmentId ? `?ref=${appointmentId}` : ""
         }`,
       );
+    } else if (isRewardError(state.errorCode)) {
+      if (state.details?.reason === "PHONE_REQUIRED") {
+        const rid =
+          typeof state.details.rewardId === "string"
+            ? state.details.rewardId
+            : rewardChoice;
+        if (typeof rid === "string") {
+          setPhoneBlocked({ rewardId: rid, message: state.message });
+        }
+        toast.error(state.message);
+      } else {
+        // Show the truth first (the best reward still free, or none), then ask.
+        void requote(undefined).then(() => setRewardProblem(state.message));
+      }
     } else if (state.errorCode === "SLOT_TAKEN") {
       // Someone else got the time while this page was open: back to the
       // times that are still free, which say why.
@@ -282,6 +414,8 @@ const BookingSummary = ({
     } else {
       toast.error(state.message || "We could not confirm this booking");
     }
+    // requote / rewardChoice are read when a new result lands, not tracked.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, router, salon.id, editHref]);
 
   const activeBlocker = isCompleting ? null : blocker;
@@ -314,7 +448,12 @@ const BookingSummary = ({
       />
 
       <div className="container mx-auto px-4 py-6 sm:px-6 md:py-8 lg:px-8">
-        <form action={formAction}>
+        <form ref={formRef} action={formAction}>
+          <input
+            type="hidden"
+            name="rewardId"
+            value={rewardField(rewardChoice)}
+          />
           <input type="hidden" name="salonId" value={salon.id} />
           <input type="hidden" name="serviceId" value={service.id} />
           <input type="hidden" name="counterId" value={counter.id} />
@@ -607,7 +746,7 @@ const BookingSummary = ({
                           <strong className="text-foreground">
                             You turn up:
                           </strong>{" "}
-                          pay {formatBDT(service.priceMinor)} at the salon after
+                          pay {formatBDT(payableMinor)} at the salon after
                           your service.
                         </span>
                       </p>
@@ -685,9 +824,50 @@ const BookingSummary = ({
                         {service.name}
                       </span>
                       <span className="font-medium">
-                        {formatBDT(service.priceMinor)}
+                        {formatBDT(totalMinor)}
                       </span>
                     </div>
+
+                    {quote && (
+                      <RewardLine
+                        promo={promo}
+                        options={quote.rewardOptions}
+                        pending={quoting}
+                        onChoose={(id) => void requote(id)}
+                      />
+                    )}
+
+                    {phoneBlocked && (
+                      <div className="rounded-xl border border-warning/30 bg-warning-soft p-3 text-sm">
+                        <p className="font-medium text-warning">
+                          {phoneBlocked.message}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <label htmlFor="reward-phone" className="sr-only">
+                            Mobile number
+                          </label>
+                          <Input
+                            id="reward-phone"
+                            type="tel"
+                            inputMode="tel"
+                            autoComplete="tel"
+                            placeholder="01712345678"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            className="h-11 min-w-0 flex-1 basis-40 bg-surface"
+                          />
+                          <Button
+                            type="button"
+                            className="h-11"
+                            onClick={() => void savePhone()}
+                            loading={savingPhone || quoting}
+                            disabled={savingPhone || quoting || !phone.trim()}
+                          >
+                            Save & use reward
+                          </Button>
+                        </div>
+                      </div>
+                    )}
 
                     <Separator />
 
@@ -700,7 +880,7 @@ const BookingSummary = ({
                         {[
                           {
                             full: true,
-                            label: `Pay ${formatBDT(service.priceMinor)} now`,
+                            label: `Pay ${formatBDT(payableMinor)} now`,
                             hint: "Nothing to pay at the salon",
                           },
                           {
@@ -738,13 +918,23 @@ const BookingSummary = ({
 
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="font-semibold">Due at the salon</p>
+                        <p className="font-semibold">Pay at salon</p>
                         <p className="text-xs text-muted-foreground">
                           Cash or card at the counter
                         </p>
                       </div>
-                      <p className="text-xl font-bold">
-                        {formatBDT(dueAtSalonMinor)}
+                      <p className="text-right">
+                        {/* The old total, struck through: only when nothing is
+                            paid in the app, so both figures are the server's. */}
+                        {promoMinor > 0 && payNowMinor === 0 && (
+                          <span className="block text-xs text-muted-foreground line-through tabular-nums">
+                            <span className="sr-only">Was </span>
+                            {formatBDT(totalMinor)}
+                          </span>
+                        )}
+                        <span className="text-xl font-bold tabular-nums">
+                          {formatBDT(dueAtSalonMinor)}
+                        </span>
                       </p>
                     </div>
                     <div className="flex items-start justify-between gap-4">
@@ -924,18 +1114,35 @@ const BookingSummary = ({
                   {isFree ? (
                     <>
                       <p className="text-xs text-muted-foreground">
-                        Free booking · pay at the salon
+                        Free booking · pay at salon
                       </p>
                       <p className="text-lg font-bold tabular-nums">
-                        {formatBDT(service.priceMinor)}
+                        {promoMinor > 0 && (
+                          <span className="mr-1.5 text-sm font-normal text-muted-foreground line-through">
+                            <span className="sr-only">Was </span>
+                            {formatBDT(totalMinor)}
+                          </span>
+                        )}
+                        {formatBDT(dueAtSalonMinor)}
                       </p>
+                      {promoMinor > 0 && (
+                        <p className="text-xs font-medium text-success tabular-nums">
+                          Reward {minusBDT(promoMinor)}
+                        </p>
+                      )}
                     </>
                   ) : (
                     <>
                       <p className="text-xs text-muted-foreground">
                         Pay now · total{" "}
+                        {promoMinor > 0 && (
+                          <span className="line-through tabular-nums">
+                            <span className="sr-only">was </span>
+                            {formatBDT(totalMinor)}
+                          </span>
+                        )}{" "}
                         <span className="tabular-nums">
-                          {formatBDT(service.priceMinor)}
+                          {formatBDT(payableMinor)}
                         </span>
                       </p>
                       <p className="text-lg font-bold tabular-nums">
@@ -957,6 +1164,19 @@ const BookingSummary = ({
           </div>
         </form>
       </div>
+
+      <ConfirmDialog
+        open={rewardProblem !== null}
+        onOpenChange={(open) => {
+          if (!open) setRewardProblem(null);
+        }}
+        title="Book without your reward?"
+        description={`Your reward can't be used on this booking (${(rewardProblem ?? "").replace(/\.\s*$/, "")}). Book without it?`}
+        confirmLabel="Book without reward"
+        cancelLabel="Cancel"
+        pending={isBusy}
+        onConfirm={bookWithoutReward}
+      />
 
       {/* Outside the form, so nothing in it can submit the booking. Starts
           at what is missing (whole taka, at least the gateway minimum). */}

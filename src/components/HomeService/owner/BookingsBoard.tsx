@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useFilterNavigation } from "@/hooks/useFilterNavigation";
 import { formatBDT } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { PromoChip } from "@/components/Referral/RewardLine";
 import { markExpertNoShow } from "@/services/home-service/markExpertNoShow";
 import { overrideStartHome } from "@/services/home-service/overrideStartHome";
 import { ownerCancelHome } from "@/services/home-service/ownerCancelHome";
@@ -216,11 +217,12 @@ export function BookingsBoard({
       header: "Advance",
       mobile: "meta",
       cell: (b) => (
-        <span className="inline-flex items-center gap-1.5">
+        <span className="inline-flex flex-wrap items-center gap-1.5">
           {formatBDT(b.advanceMinor)}
           <ToneBadge status={b.advanceStatus} tone={ADVANCE_TEXT[b.advanceStatus].tone}>
             {ADVANCE_TEXT[b.advanceStatus].label}
           </ToneBadge>
+          <PromoChip discountMinor={b.promoDiscountMinor} />
         </span>
       ),
     },

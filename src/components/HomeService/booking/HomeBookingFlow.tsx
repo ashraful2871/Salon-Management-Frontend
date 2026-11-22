@@ -7,6 +7,8 @@ import { ArrowLeft, ArrowRight, CalendarClock, Check, Clock, Loader2, LogIn, Map
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/Shared/ConfirmDialog";
+import { RewardLine, isRewardError } from "@/components/Referral/RewardLine";
 import { formatBDT } from "@/lib/money";
 import type { ProviderId } from "@/lib/payment-providers";
 import { track } from "@/lib/track";
@@ -101,6 +103,12 @@ export default function HomeBookingFlow({
   const [lang, setLang] = useState<"en" | "bn">("en");
   const [creating, setCreating] = useState(false);
   const [savingPhone, setSavingPhone] = useState(false);
+  // Referral reward: undefined = the best (the server picks), null = without,
+  // an id = the one picked. Only an explicit choice is kept; the hash covers it.
+  const [rewardChoice, setRewardChoice] = useState<string | null | undefined>(undefined);
+  const [rewardQuoting, setRewardQuoting] = useState(false);
+  const [rewardProblem, setRewardProblem] = useState<string | null>(null);
+  const lastMethod = useRef<ProviderId | null>(null);
   const createKey = useRef<string | null>(null);
   const { pay, pending: paying, redirecting } = useHomePay();
 
@@ -153,9 +161,10 @@ export default function HomeBookingFlow({
     setQuote(null);
   };
 
-  const quoteInput = (): HomeQuoteInput | null => {
+  const quoteInput = (rewardId: string | null | undefined): HomeQuoteInput | null => {
     if (!date || !time || address.lat == null || address.lng == null) return null;
     return {
+      ...(rewardId === undefined ? {} : { rewardId }),
       salonId: expert.salon.id,
       audience: expert.audience,
       offeringIds: items,
@@ -184,17 +193,39 @@ export default function HomeBookingFlow({
     return to;
   };
 
-  const runQuote = async ({ keepTick = false } = {}) => {
-    const input = quoteInput();
+  /** reward given = price with that choice ({ id: undefined } = the best); absent = the current choice. */
+  const runQuote = async ({
+    keepTick = false,
+    reward,
+    rewardOnly = false,
+  }: {
+    keepTick?: boolean;
+    reward?: { id: string | null | undefined };
+    rewardOnly?: boolean;
+  } = {}): Promise<HomeQuote | null> => {
+    const rewardId = reward ? reward.id : rewardChoice;
+    const input = quoteInput(rewardId);
     if (!input) return null;
-    setQuoting(true);
+    // A reward toggle greys only the reward row; anything else the whole review.
+    (rewardOnly ? setRewardQuoting : setQuoting)(true);
     setQuoteError(null);
     const res = await quoteHomeBooking(input);
-    setQuoting(false);
+    (rewardOnly ? setRewardQuoting : setQuoting)(false);
     if (!res.success || !res.data) {
+      if (isRewardError(res.errorCode) && rewardId !== undefined) {
+        // The reward picked can't be used (any more): back to the best one.
+        toast.error(res.message);
+        setRewardChoice(undefined);
+        return runQuote({ keepTick, reward: { id: undefined }, rewardOnly });
+      }
+      if (rewardOnly && quote) {
+        toast.error(homeErrorMessage(res));
+        return null;
+      }
       if (!bounce(res)) setQuoteError(homeErrorMessage(res));
       return null;
     }
+    setRewardChoice(rewardId);
     setQuote(res.data);
     if (!keepTick) setAccepted(false);
     // A new quote is a new attempt: a fresh key.
@@ -218,16 +249,22 @@ export default function HomeBookingFlow({
     await runQuote();
   };
 
-  const book = async (method: ProviderId) => {
-    const input = quoteInput();
-    if (!input || !quote) return;
+  const book = async (
+    method: ProviderId,
+    q: HomeQuote | null = quote,
+    rewardId: string | null | undefined = rewardChoice,
+  ) => {
+    // The quote's own reward (or none) is what its hash was made with.
+    const input = quoteInput(rewardId === undefined ? q?.promo?.rewardId : rewardId);
+    if (!input || !q) return;
+    lastMethod.current = method;
     setCreating(true);
     const res = await createHomeBooking(
       {
         ...input,
-        quoteHash: quote.quoteHash,
-        policyAccepted: quote.requiresAcceptance ? accepted : true,
-        policyVersion: quote.policyVersion,
+        quoteHash: q.quoteHash,
+        policyAccepted: q.requiresAcceptance ? accepted : true,
+        policyVersion: q.policyVersion,
         lang,
       },
       createKey.current ?? (createKey.current = crypto.randomUUID()),
@@ -240,6 +277,11 @@ export default function HomeBookingFlow({
       } else if (res.errorCode === "PRICE_CHANGED") {
         const fresh = await runQuote({ keepTick: true });
         if (fresh) toast.warning(`The price changed — the total is now ${formatBDT(fresh.totalMinor)}`);
+      } else if (isRewardError(res.errorCode)) {
+        // Show what is true now (the best reward still free, or none), then ask.
+        setRewardChoice(undefined);
+        await runQuote({ keepTick: true, reward: { id: undefined } });
+        setRewardProblem(res.message);
       } else if (res.errorCode === "PAYMENT_PENDING_EXISTS") {
         toast.error(homeErrorMessage(res), {
           action: { label: "My bookings", onClick: () => router.push("/dashboard/home-bookings") },
@@ -267,6 +309,13 @@ export default function HomeBookingFlow({
     setCreating(false);
     // Paid, or still waiting for payment: the visit's page carries on (with the countdown).
     router.push(`/home-service/booking/${encodeURIComponent(booking.id)}`);
+  };
+
+  /** "Book without reward": a quote with no reward (its own hash), then the same payment. */
+  const bookWithoutReward = async () => {
+    setRewardProblem(null);
+    const fresh = await runQuote({ keepTick: true, reward: { id: null } });
+    if (fresh && lastMethod.current) await book(lastMethod.current, fresh, null);
   };
 
   // ------------------------------------------------------------- per step
@@ -465,6 +514,16 @@ export default function HomeBookingFlow({
               addressText={[address.addressLine.trim(), address.area.trim()].filter(Boolean).join(", ")}
               recipient={`${address.recipientName.trim()} · ${normalizePhone(address.contactPhone)}`}
               onEdit={go}
+              reward={
+                quote && (quote.promo || (quote.rewardOptions?.length ?? 0) > 0) ? (
+                  <RewardLine
+                    promo={quote.promo}
+                    options={quote.rewardOptions ?? []}
+                    pending={rewardQuoting}
+                    onChoose={(id) => void runQuote({ keepTick: true, reward: { id }, rewardOnly: true })}
+                  />
+                ) : null
+              }
               pay={
                 quote && (
                   <PayPanel
@@ -472,7 +531,7 @@ export default function HomeBookingFlow({
                     balanceMinor={quote.balanceMinor}
                     methods={methods}
                     pending={creating || paying}
-                    disabled={quoting || timeGone || (quote.requiresAcceptance && !accepted)}
+                    disabled={quoting || rewardQuoting || timeGone || (quote.requiresAcceptance && !accepted)}
                     onPay={(m) => void book(m)}
                     hint={
                       quote.requiresAcceptance && !accepted
@@ -516,6 +575,18 @@ export default function HomeBookingFlow({
         </div>
       )}
       <GatewayRedirectOverlay provider={redirecting} />
+      <ConfirmDialog
+        open={rewardProblem !== null}
+        onOpenChange={(open) => {
+          if (!open) setRewardProblem(null);
+        }}
+        title="Book without your reward?"
+        description={`Your reward can't be used on this booking (${(rewardProblem ?? "").replace(/\.\s*$/, "")}). Book without it?`}
+        confirmLabel="Book without reward"
+        cancelLabel="Cancel"
+        pending={creating || quoting}
+        onConfirm={() => void bookWithoutReward()}
+      />
     </div>
   );
 }
@@ -744,6 +815,7 @@ function Review({
   addressText,
   recipient,
   onEdit,
+  reward,
   pay,
 }: {
   quote: HomeQuote | null;
@@ -757,6 +829,8 @@ function Review({
   addressText: string;
   recipient: string;
   onEdit: (step: BookStep) => void;
+  /** The reward row (switch + picker), shown under the subtotal. */
+  reward?: React.ReactNode;
   pay: React.ReactNode;
 }) {
   if (!quote) {
@@ -818,6 +892,15 @@ function Review({
                 <dd className="tabular-nums text-foreground">{formatBDT(it.priceMinor)}</dd>
               </div>
             ))}
+            {reward && (
+              <>
+                <div className="flex justify-between gap-3 border-t border-border pt-2">
+                  <dt className="text-muted-foreground">Subtotal</dt>
+                  <dd className="tabular-nums text-foreground">{formatBDT(quote.subtotalMinor)}</dd>
+                </div>
+                <div>{reward}</div>
+              </>
+            )}
             <div className="flex justify-between gap-3">
               <dt className="text-muted-foreground">Travel fee</dt>
               <dd className={cn("tabular-nums", quote.travelFeeMinor === 0 ? "font-medium text-success" : "text-foreground")}>
@@ -826,16 +909,24 @@ function Review({
             </div>
             <div className="flex justify-between gap-3 border-t border-border pt-2.5 text-base font-semibold text-foreground">
               <dt>Total</dt>
-              <dd className="tabular-nums">{formatBDT(quote.totalMinor)}</dd>
+              <dd className="text-right tabular-nums">
+                {(quote.promoDiscountMinor ?? 0) > 0 && (
+                  <span className="mr-1.5 text-sm font-normal text-muted-foreground line-through">
+                    <span className="sr-only">Was </span>
+                    {formatBDT(quote.subtotalMinor + quote.travelFeeMinor)}
+                  </span>
+                )}
+                {formatBDT(quote.totalMinor)}
+              </dd>
             </div>
           </dl>
           <ol className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
             <li className="rounded-2xl border border-primary/30 bg-primary-soft p-3">
-              <p className="text-xs font-medium text-muted-foreground">Today, online · {quote.advancePercent}% advance</p>
+              <p className="text-xs font-medium text-muted-foreground">Advance now, online · {quote.advancePercent}%</p>
               <p className="text-lg font-semibold text-foreground tabular-nums">{formatBDT(quote.advanceMinor)}</p>
             </li>
             <li className="rounded-2xl border border-border bg-surface-subtle p-3">
-              <p className="text-xs font-medium text-muted-foreground">After the service, at home</p>
+              <p className="text-xs font-medium text-muted-foreground">Balance at the door, after the service</p>
               <p className="text-lg font-semibold text-foreground tabular-nums">{formatBDT(quote.balanceMinor)}</p>
               <p className="text-xs text-muted-foreground">Cash or bKash to your expert</p>
             </li>

@@ -7,6 +7,7 @@ import { ResponsiveDialog } from "@/components/Shared/ResponsiveDialog";
 import { formatBDT, toMinor } from "@/lib/money";
 import type { Appointment, CounterPaymentMethod } from "@/lib/api-types";
 import { cn } from "@/lib/utils";
+import { PromoLine } from "@/components/Referral/RewardLine";
 import { COUNTER_PAYMENT_METHODS } from "./format";
 import type { AppointmentActions } from "./useAppointmentActions";
 
@@ -40,7 +41,10 @@ export const CheckoutDialog = ({
   // Owner Phase 15: the rest of the bill paid in the app; then ৳0 is due here.
   const prepaidPaidMinor = appointment?.prepaidPaidMinor ?? 0;
   const paidAtCounterMinor = appointment?.paidAtCounterMinor ?? 0;
+  // The server's due is already net of the referral reward (the platform pays
+  // that part), so the counter discount cap below is too.
   const billDueMinor = appointment?.amountDueMinor ?? 0;
+  const promoMinor = appointment?.promoDiscountMinor ?? 0;
 
   const takaToMinor = (value: string) => {
     const n = Number(value);
@@ -125,6 +129,11 @@ export const CheckoutDialog = ({
             <span className="text-muted-foreground">Total</span>
             <span className="font-medium tabular-nums">{formatBDT(totalMinor)}</span>
           </div>
+          <PromoLine
+            label={appointment?.promoLabel}
+            discountMinor={promoMinor}
+            paidBy
+          />
           <div className="flex justify-between gap-3">
             <span className="text-muted-foreground">
               {prepaidPaidMinor > 0 ? "Paid in app (wallet)" : "Deposit already paid (wallet)"}

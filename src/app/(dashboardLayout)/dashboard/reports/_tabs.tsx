@@ -43,6 +43,7 @@ const TYPE_LABELS: Record<string, string> = {
   commission: "Commission",
   goodwill: "Goodwill credits",
   dues: "Dues paid",
+  promo: "Referral reimbursements",
   payout_adjustment: "Adjustments",
 };
 

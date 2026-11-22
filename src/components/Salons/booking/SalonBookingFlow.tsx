@@ -38,6 +38,8 @@ import { formatBDT } from "@/lib/money";
 import { formatRating } from "@/lib/rating";
 import { track } from "@/lib/track";
 import { cn } from "@/lib/utils";
+import { RewardTeaser } from "@/components/Referral/RewardLine";
+import type { RewardScope } from "@/services/referral/types";
 
 import HomeServicePicker, {
   anchorExpertFor,
@@ -102,6 +104,7 @@ export default function SalonBookingFlow({
   today,
   takesDeposit,
   signedIn,
+  rewardTeaser = null,
   initial,
 }: {
   salon: SalonView;
@@ -109,6 +112,8 @@ export default function SalonBookingFlow({
   today: string;
   takesDeposit: boolean;
   signedIn: boolean;
+  /** The customer's best usable reward (`GET /referrals/me/rewards/summary`), teaser only. */
+  rewardTeaser?: { percent: number; scope: RewardScope } | null;
   initial: BookingFlowInitial;
 }) {
   const router = useRouter();
@@ -356,6 +361,12 @@ export default function SalonBookingFlow({
     ? homeItems.filter((id) => homeMenu.menu.some((m) => m.id === id))
     : [];
   const homePrice = homeCartPrice(homeMenu, items);
+  // Not an amount: the server picks the reward and prices it at review.
+  const teaserPercent =
+    rewardTeaser &&
+    (isHome ? rewardTeaser.scope !== "SALON" : rewardTeaser.scope !== "HOME")
+      ? rewardTeaser.percent
+      : null;
 
   const continueHome = () => {
     if (!homeMenu) return;
@@ -738,6 +749,7 @@ export default function SalonBookingFlow({
                 }
                 homePrice={isHome ? homePrice : null}
                 takesDeposit={takesDeposit}
+                teaserPercent={teaserPercent}
                 onChangeService={
                   !isHome && step === "time"
                     ? () => goStep("service")
@@ -808,6 +820,9 @@ export default function SalonBookingFlow({
                   : ""}
             </span>
           </div>
+          {(isHome ? items.length > 0 : Boolean(service)) && (
+            <RewardTeaser percent={teaserPercent} className="-mt-1" />
+          )}
           <Button
             className="w-full"
             onClick={primary.onClick}
@@ -1238,6 +1253,7 @@ function Summary({
   counterName,
   homePrice,
   takesDeposit,
+  teaserPercent,
   onChangeService,
 }: {
   salon: SalonView;
@@ -1249,6 +1265,7 @@ function Summary({
   counterName?: string;
   homePrice: ReturnType<typeof homeCartPrice> | null;
   takesDeposit: boolean;
+  teaserPercent: number | null;
   onChangeService?: () => void;
 }) {
   return (
@@ -1314,6 +1331,7 @@ function Summary({
                   {formatBDT(homePrice.advanceMinor)}
                 </dd>
               </div>
+              <RewardTeaser percent={teaserPercent} className="pt-1" />
             </>
           )}
         </dl>
@@ -1386,6 +1404,7 @@ function Summary({
                 ? "A small deposit is held at the next step; the rest is paid at the salon."
                 : "Free to book. You pay at the salon after your visit."}
             </p>
+            {service && <RewardTeaser percent={teaserPercent} />}
           </div>
         </>
       )}

@@ -24,6 +24,7 @@ export const cancelHomeBooking = async (
     revalidateTag(TAGS.homeAvailability(result.data.booking.bookAgain.expertId), "max");
     revalidateTag(TAGS.ownerHomeServiceBookings(result.data.booking.salon.id), "max");
     revalidateTag(TAGS.adminHome, "max");
+    revalidateTag(TAGS.myRewards, "max");
   }
   return result;
 };

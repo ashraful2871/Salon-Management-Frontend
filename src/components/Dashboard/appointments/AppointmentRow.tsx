@@ -15,6 +15,7 @@ import { formatBDT } from "@/lib/money";
 import type { Appointment } from "@/lib/api-types";
 import { StatusBadge } from "./StatusBadge";
 import { PaymentBadge, hasPaymentBadge } from "./PaymentBadge";
+import { PromoChip, PromoLine } from "@/components/Referral/RewardLine";
 import { NextAction, hasNextAction } from "./NextAction";
 import { formatDay, formatTime12, startsAtOf } from "./format";
 import type { AppointmentActions } from "./useAppointmentActions";
@@ -289,6 +290,7 @@ export const salonColumns = ({
       <div className="flex flex-col items-start gap-1">
         <StatusBadge status={r.status} />
         <PaymentBadge appointment={r.raw} viewer="owner" />
+        <PromoChip discountMinor={r.raw.promoDiscountMinor} />
       </div>
     ),
     // The card's trailing column already stacks and right-aligns them.
@@ -296,6 +298,7 @@ export const salonColumns = ({
       <>
         <StatusBadge status={r.status} />
         <PaymentBadge appointment={r.raw} viewer="owner" />
+        <PromoChip discountMinor={r.raw.promoDiscountMinor} />
       </>
     ),
   },
@@ -405,10 +408,23 @@ export const customerColumns = ({
     key: "payment",
     header: "Payment",
     mobile: "meta",
-    cell: (r) =>
-      hasPaymentBadge(r.raw.paymentState, "customer") ? (
-        <PaymentBadge appointment={r.raw} viewer="customer" />
-      ) : null,
+    cell: (r) => {
+      const badge = hasPaymentBadge(r.raw.paymentState, "customer");
+      const promo = r.raw.promoDiscountMinor ?? 0;
+      if (!badge && promo <= 0) return null;
+      return (
+        <span className="flex flex-col items-start gap-1">
+          {badge && <PaymentBadge appointment={r.raw} viewer="customer" />}
+          {/* "Pay ৳950 at salon" above is already net of it (amountDueMinor). */}
+          <PromoLine
+            label={r.raw.promoLabel}
+            discountMinor={promo}
+            size="xs"
+            className="w-full max-w-64"
+          />
+        </span>
+      );
+    },
   },
 ];
 

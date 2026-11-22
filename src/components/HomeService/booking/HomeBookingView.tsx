@@ -44,6 +44,7 @@ import { CancelDialog, RescheduleDialog } from "./ManageDialogs";
 import { DisclaimerBox, PaymentCountdown } from "./Disclaimer";
 import { homeErrorMessage } from "./errors";
 import { dayText, timeText } from "./format";
+import { PromoLine } from "@/components/Referral/RewardLine";
 import { GatewayRedirectOverlay, PayPanel, useHomePay } from "./PayPanel";
 
 const STATUS_STEPS: { status: HomeBookingStatus; label: string }[] = [
@@ -323,6 +324,8 @@ export default function HomeBookingView({
               title="Pay the advance to confirm"
               amountMinor={b.advanceMinor}
               balanceMinor={b.balanceMinor}
+              promoMinor={b.promoDiscountMinor ?? 0}
+              promoLabel={b.promoLabel}
               methods={methods}
               initialMethod={retryMethod ?? (via ? (via.toUpperCase() as ProviderId) : null)}
               pending={paying}
@@ -546,6 +549,7 @@ export default function HomeBookingView({
               <dd className="tabular-nums">{formatBDT(it.priceMinor)}</dd>
             </div>
           ))}
+          <PromoLine label={b.promoLabel} discountMinor={b.promoDiscountMinor ?? 0} />
           {b.travelFeeMinor > 0 && (
             <div className="flex justify-between gap-3">
               <dt className="text-muted-foreground">Travel fee</dt>

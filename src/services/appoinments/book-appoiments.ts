@@ -6,6 +6,9 @@ import { revalidateTag, updateTag } from "next/cache";
 import { redirect, RedirectType } from "next/navigation";
 import { TAGS } from "@/lib/cache-tags";
 
+const rewardOf = (v?: string): { rewardId?: string | null } =>
+  !v ? {} : v === "none" ? { rewardId: null } : { rewardId: v };
+
 export const bookingAppointment = async (
   _currentState: ApiResponse<Appointment> | null,
   formData: FormData,
@@ -21,6 +24,8 @@ export const bookingAppointment = async (
       notes: formData.get("notes")?.toString() || undefined,
       // "Pay all now" (owner Phase 15); absent = deposit only.
       ...(formData.get("payInFull") === "true" ? { payInFull: true } : {}),
+      // Referral reward: an id = that one, "none" = without one, absent = the best.
+      ...rewardOf(formData.get("rewardId")?.toString()),
     };
 
     const res = await serverFetch.post("/appointments", {
@@ -40,6 +45,9 @@ export const bookingAppointment = async (
       revalidateTag(TAGS.ownerHomes, "max");
       revalidateTag(TAGS.earnings, "max");
       revalidateTag(TAGS.slots, "max");
+      // A reward may now be reserved for this booking.
+      revalidateTag(TAGS.myRewards, "max");
+      revalidateTag(TAGS.myReferral, "max");
     }
   } catch (error) {
     console.error("bookingAppointment error:", error);

@@ -6,6 +6,7 @@ import { ResponsiveDialog } from "@/components/Shared/ResponsiveDialog";
 import { formatBDT } from "@/lib/money";
 import { StatusBadge } from "./StatusBadge";
 import { PaymentBadge, hasPaymentBadge } from "./PaymentBadge";
+import { PromoLine } from "@/components/Referral/RewardLine";
 import { TokenPill, type AppointmentRow } from "./AppointmentRow";
 import { formatDay } from "./format";
 
@@ -69,6 +70,14 @@ export const AppointmentDetails = ({
         {row.duration && <Item label="Duration">{row.duration}</Item>}
         <Item label="Price">
           <span className="font-medium tabular-nums">{formatBDT(row.priceMinor)}</span>
+          {(row.raw.promoDiscountMinor ?? 0) > 0 && (
+            <PromoLine
+              label={row.raw.promoLabel}
+              discountMinor={row.raw.promoDiscountMinor ?? 0}
+              paidBy
+              className="mt-1"
+            />
+          )}
         </Item>
         {row.raw.notes && <Item label="Notes">{row.raw.notes}</Item>}
       </dl>

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { formatBDT } from "@/lib/money";
+import { PromoLine } from "@/components/Referral/RewardLine";
 import type { Block } from "@/lib/assistant-types";
 import Chip from "../Chip";
 import {
@@ -97,7 +98,11 @@ const ChatBookingSummary = ({
     : (block.wallet?.shortfallMinor ?? 0);
   const countdown = useHoldCountdown(block.holdExpiresAt);
   const token = paysAll ? prepay?.confirmToken : block.confirmToken;
-  const payNowMinor = paysAll ? block.priceMinor : block.depositMinor;
+  const promoMinor = block.promo?.discountMinor ?? 0;
+  // The server's figures: paying in full is the price less the reward.
+  const payNowMinor = paysAll
+    ? (prepay?.payNowMinor ?? block.priceMinor - promoMinor)
+    : block.depositMinor;
   const dueAtSalonMinor = paysAll ? 0 : block.dueAtSalonMinor;
 
   const confirmInChat =
@@ -148,8 +153,14 @@ const ChatBookingSummary = ({
               {formatBDT(block.priceMinor)}
             </dd>
           </div>
+          {block.promo && (
+            <PromoLine
+              label={block.promo.label}
+              discountMinor={block.promo.discountMinor}
+            />
+          )}
           <div className="flex justify-between gap-3">
-            <dt className="text-muted-foreground">Pay at the salon</dt>
+            <dt className="text-muted-foreground">Pay at salon</dt>
             <dd className="font-medium text-foreground">
               {formatBDT(dueAtSalonMinor)}
             </dd>
@@ -220,7 +231,7 @@ const ChatBookingSummary = ({
             aria-label="How much to pay now"
           >
             <Chip
-              label={`Pay ${formatBDT(block.priceMinor)} now`}
+              label={`Pay ${formatBDT(prepay.payNowMinor)} now`}
               selected={paysAll}
               disabled={disabled || confirming}
               onClick={() => setPayAll(true)}

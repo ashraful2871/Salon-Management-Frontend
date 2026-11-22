@@ -9,6 +9,7 @@ import type {
   CounterPaymentMethod,
 } from "@/lib/api-types";
 import { formatBDT } from "@/lib/money";
+import { SITE } from "@/lib/site";
 import { cancelAppointment } from "@/services/appoinments/cancelAppointment";
 import { checkInAppointment } from "@/services/appoinments/checkInAppointment";
 import { checkoutAppointment } from "@/services/appoinments/checkoutAppointment";
@@ -133,14 +134,24 @@ export const useAppointmentActions = () => {
         ? { status: "COMPLETED", amountDueMinor: 0, paymentState: "PAID" }
         : { status: "COMPLETED" },
       () => checkoutAppointment(appointment.id, payload),
-      (res: ApiResponse<CheckoutReceipt>) =>
-        showResultToast(
-          res,
+      (res: ApiResponse<CheckoutReceipt>) => {
+        // The receipt carries the reward the platform pays: say so, so nobody
+        // goes back to the customer for it.
+        const promoMinor = res.data?.promoDiscountMinor ?? appointment.promoDiscountMinor ?? 0;
+        const promoNote =
+          promoMinor > 0 ? ` · referral reward ${formatBDT(promoMinor)} paid by ${SITE.name}` : "";
+        const done =
           dueMinor + tipMinor === 0
             ? "Booking completed"
-            : `Collected ${formatBDT((res.data?.collectedMinor ?? dueMinor) + (res.data?.tipMinor ?? tipMinor))} · booking completed`,
+            : `Collected ${formatBDT((res.data?.collectedMinor ?? dueMinor) + (res.data?.tipMinor ?? tipMinor))} · booking completed`;
+        // The API's own message wins in showResultToast, so the note goes on
+        // whichever text is shown.
+        showResultToast(
+          res.success && promoNote ? { ...res, message: `${res.message || done}${promoNote}` } : res,
+          done,
           "Failed to complete the booking",
-        ),
+        );
+      },
       onDone,
     );
   };

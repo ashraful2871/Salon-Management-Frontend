@@ -8,6 +8,7 @@ import { getAdminUserActivity } from "@/services/admin/users/getAdminUserActivit
 import { getAdminUserBookings } from "@/services/admin/users/getAdminUserBookings";
 import { getAdminUserReviews } from "@/services/admin/users/getAdminUserReviews";
 import { getAdminUserWallet } from "@/services/admin/users/getAdminUserWallet";
+import { getPublicSettings, referralSettingsOf } from "@/services/settings/getPublicSettings";
 import { UserDetailClient } from "./UserDetailClient";
 
 export const metadata: Metadata = { title: "User | Admin" };
@@ -18,13 +19,15 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
   const me = await getAdminMe();
   const permissions = me.data?.permissions ?? [];
 
-  const [user, bookings, reviews, activity, wallet] = await Promise.all([
+  const [user, bookings, reviews, activity, wallet, settings] = await Promise.all([
     getAdminUser(id),
     getAdminUserBookings(id),
     getAdminUserReviews(id),
     getAdminUserActivity(id),
     can(permissions, "finance.view") ? getAdminUserWallet(id) : Promise.resolve(null),
+    getPublicSettings(),
   ]);
+  const terms = referralSettingsOf(settings.success ? settings.data : null);
 
   if (!user.success || !user.data) {
     return (
@@ -46,6 +49,12 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
       wallet={wallet}
       permissions={permissions}
       viewerId={me.data?.userId}
+      grantDefaults={{
+        percent: terms["referral.referrerPercent"],
+        maxDiscountMinor: terms["referral.referrerMaxDiscountMinor"],
+        validDays: terms["referral.referrerValidDays"],
+        scope: terms["referral.referrerScope"],
+      }}
     />
   );
 }

@@ -61,6 +61,9 @@ const STATUS_TONE: Record<string, Tone> = {
   RESERVED: "info",
   REDEEMED: "neutral",
   REVOKED: "neutral",
+  // Referrals (PENDING_VERIFICATION, REJECTED and EXPIRED are above).
+  JOINED: "info",
+  QUALIFIED: "success",
   // Safety reports.
   REVIEWING: "info",
   ACTIONED: "success",

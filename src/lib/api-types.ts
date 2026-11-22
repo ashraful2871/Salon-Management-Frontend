@@ -237,7 +237,12 @@ export type Appointment = {
   prepaidPaidMinor?: number;
   paidInApp?: boolean;
   paidAtCounterMinor: number;
+  /** Net of the referral reward below. */
   amountDueMinor: number;
+  /** Referral reward the platform pays the salon (snapshot at booking; 0 = none). */
+  promoDiscountMinor?: number;
+  /** "Referral reward (5%)" / "Welcome reward (5%)". */
+  promoLabel?: string | null;
   paymentState: PaymentState;
   checkedInAt?: string | null;
   completedAt?: string | null;
@@ -288,6 +293,9 @@ export type CheckoutReceipt = {
   depositPaidMinor: number;
   /** The bill taken at the counter (never the tip). */
   collectedMinor: number;
+  /** Referral reward the platform pays the salon; the counter collected that much less. */
+  promoDiscountMinor?: number;
+  promoLabel?: string | null;
   paymentMethod?: CounterPaymentMethod | null;
   completedAt: string;
 };

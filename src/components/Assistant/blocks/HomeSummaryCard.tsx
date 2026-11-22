@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { ArrowRight, CalendarDays, House, Scissors } from "lucide-react";
 
 import { formatBDT } from "@/lib/money";
 import type { HomeSummaryBlock } from "@/lib/assistant-types";
 import { useAssistantLauncher } from "../AssistantContext";
 import { formatDuration } from "../format";
+import { RewardTeaser } from "@/components/Referral/RewardLine";
+import { getRewardTeaser } from "@/services/referral/getRewardTeaser";
 
 const Row = ({ icon: Icon, children }: { icon: typeof House; children: React.ReactNode }) => (
   <li className="flex items-start gap-2.5">
@@ -25,6 +28,20 @@ const HomeSummaryCard = ({ block }: { block: HomeSummaryBlock }) => {
   const handoff = block.handoffUrl?.startsWith("/") ? block.handoffUrl : "/home-service";
   const href = block.signedIn ? handoff : `/login?redirect=${encodeURIComponent(handoff)}`;
   const minutes = block.services.reduce((sum, s) => sum + s.durationMin, 0);
+  // Teaser only: the hand-off page quotes the reward and shows the figures.
+  const [teaser, setTeaser] = useState<number | null>(null);
+  useEffect(() => {
+    if (!block.signedIn) return;
+    let live = true;
+    getRewardTeaser()
+      .then((t) => {
+        if (live && t && t.scope !== "SALON") setTeaser(t.percent);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [block.signedIn]);
 
   return (
     <div className="overflow-hidden rounded-xl border border-primary/30 bg-surface">
@@ -76,6 +93,7 @@ const HomeSummaryCard = ({ block }: { block: HomeSummaryBlock }) => {
             <dd className="font-medium text-foreground">{formatBDT(block.balanceMinor)}</dd>
           </div>
         </dl>
+        <RewardTeaser percent={teaser} />
 
         <Link
           href={href}

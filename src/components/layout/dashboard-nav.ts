@@ -315,6 +315,20 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    title: "Growth",
+    items: [
+      {
+        // Overview, list, rewards, review queue and program settings are tabs
+        // of this one segment (`components/Admin/referrals/ReferralTabs`).
+        path: "/dashboard/admin/referrals",
+        icon: Gift,
+        label: "Referrals",
+        permission: "referrals.view",
+        inboxKey: "referrals.review",
+      },
+    ],
+  },
+  {
     title: "Trust & support",
     items: [
       {
@@ -465,6 +479,14 @@ const SUB_PAGES: Record<string, { crumb: string; title: string }> = {
   "/dashboard/admin/support": { crumb: "Ticket", title: "Ticket" },
 };
 
+/** Tabs of one nav item, each with its own crumb and phone title (exact paths). */
+const TAB_PAGES: Record<string, { crumb: string; title: string }> = {
+  "/dashboard/admin/referrals/list": { crumb: "All referrals", title: "Referrals" },
+  "/dashboard/admin/referrals/rewards": { crumb: "Rewards", title: "Referral rewards" },
+  "/dashboard/admin/referrals/review": { crumb: "Review", title: "Referral review" },
+  "/dashboard/admin/referrals/settings": { crumb: "Program settings", title: "Referral settings" },
+};
+
 /** The nav items that are a role's home: the breadcrumb starts at them. */
 const HOME_PATHS = new Set<string>(["/dashboard", "/dashboard/admin"]);
 
@@ -492,7 +514,7 @@ export const pageTrail = (
   if (!item || HOME_PATHS.has(item.path)) return { trail: [], title: "Dashboard" };
 
   const label = labelFor(item, role);
-  const sub = pathname !== item.path ? SUB_PAGES[item.path] : undefined;
+  const sub = pathname !== item.path ? (TAB_PAGES[pathname] ?? SUB_PAGES[item.path]) : undefined;
   if (!sub) return { trail: [{ label }], title: label };
   return {
     trail: [{ label, href: item.path }, { label: sub.crumb }],

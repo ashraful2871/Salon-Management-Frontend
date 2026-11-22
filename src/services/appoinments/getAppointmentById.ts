@@ -22,6 +22,9 @@ export type AppointmentDetail = {
   depositStatus?: string;
   /** What is still owed at the counter, as the server works it out. Poisha. */
   amountDueMinor?: number | null;
+  /** Referral reward off the bill (already out of `amountDueMinor`). */
+  promoDiscountMinor?: number;
+  promoLabel?: string | null;
   /** The slot's position in its day — the customer's place in the line. */
   serialNumber?: number | null;
   token?: string | null;

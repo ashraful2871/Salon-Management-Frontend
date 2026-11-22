@@ -24,6 +24,8 @@ export const cancelAppointment = async (
       // is what the earnings and payout figures are derived from.
       revalidateTag(TAGS.earnings, "max");
       revalidateTag(TAGS.slots, "max");
+      // A reserved referral reward goes back to the customer.
+      revalidateTag(TAGS.myRewards, "max");
     }
 
     return result;

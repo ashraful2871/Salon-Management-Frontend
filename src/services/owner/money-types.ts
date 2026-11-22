@@ -13,6 +13,7 @@ export const TRANSACTION_TYPES = [
   { value: "commission", label: "Commission" },
   { value: "goodwill", label: "Goodwill" },
   { value: "dues", label: "Dues" },
+  { value: "promo", label: "Referral reimbursements" },
   { value: "payout_adjustment", label: "Adjustments" },
 ] as const;
 

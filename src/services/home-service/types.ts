@@ -6,6 +6,7 @@
 // rendering a twin would show the amount 100x too small.
 
 import type { SalonAudience } from "@/lib/api-types";
+import type { PromoQuote } from "@/services/referral/types";
 
 // ---------------------------------------------------------------- unions
 
@@ -419,6 +420,12 @@ export type HomeQuote = {
   distanceKm: number;
   items: Array<{ id: string; name: string; durationMin: number; priceMinor: number }>;
   subtotalMinor: number;
+  /** Referral reward off the services (never the travel fee); already out of `totalMinor`. */
+  promoDiscountMinor: number;
+  /** The reward applied (`rewardId` undefined = the best), or null. */
+  promo: PromoQuote | null;
+  /** Every reward that fits this visit, best first. */
+  rewardOptions: PromoQuote[];
   travelFeeMinor: number;
   totalMinor: number;
   advancePercent: number;
@@ -443,6 +450,9 @@ export type HomeBookingSummary = {
   /** Only while PENDING_PAYMENT. */
   expiresAt: string | null;
   totalMinor: number;
+  /** Referral reward taken off the services (already out of `totalMinor`). */
+  promoDiscountMinor?: number;
+  promoLabel?: string | null;
   advanceMinor: number;
   balanceMinor: number;
   advanceStatus: AdvanceStatus;
@@ -612,6 +622,9 @@ export type HomeJob = {
   /** What to collect at the door: 0 once paid in the app. */
   balanceMinor: number;
   balancePaidInApp: boolean;
+  /** Already out of the balance: the platform pays it, never ask the customer for it. */
+  promoDiscountMinor?: number;
+  promoLabel?: string | null;
   startCodeTriesLeft: number;
   canSetOffFrom: string;
   addressRevealAt: string;
@@ -868,6 +881,9 @@ export type OwnerHomeBooking = {
   notes: string | null;
   services: Array<{ name: string; durationMin: number }>;
   subtotalMinor: number;
+  /** Platform-funded referral reward: credited to the salon at completion. */
+  promoDiscountMinor?: number;
+  promoLabel?: string | null;
   travelFeeMinor: number;
   totalMinor: number;
   advanceMinor: number;

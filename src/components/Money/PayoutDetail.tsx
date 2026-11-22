@@ -9,7 +9,7 @@ import { formatBDT } from "@/lib/money";
 import { TONE_CLASSES } from "@/lib/status-tone";
 import { cn } from "@/lib/utils";
 import type { OwnerPayoutDetail, OwnerTransaction } from "@/services/owner/money-types";
-import { TYPE_LABEL, bookingHref } from "./money-format";
+import { TYPE_LABEL, bookingHref, descriptionLabel } from "./money-format";
 
 const day = (iso: string) => format(new Date(iso), "d MMM yyyy");
 
@@ -26,10 +26,15 @@ const ENTRY_COLUMNS: Column<OwnerTransaction>[] = [
     cell: (t) => (
       <div className="min-w-0">
         <p className="font-medium">{TYPE_LABEL[t.type]}</p>
-        <p className="text-xs text-muted-foreground">{t.description}</p>
+        {descriptionLabel(t.description) !== TYPE_LABEL[t.type] && (
+          <p className="text-xs text-muted-foreground">{descriptionLabel(t.description)}</p>
+        )}
       </div>
     ),
-    mobileCell: (t) => `${TYPE_LABEL[t.type]} · ${t.description}`,
+    mobileCell: (t) =>
+      descriptionLabel(t.description) === TYPE_LABEL[t.type]
+        ? TYPE_LABEL[t.type]
+        : `${TYPE_LABEL[t.type]} · ${descriptionLabel(t.description)}`,
     mobile: "primary",
   },
   {

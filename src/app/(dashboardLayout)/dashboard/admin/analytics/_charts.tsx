@@ -22,6 +22,12 @@ export const VolumeBars = dynamic(() => import("@/components/Admin/analytics/cha
   loading: placeholder("h-52"),
 });
 
+/** Two count lines + one money bar series on a second axis (Referrals overview). */
+export const LinesAndBars = dynamic(() => import("@/components/Admin/analytics/charts/LinesAndBars"), {
+  ssr: false,
+  loading: placeholder("h-60"),
+});
+
 export const AreaMap = dynamic(() => import("@/components/Admin/analytics/charts/AreaMap"), {
   ssr: false,
   loading: placeholder("h-72"),

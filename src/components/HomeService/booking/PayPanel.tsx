@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { formatBDT } from "@/lib/money";
 import { BKASH_PINK, providerLabel, TOPUP_METHOD_KEY, type ProviderId } from "@/lib/payment-providers";
 import { cn } from "@/lib/utils";
+import { PromoLine } from "@/components/Referral/RewardLine";
 import type { PaymentMethodOption } from "@/services/payments/getPaymentMethods";
 import { payHomeBooking } from "@/services/home-service/payHomeBooking";
 import type { HomeAudience, HomeBooking } from "@/services/home-service/types";
@@ -91,6 +92,8 @@ export function PayPanel({
   onPay,
   hint,
   title = "Pay the advance",
+  promoMinor = 0,
+  promoLabel,
 }: {
   /** What the gateway is asked for: the whole advance. */
   amountMinor: number;
@@ -104,6 +107,9 @@ export function PayPanel({
   /** Under the button, e.g. why it is disabled. */
   hint?: string | null;
   title?: string;
+  /** Referral reward already taken off the total (server figure); shown above the amounts. */
+  promoMinor?: number;
+  promoLabel?: string | null;
 }) {
   const enabled = methods.filter((m) => m.enabled);
   const [method, setMethod] = useState<ProviderId | null>(
@@ -223,14 +229,15 @@ export function PayPanel({
       )}
 
       <footer className="space-y-3 border-t border-border bg-surface-subtle px-4 py-4 sm:px-5">
+        {promoMinor > 0 && <PromoLine label={promoLabel} discountMinor={promoMinor} />}
         <dl className="space-y-1 text-sm">
           <div className="flex items-baseline justify-between gap-3">
-            <dt className="font-medium text-foreground">Pay now</dt>
+            <dt className="font-medium text-foreground">Advance now</dt>
             <dd className="font-display text-2xl font-bold text-foreground tabular-nums">{formatBDT(amountMinor)}</dd>
           </div>
           {balanceMinor !== undefined && balanceMinor > 0 && (
             <div className="flex justify-between gap-3 text-muted-foreground">
-              <dt>Pay at home, after the service</dt>
+              <dt>Balance at the door, after the service</dt>
               <dd className="tabular-nums">{formatBDT(balanceMinor)}</dd>
             </div>
           )}

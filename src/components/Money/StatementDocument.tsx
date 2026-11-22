@@ -110,6 +110,9 @@ function Monthly({ t }: { t: MonthlyTotals }) {
             <Row label="No-show share" value={money(t.noShowShareMinor)} />
             <Row label="Late cancellation fees" value={money(t.lateCancelMinor)} />
             <Row label="Prepaid bookings" value={money(t.prepaidMinor)} />
+            {(t.promoReimbursedMinor ?? 0) !== 0 && (
+              <Row label="Referral reimbursements" value={money(t.promoReimbursedMinor ?? 0)} />
+            )}
             <Row label="Platform commission" value={money(t.commissionMinor)} />
             <Row label="Goodwill credits" value={money(t.goodwillMinor)} />
             <Row label="Dues paid" value={money(t.duesPaidMinor)} />

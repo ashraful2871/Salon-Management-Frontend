@@ -10,6 +10,7 @@ const INBOX_LABELS: Record<string, string> = {
   "home.experts.pending": "Home experts to verify",
   "home.reports.open": "Open Home Service safety reports",
   "home.appeals.pending": "Home Service appeals awaiting a decision",
+  "referrals.review": "Referral rewards held for review",
   "topups.unknown_refund": "Refunds with an unknown result",
   "intents.stuck_pending": "Top-ups with no gateway result yet (check status)",
   "payouts.failed": "Failed payouts",

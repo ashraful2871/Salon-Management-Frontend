@@ -10,8 +10,22 @@ export const TYPE_LABEL: Record<TransactionType, string> = {
   commission: "Commission",
   goodwill: "Goodwill",
   dues: "Dues",
+  promo: "Referral reimbursement",
   payout_adjustment: "Adjustment",
 };
+
+/**
+ * Ledger descriptions as the owner reads them. The API already relabels most;
+ * this catches a raw one (older rows, other endpoints). Keys are the backend's
+ * `PROMO_SALON_DESCRIPTION`.
+ */
+const DESCRIPTION_LABELS: Record<string, string> = {
+  "Referral discount paid by platform": "Referral reimbursement",
+  "Referral reimbursements": "Referral reimbursement",
+};
+
+export const descriptionLabel = (description: string) =>
+  DESCRIPTION_LABELS[description] ?? description;
 
 export const BUCKET_LABEL: Record<MoneyBucket, { label: string; tone: Tone }> = {
   pending: { label: "Clearing", tone: "warning" },

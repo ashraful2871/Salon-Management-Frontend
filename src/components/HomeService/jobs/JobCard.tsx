@@ -38,6 +38,7 @@ import type { ApiResponse } from "@/lib/api-types";
 import { formatBDT } from "@/lib/money";
 import { TONE_CLASSES } from "@/lib/status-tone";
 import { cn } from "@/lib/utils";
+import { PromoLine } from "@/components/Referral/RewardLine";
 import { jobReport } from "@/services/home-service/jobReport";
 import type { HomeAbortKind, HomeBookingStatus, HomeJob } from "@/services/home-service/types";
 import { SIDES } from "../content";
@@ -193,6 +194,8 @@ function Balance({ job }: { job: HomeJob }) {
     <div className="mt-3 rounded-2xl bg-surface-subtle p-3">
       <p className="text-sm text-muted-foreground">{job.status === "COMPLETED" ? "Balance" : "Balance to collect"}</p>
       <p className="text-3xl font-bold tabular-nums text-foreground">{formatBDT(job.balanceMinor)}</p>
+      {/* Already out of the balance above: the platform pays it to the salon. */}
+      <PromoLine label={job.promoLabel} discountMinor={job.promoDiscountMinor ?? 0} paidBy className="mt-2" />
     </div>
   );
 }

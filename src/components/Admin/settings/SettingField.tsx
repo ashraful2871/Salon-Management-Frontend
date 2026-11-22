@@ -27,6 +27,23 @@ export const fromDraft = (setting: AdminSetting, draft: unknown): { value: unkno
 
 export const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
+/** A poisha value as the taka text a `taka` control edits: 30000 → "300". */
+export const toTakaDraft = (value: unknown): string => String(Number(value ?? 0) / 100);
+
+/** The taka text back to poisha, checked against the setting's (poisha) bounds, errors in taka. */
+export const fromTakaDraft = (setting: AdminSetting, draft: unknown): { value: number } | { error: string } => {
+  const text = String(draft ?? "").trim();
+  if (text === "") return { error: "Enter an amount" };
+  const taka = Number(text);
+  if (!Number.isFinite(taka)) return { error: "Enter an amount" };
+  const minor = Math.round(taka * 100);
+  if (Math.abs(taka * 100 - minor) > 1e-6) return { error: "At most two decimals" };
+  const { min, max } = setting.bounds;
+  if (min !== null && minor < min) return { error: `At least ৳${(min / 100).toLocaleString("en-US")}` };
+  if (max !== null && minor > max) return { error: `At most ৳${(max / 100).toLocaleString("en-US")}` };
+  return { value: minor };
+};
+
 /**
  * One setting: value, default, bounds, source, last change, History / Restore.
  * Shared by Platform settings and Home Service's Fees & policy.
@@ -46,8 +63,12 @@ export function SettingField({
   error: string | null;
   canEdit: boolean;
   onChange: (value: unknown) => void;
-  /** A text setting's input instead of a one-line box, or `none` when the page draws its own. */
-  control?: "textarea" | "time" | "none";
+  /**
+   * A text setting's input instead of a one-line box, or `none` when the page
+   * draws its own. `taka`: a poisha setting typed in taka; the draft is the
+   * taka text, so the page converts it (`toTakaDraft` / `fromTakaDraft`).
+   */
+  control?: "textarea" | "time" | "taka" | "none";
   /** A line under the help text, e.g. "Applies to new bookings only". */
   note?: ReactNode;
   /** Where History reads from, for a page open to more than settings.view. */
@@ -85,6 +106,26 @@ export function SettingField({
           ))}
         </SelectContent>
       </Select>
+    ) : control === "taka" ? (
+      <div className="flex items-center gap-2">
+        <span aria-hidden className="text-sm text-muted-foreground">
+          ৳
+        </span>
+        <Input
+          id={id}
+          type="number"
+          inputMode="decimal"
+          step="any"
+          min={setting.bounds.min === null ? undefined : setting.bounds.min / 100}
+          max={setting.bounds.max === null ? undefined : setting.bounds.max / 100}
+          value={String(draft)}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={!canEdit}
+          aria-invalid={!!error}
+          aria-describedby={`${id}-help`}
+          className="sm:w-40"
+        />
+      </div>
     ) : control === "textarea" ? (
       <Textarea
         id={id}
@@ -150,7 +191,7 @@ export function SettingField({
           <SettingHistory
             setting={setting}
             canRestore={canEdit}
-            onRestore={(value) => onChange(toDraft(setting, value))}
+            onRestore={(value) => onChange(control === "taka" ? toTakaDraft(value) : toDraft(setting, value))}
             load={loadHistory}
           />
         </div>

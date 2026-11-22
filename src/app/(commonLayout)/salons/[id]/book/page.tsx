@@ -15,6 +15,9 @@ import { getMyBookingForSlot } from "@/services/appoinments/getMyBookingForSlot"
 import { getMyWallet } from "@/services/wallet/getMyWallet";
 import { getPublicSettings } from "@/services/settings/getPublicSettings";
 import { getUserRoles } from "@/services/get-roles/getUserRoles";
+import { quoteAppointment } from "@/services/appoinments/quoteAppointment";
+import { getMyRewards } from "@/services/referral/getMyRewards";
+import { getRewardSummary } from "@/services/referral/getRewardSummary";
 import { bookingPaymentsEnabled, resolveDepositMinor } from "@/lib/deposit";
 import type { ProviderId } from "@/lib/payment-providers";
 
@@ -146,7 +149,14 @@ const BookingPage = async ({
 
   // ---------------------------------------------------------- choosing
   if (!slotId) {
-    const [salonRes, settingsRes] = await Promise.all([getSingleSalon(id), getPublicSettings()]);
+    const [salonRes, settingsRes, rewardRes] = await Promise.all([
+      getSingleSalon(id),
+      getPublicSettings(),
+      // The teaser only: the review page asks the server for the real discount.
+      role === "CUSTOMER" ? getRewardSummary() : Promise.resolve(null),
+    ]);
+    const bestReward =
+      rewardRes?.success && rewardRes.data?.redemptionsOn ? rewardRes.data.best : null;
     const raw: any = salonRes?.data;
     if (!salonRes?.success || !raw) {
       return (
@@ -186,6 +196,7 @@ const BookingPage = async ({
         today={dhakaToday()}
         takesDeposit={takesDeposit}
         signedIn={Boolean(role)}
+        rewardTeaser={bestReward ? { percent: bestReward.percent, scope: bestReward.scope } : null}
         initial={{
           serviceId,
           staffId,
@@ -311,6 +322,33 @@ const BookingPage = async ({
 
   const wallet = walletRes?.success ? walletRes.data : undefined;
 
+  // What the reward takes off, from the server. A failed quote leaves the page
+  // at full price with no reward line; the booking re-checks either way.
+  const quoteBody = {
+    salonId: id,
+    serviceId,
+    counterId,
+    slotId,
+    ...(staffId ? { staffId } : {}),
+  };
+  const quoteRes = await quoteAppointment(quoteBody);
+  const quote = quoteRes.success && quoteRes.data ? quoteRes.data : null;
+  // A welcome reward needs a mobile number on the profile; the best-pick quote
+  // leaves such a reward out silently, so ask for it by id to find out why.
+  let phoneBlocked: { rewardId: string; message: string } | null = null;
+  if (quote && !quote.promo && quote.rewardOptions.length === 0) {
+    const mine = await getMyRewards("AVAILABLE");
+    const welcome = mine.success
+      ? (mine.data ?? []).find((r) => r.kind === "REFEREE_WELCOME" && r.scope !== "HOME")
+      : undefined;
+    if (welcome) {
+      const probe = await quoteAppointment({ ...quoteBody, rewardId: welcome.id });
+      if (!probe.success && probe.details?.reason === "PHONE_REQUIRED") {
+        phoneBlocked = { rewardId: welcome.id, message: probe.message };
+      }
+    }
+  }
+
   // "Pay ৳450 now" is offered when the platform switch and the salon's own
   // opt-in are both on; the API checks both again on booking.
   const prepayAllowed =
@@ -360,6 +398,8 @@ const BookingPage = async ({
       notes={notes}
       depositMinor={depositMinor}
       prepayAllowed={prepayAllowed}
+      quote={quote}
+      phoneBlocked={phoneBlocked}
       wallet={{
         available: wallet?.availableMinor ?? 0,
         balance: wallet?.balanceMinor ?? 0,

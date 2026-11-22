@@ -30,7 +30,7 @@ import {
   type OwnerTransaction,
   type TransactionFilters,
 } from "@/services/owner/money-types";
-import { BUCKET_LABEL, DATE_PRESETS, TYPE_LABEL, bookingHref } from "./money-format";
+import { BUCKET_LABEL, DATE_PRESETS, TYPE_LABEL, bookingHref, descriptionLabel } from "./money-format";
 
 type Branch = { salonId: string; salonName: string };
 
@@ -98,7 +98,9 @@ export function TransactionsClient({
       cell: (t) => (
         <div className="min-w-0">
           <p className="font-medium">{TYPE_LABEL[t.type]}</p>
-          <p className="text-xs text-muted-foreground">{t.description}</p>
+          {descriptionLabel(t.description) !== TYPE_LABEL[t.type] && (
+            <p className="text-xs text-muted-foreground">{descriptionLabel(t.description)}</p>
+          )}
         </div>
       ),
       mobileCell: (t) => TYPE_LABEL[t.type],
@@ -108,7 +110,8 @@ export function TransactionsClient({
       key: "detail",
       header: "Detail",
       cell: () => null,
-      mobileCell: (t) => t.description,
+      mobileCell: (t) =>
+        descriptionLabel(t.description) === TYPE_LABEL[t.type] ? null : descriptionLabel(t.description),
       mobile: "secondary",
       className: "hidden",
     },

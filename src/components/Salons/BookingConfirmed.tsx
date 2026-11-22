@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Navigation,
   Phone,
+  Gift,
   Scissors,
   ShieldCheck,
   Store,
@@ -20,6 +21,7 @@ import { Separator } from "../ui/separator";
 import CopyButton from "@/components/Wallet/CopyButton";
 import { ToneBadge } from "@/components/Shared/ToneBadge";
 import { InviteCard, type InviteCardData } from "@/components/Referral/InviteCard";
+import { PromoLine } from "@/components/Referral/RewardLine";
 import { formatBDT } from "@/lib/money";
 import {
   bookingEventDescription,
@@ -48,6 +50,9 @@ export type ConfirmedBooking = {
   prepaidMinor?: number;
   /** The server's figure for what is left to pay; preferred when present. */
   amountDueMinor?: number | null;
+  /** Referral reward taken off the bill (already out of `amountDueMinor`). */
+  promoDiscountMinor?: number;
+  promoLabel?: string | null;
   serialNumber?: number | null;
   token?: string | null;
 };
@@ -103,9 +108,13 @@ const BookingConfirmed = ({
   const paidInFull = prepaidMinor > 0;
   // A free booking: nothing was taken in the app, the whole bill is at the salon.
   const nothingPaid = booking.depositMinor + prepaidMinor <= 0;
+  const promoMinor = booking.promoDiscountMinor ?? 0;
   const dueAtSalonMinor =
     booking.amountDueMinor ??
-    Math.max(booking.totalMinor - booking.depositMinor - prepaidMinor, 0);
+    Math.max(
+      booking.totalMinor - promoMinor - booking.depositMinor - prepaidMinor,
+      0,
+    );
   const hasSerial =
     booking.serialNumber !== null && booking.serialNumber !== undefined;
   // The token is what the counter asks for; the ref is only a fallback so the
@@ -192,6 +201,14 @@ const BookingConfirmed = ({
                     <span className="tabular-nums">{formatBDT(booking.totalMinor)}</span>
                   }
                 />
+                {promoMinor > 0 && (
+                  <p className="flex items-center gap-1.5 pb-3 text-sm font-medium text-success">
+                    <Gift className="size-4 shrink-0" aria-hidden />
+                    You saved{" "}
+                    <span className="tabular-nums">{formatBDT(promoMinor)}</span>{" "}
+                    with your referral reward
+                  </p>
+                )}
               </div>
 
               {booking.notes && (
@@ -220,6 +237,10 @@ const BookingConfirmed = ({
                   {formatBDT(booking.totalMinor)}
                 </span>
               </div>
+              <PromoLine
+                label={booking.promoLabel}
+                discountMinor={promoMinor}
+              />
               <div className="flex items-center justify-between gap-3">
                 <span className="text-muted-foreground">
                   {nothingPaid

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { CalendarCheck, History } from "lucide-react";
+import { CalendarCheck, Gift, History } from "lucide-react";
 
 import { DataList, type Column } from "@/components/Shared/DataList";
 import { EmptyState } from "@/components/Shared/EmptyState";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useFilterNavigation } from "@/hooks/useFilterNavigation";
 import { homeBookingPath } from "@/lib/booking-resume";
 import { formatBDT } from "@/lib/money";
+import { minusBDT } from "@/components/Referral/RewardLine";
 import type { HomeBookingSummary, HomeMyBookingsTab } from "@/services/home-service/types";
 import { dayOf, dayText, HOME_STATUS_LABEL, timeText } from "../booking/format";
 import HomeBookingSheet, { type SheetTarget } from "./HomeBookingSheet";
@@ -55,7 +56,22 @@ const COLUMNS: Column<HomeBookingSummary>[] = [
         </span>
       ),
   },
-  { key: "advance", header: "Advance", mobile: "meta", cell: advanceOf },
+  {
+    key: "advance",
+    header: "Advance",
+    mobile: "meta",
+    cell: (b) => (
+      <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span>{advanceOf(b)}</span>
+        {(b.promoDiscountMinor ?? 0) > 0 && (
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-success">
+            <Gift aria-hidden className="size-3" />
+            Reward <span className="tabular-nums">{minusBDT(b.promoDiscountMinor ?? 0)}</span>
+          </span>
+        )}
+      </span>
+    ),
+  },
   {
     key: "status",
     header: "Status",

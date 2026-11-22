@@ -45,11 +45,19 @@ export function DateRangeFilter({
   filters,
   areas = [],
   presetsOnly = false,
+  presets = ANALYTICS_PRESETS,
+  rangeAndTest = false,
+  label = "Analytics filters",
 }: {
-  filters: AnalyticsFilters;
+  filters: Omit<AnalyticsFilters, "range"> & { range: string };
   areas?: string[];
   /** Home: presets only, no compare/area/channel/test controls. */
   presetsOnly?: boolean;
+  /** Other reports (e.g. Referrals) name their own presets; `range` matches a `value`. */
+  presets?: readonly { value: string; label: string }[];
+  /** Presets, Custom and "Include test data" only: no compare, area or channel. */
+  rangeAndTest?: boolean;
+  label?: string;
 }) {
   const pathname = usePathname();
   const params = useSearchParams();
@@ -80,12 +88,12 @@ export function DateRangeFilter({
   return (
     <div
       role="group"
-      aria-label="Analytics filters"
+      aria-label={label}
       aria-busy={isPending}
       className={cn("flex flex-wrap items-center gap-x-4 gap-y-3", isPending && "opacity-70")}
     >
       <div role="group" aria-label="Date range" className="flex flex-wrap gap-1.5">
-        {ANALYTICS_PRESETS.map((preset) => (
+        {presets.map((preset) => (
           <button
             key={preset.value}
             type="button"
@@ -130,7 +138,20 @@ export function DateRangeFilter({
         )}
       </div>
 
-      {!presetsOnly && (
+      {!presetsOnly && rangeAndTest && (
+        <div className="flex items-center gap-2">
+          <Switch
+            id="analytics-test"
+            checked={filters.includeTest ?? false}
+            onCheckedChange={(on) => go({ test: on ? "1" : null })}
+          />
+          <Label htmlFor="analytics-test" className="text-sm font-normal">
+            Include test data
+          </Label>
+        </div>
+      )}
+
+      {!presetsOnly && !rangeAndTest && (
         <>
           <div className="flex items-center gap-2">
             <Switch

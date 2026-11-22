@@ -27,6 +27,8 @@ export type MonthlyTotals = {
   commissionMinor: number;
   goodwillMinor: number;
   duesPaidMinor: number;
+  /** Referral discounts the platform paid the salon. */
+  promoReimbursedMinor?: number;
   payoutsMinor: number;
   adjustmentsMinor: number;
   closingMinor: number;

@@ -25,6 +25,8 @@ import {
 import { EntityHeader, EntityTabs } from "@/components/Admin/EntityHeader";
 import { CopyId } from "@/components/Admin/MaskedValue";
 import { NotesPanel } from "@/components/Admin/NotesPanel";
+import type { GrantDefaults } from "@/components/Admin/referrals/GrantRewardDialog";
+import { ReferralUserCard } from "@/components/Admin/referrals/ReferralUserCard";
 import { ReasonDialog } from "@/components/Admin/ReasonDialog";
 import { useStepUp } from "@/components/Admin/StepUpDialog";
 import { Timeline } from "@/components/Admin/Timeline";
@@ -98,6 +100,7 @@ export function UserDetailClient({
   wallet,
   permissions,
   viewerId,
+  grantDefaults,
 }: {
   user: AdminUserDetail;
   bookings: ApiResponse<AdminUserBooking[]>;
@@ -106,6 +109,8 @@ export function UserDetailClient({
   wallet: ApiResponse<AdminUserWallet> | null;
   permissions: string[];
   viewerId?: string;
+  /** The referral card's Grant dialog starts from the referrer terms in force. */
+  grantDefaults: GrantDefaults;
 }) {
   const [dialog, setDialog] = useState<Dialog>(null);
   const [newRole, setNewRole] = useState<ChangeableRole>("CUSTOMER");
@@ -345,6 +350,15 @@ export function UserDetailClient({
             </Fact>
           )}
         </Panel>
+      )}
+
+      {user.referral && can(permissions, "referrals.view") && (
+        <ReferralUserCard
+          user={{ id: user.id, name: user.name }}
+          referral={user.referral}
+          permissions={permissions}
+          grantDefaults={grantDefaults}
+        />
       )}
     </div>
   );

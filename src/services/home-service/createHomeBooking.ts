@@ -26,6 +26,7 @@ export const createHomeBooking = async (
   );
   if (result.success && result.data) {
     updateTag(TAGS.myHomeBookings);
+    revalidateTag(TAGS.myRewards, "max");
     revalidateTag(TAGS.homeAvailability(result.data.bookAgain.expertId), "max");
   }
   return result;
