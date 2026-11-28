@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import {
   Dialog,
   DialogContent,
@@ -41,11 +41,29 @@ export function ResponsiveDialog({
   className?: string;
 }) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
+  // Opened from a plain button (no DialogTrigger), Radix has nothing to hand
+  // focus back to on close, so it would land on <body>. Remember what had
+  // focus as it opens (before focus moves in) and return it there.
+  const returnFocusTo = useRef<HTMLElement | null>(null);
+  const rememberFocus = () => {
+    const el = document.activeElement;
+    returnFocusTo.current = el instanceof HTMLElement && el !== document.body ? el : null;
+  };
+  const restoreFocus = (event: Event) => {
+    const el = returnFocusTo.current;
+    returnFocusTo.current = null;
+    if (el?.isConnected) {
+      event.preventDefault();
+      el.focus({ preventScroll: true });
+    }
+  };
 
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
+          onOpenAutoFocus={rememberFocus}
+          onCloseAutoFocus={restoreFocus}
           className={cn(
             "flex max-h-[85dvh] flex-col gap-0 overflow-hidden rounded-2xl border-border bg-surface p-0 sm:max-w-lg",
             className,
@@ -69,6 +87,8 @@ export function ResponsiveDialog({
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent
+        onOpenAutoFocus={rememberFocus}
+        onCloseAutoFocus={restoreFocus}
         className={cn(
           "bg-surface data-[vaul-drawer-direction=bottom]:max-h-[90dvh] data-[vaul-drawer-direction=bottom]:rounded-t-2xl",
           className,

@@ -5,13 +5,11 @@ import { Check, Copy, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { track } from "@/lib/track";
 import { cn } from "@/lib/utils";
+import { ON_DARK } from "./ShareButtons";
 import { useCopy } from "./useCopy";
 
 /** "https://site.com/r/RAHIMNEN" → "site.com/r/RAHIMNEN". */
 const shortLink = (link: string) => link.replace(/^https?:\/\//, "");
-
-/** On the charcoal hero: a light outline pill that keeps AA on the dark ground. */
-const ON_DARK = "border-white/30 bg-white/10 text-cream hover:bg-white/20 hover:text-cream";
 
 /**
  * The code and the link on the Refer page's hero, each with a Copy pill.
@@ -29,14 +27,14 @@ export function CodeBox({ code, link, className }: { code: string; link: string;
   };
 
   return (
-    <div className={cn("rounded-2xl bg-white/[0.06] p-4 ring-1 ring-white/15 sm:p-5", className)}>
+    <div className={cn("rounded-2xl bg-white/[0.07] p-4 ring-1 ring-white/15 sm:p-6", className)}>
       <p id="refer-code-label" className="text-xs font-semibold tracking-wider text-cream/80 uppercase">
         Your code
       </p>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <p
           aria-labelledby="refer-code-label"
-          className="min-w-0 font-mono text-3xl font-bold tracking-[0.18em] text-cream [overflow-wrap:anywhere] sm:text-4xl"
+          className="min-w-0 rounded-xl border border-dashed border-gold-light/60 bg-black/15 px-4 py-2 font-mono text-2xl font-bold tracking-[0.18em] text-cream [overflow-wrap:anywhere] sm:text-3xl"
         >
           {code}
         </p>

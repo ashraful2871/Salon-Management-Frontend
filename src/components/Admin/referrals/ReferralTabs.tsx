@@ -36,7 +36,7 @@ export function ReferralTabs({ permissions, reviewCount = 0 }: { permissions: st
                 href={t.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 pointer-coarse:min-h-11 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   active ? "bg-surface text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground",
                 )}
               >

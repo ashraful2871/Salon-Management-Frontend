@@ -168,7 +168,7 @@ const RegisterForm = ({
                 ).map(([value, label]) => (
                   <label
                     key={value}
-                    className="inline-flex h-11 md:h-10 cursor-pointer items-center gap-2 rounded-full border border-input bg-surface px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground has-checked:border-primary has-checked:bg-primary-soft has-checked:text-foreground has-focus-visible:ring-[3px] has-focus-visible:ring-ring"
+                    className="inline-flex h-11 md:pointer-fine:h-10 cursor-pointer items-center gap-2 rounded-full border border-input bg-surface px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground has-checked:border-primary has-checked:bg-primary-soft has-checked:text-foreground has-focus-visible:ring-[3px] has-focus-visible:ring-ring"
                   >
                     <input
                       type="radio"
@@ -204,7 +204,7 @@ const RegisterForm = ({
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer before:absolute before:-inset-3.5"
                   tabIndex={-1}
                   disabled={isPending}
                 >
@@ -241,7 +241,7 @@ const RegisterForm = ({
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer before:absolute before:-inset-3.5"
                   tabIndex={-1}
                   disabled={isPending}
                 >
@@ -267,7 +267,7 @@ const RegisterForm = ({
             <Button
               loading={isPending}
               type="submit"
-              className="md:col-span-2 w-full h-11 md:h-10 rounded-full font-bold mt-2"
+              className="md:col-span-2 w-full h-11 md:pointer-fine:h-10 rounded-full font-bold mt-2"
             >
               Create account
             </Button>

@@ -85,7 +85,7 @@ export default async function ReferralOverviewPage({ searchParams }: { searchPar
               {canSettings && (
                 <Link
                   href="/dashboard/admin/referrals/settings"
-                  className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border px-3.5 text-sm font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="inline-flex h-9 pointer-coarse:h-11 items-center gap-1.5 rounded-full border border-border px-3.5 text-sm font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <SlidersHorizontal aria-hidden className="size-4" /> Program settings
                 </Link>
@@ -279,7 +279,7 @@ function CsvLink({ href, label }: { href: string; label: string }) {
     <a
       href={href}
       download
-      className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border px-3.5 text-sm font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="inline-flex h-9 pointer-coarse:h-11 items-center gap-1.5 rounded-full border border-border px-3.5 text-sm font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <Download aria-hidden className="size-4" /> {label}
     </a>

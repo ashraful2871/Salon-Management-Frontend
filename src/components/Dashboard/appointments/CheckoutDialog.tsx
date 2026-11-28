@@ -179,6 +179,7 @@ export const CheckoutDialog = ({
             type="button"
             variant={showTip ? "secondary" : "outline"}
             size="sm"
+            className="pointer-coarse:h-11"
             aria-expanded={showTip}
             onClick={() => setShowTip((v) => !v)}
           >
@@ -189,6 +190,7 @@ export const CheckoutDialog = ({
               type="button"
               variant={showDiscount ? "secondary" : "outline"}
               size="sm"
+              className="pointer-coarse:h-11"
               aria-expanded={showDiscount}
               onClick={() => setShowDiscount((v) => !v)}
             >

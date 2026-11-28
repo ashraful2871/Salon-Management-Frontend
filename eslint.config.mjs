@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // A one-off CommonJS codemod (already applied), not app code.
+    "fe.tmp.js",
   ]),
 ]);
 

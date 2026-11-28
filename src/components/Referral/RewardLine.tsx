@@ -94,7 +94,7 @@ export function PromoChip({ discountMinor, className }: { discountMinor?: number
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-xs font-semibold text-success",
+        "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-success-soft px-2 py-0.5 text-xs font-semibold text-success",
         className,
       )}
       title={`Referral reward, paid by ${SITE.name}`}
@@ -123,7 +123,9 @@ export function RewardTeaser({ percent, className }: { percent?: number | null; 
  * The review-page row: the applied reward with a "Use it on this booking"
  * switch, and a "Change" picker when more than one reward fits. The parent
  * re-quotes on every change (`onChoose`): `undefined` = the best one, `null` =
- * none, an id = that one. `pending` greys the row only.
+ * none, an id = that one. `pending` greys the row only. The controls stay
+ * focusable while it re-quotes (`aria-disabled`, input ignored): a real
+ * `disabled` would drop a keyboard user's focus to the page.
  */
 export function RewardLine({
   promo,
@@ -178,18 +180,20 @@ export function RewardLine({
           <Switch
             id={switchId}
             checked={on}
-            disabled={pending}
-            onCheckedChange={(next) => onChoose(next ? shown.rewardId : null)}
+            aria-disabled={pending || undefined}
+            onCheckedChange={(next) => {
+              if (!pending) onChoose(next ? shown.rewardId : null);
+            }}
           />
           Use it on this booking
         </label>
         {options.length > 1 && (
-          <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+          <Popover open={pickerOpen} onOpenChange={(next) => setPickerOpen(next && !pending)}>
             <PopoverTrigger asChild>
               <button
                 type="button"
-                disabled={pending}
-                className="min-h-11 rounded-full px-2 text-sm font-semibold text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring disabled:opacity-50"
+                aria-disabled={pending || undefined}
+                className="min-h-11 rounded-full px-2 text-sm font-semibold text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring aria-disabled:opacity-50"
               >
                 Change
               </button>

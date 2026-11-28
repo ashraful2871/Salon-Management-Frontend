@@ -419,7 +419,7 @@ function ShareMessageField({
             type="button"
             disabled={!canEdit}
             onClick={() => onInsert(token)}
-            className="min-h-8 rounded-full border border-border px-2.5 font-mono text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+            className="min-h-8 pointer-coarse:min-h-11 rounded-full border border-border px-2.5 font-mono text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
           >
             {token}
           </button>

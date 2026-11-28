@@ -37,8 +37,9 @@ const ASK_DELAY_MS = 800;
 /** The home page's "Salons near you" section (NearbySalons). */
 const NEARBY_SECTION_ID = "nearby";
 /** Public pages that must stay reachable without a location (accepting an
- *  admin or agent invitation). */
-const EXEMPT_PREFIXES = ["/invite"];
+ *  admin or agent invitation; a friend's referral invite and its terms, which
+ *  a new visitor opens from a shared link). */
+const EXEMPT_PREFIXES = ["/invite", "/join/", "/referral-terms"];
 /** "Not now" lasts for this browser session, so it doesn't reopen on every page. */
 const DISMISS_KEY = "sm_loc_prompt_dismissed";
 

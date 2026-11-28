@@ -17,7 +17,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { EmptyState } from "@/components/Shared/EmptyState";
 import { PageHeader } from "@/components/Shared/PageHeader";
 import { StatCard } from "@/components/Shared/StatCard";
 import { ToneBadge } from "@/components/Shared/ToneBadge";
@@ -95,12 +94,16 @@ export function ReferPage(props: ReferPageProps) {
   const y = percentLabel(you.percent);
   // Sharing needs a working, unblocked code while the program is on; rewards show regardless.
   const canShare = programOn && !!me && !me.blocked && !!shareMessage;
+  // Nothing to list yet: the two empty rows sit side by side instead of stacking.
+  const bothEmpty =
+    !rewards.error && rewards.items.length === 0 && !friends.error && friends.items.length === 0;
 
   return (
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="Refer & earn"
-        description={`Give friends ${f} off. Get ${y} off when they ${onVerify ? "join" : "book"}.`}
+        // The hero says the offer; without it (paused, blocked, failed) the header does.
+        description={canShare ? undefined : `Give friends ${f} off. Get ${y} off when they ${onVerify ? "join" : "book"}.`}
       />
 
       {(meError || !programOn || me?.blocked || (inviteOwn && canShare)) && (
@@ -140,41 +143,31 @@ export function ReferPage(props: ReferPageProps) {
         </div>
       )}
 
-      {canShare && me && shareMessage && (
-        <>
-          <Hero me={me} terms={terms} />
-          <section
-            aria-labelledby="refer-share-title"
-            className="rounded-3xl border border-border bg-surface p-4 sm:p-6"
-          >
-            <h2 id="refer-share-title" className="font-display text-lg font-semibold text-foreground">
-              Share in one tap
-            </h2>
-            <p className="mt-0.5 text-sm text-muted-foreground">Your friends get this message:</p>
-            <blockquote className="mt-3 rounded-2xl bg-surface-subtle px-4 py-3 text-sm text-foreground [overflow-wrap:anywhere]">
-              {shareMessage}
-            </blockquote>
-            <ShareButtons message={shareMessage} link={me.link} className="mt-4" />
-          </section>
-        </>
-      )}
+      {canShare && me && shareMessage && <Hero me={me} terms={terms} shareMessage={shareMessage} />}
 
       {me && <Stats me={me} />}
 
-      <RewardsSection rewards={rewards} friendsPages={friends.pages} redemptionsOn={redemptionsOn} now={now} />
+      <div className={bothEmpty ? "grid gap-6 sm:gap-8 lg:grid-cols-2" : "space-y-6 sm:space-y-8"}>
+        <RewardsSection rewards={rewards} friendsPages={friends.pages} redemptionsOn={redemptionsOn} now={now} />
 
-      <FriendsSection
-        friends={friends}
-        rewardsPages={rewards.pages}
-        youPercent={you.percent}
-        onVerify={onVerify}
-        share={canShare && me && shareMessage ? { message: shareMessage, link: me.link } : null}
-        now={now}
-      />
+        <FriendsSection
+          friends={friends}
+          rewardsPages={rewards.pages}
+          youPercent={you.percent}
+          onVerify={onVerify}
+          share={canShare && me && shareMessage ? { message: shareMessage, link: me.link } : null}
+          now={now}
+        />
+      </div>
 
-      <HowItWorks terms={terms} code={me?.code ?? null} />
-
-      <Faq {...props} />
+      <div className="grid gap-6 sm:gap-8 lg:grid-cols-5">
+        <div className="min-w-0 lg:col-span-2">
+          <HowItWorks terms={terms} code={me?.code ?? null} />
+        </div>
+        <div className="min-w-0 lg:col-span-3">
+          <Faq {...props} />
+        </div>
+      </div>
     </div>
   );
 }
@@ -208,38 +201,58 @@ function Notice({ tone, icon: Icon, children }: { tone: Tone; icon: LucideIcon; 
 
 /* ------------------------------------------------------------ hero */
 
-function Hero({ me, terms }: { me: MyReferral; terms: ReferralTerms }) {
+/**
+ * The one dark band: the offer, and the code card beside it from `xl`; under
+ * both, the share row and the message friends receive.
+ */
+function Hero({ me, terms, shareMessage }: { me: MyReferral; terms: ReferralTerms; shareMessage: string }) {
   const { friend, you } = terms;
   const onVerify = you.trigger === "REFEREE_VERIFIED";
   const cap = you.maxDiscountMinor > 0 ? `Up to ${formatBDT(you.maxDiscountMinor)} per booking` : "No upper limit";
   return (
     <section
       aria-labelledby="refer-hero-title"
-      className="relative overflow-hidden rounded-3xl bg-charcoal p-5 text-cream shadow-card sm:p-8"
+      className="relative overflow-hidden rounded-3xl bg-charcoal bg-glow-dark p-5 text-cream shadow-card sm:p-8 lg:p-10"
     >
-      <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-gold" />
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] xl:items-center xl:gap-10">
+      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] xl:items-center xl:gap-12">
         <div className="min-w-0">
-          <p className="flex items-center gap-2 text-sm font-semibold text-gold-light">
-            <Gift aria-hidden="true" className="size-4" />
-            Refer &amp; earn
+          <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-gold-light ring-1 ring-white/15">
+            <Gift aria-hidden="true" className="size-3.5" />
+            Invite friends, save together
           </p>
           <h2
             id="refer-hero-title"
-            className="mt-3 font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl lg:text-5xl"
+            className="mt-4 font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl lg:text-5xl"
           >
             Give <span className="text-gold-light">{percentLabel(friend.percent)}</span>, get{" "}
             <span className="text-gold-light">{percentLabel(you.percent)}</span>
           </h2>
-          <p className="mt-3 max-w-xl text-base leading-relaxed text-cream/90">
+          <p className="mt-3 max-w-xl text-base leading-relaxed text-cream/90 sm:text-lg">
             Friends get {percentLabel(friend.percent)} off their first booking. You get {percentLabel(you.percent)} off
             one of yours {onVerify ? "as soon as they verify their email" : "when they complete it"}.
           </p>
-          <p className="mt-3 text-sm text-cream/80">
-            {cap} · {capitalize(scopeText(you.scope))}
-          </p>
+          <ul aria-label="Your reward" className="mt-4 flex flex-wrap gap-2">
+            <li className="rounded-full px-3 py-1 text-xs font-medium text-cream/90 ring-1 ring-white/20">{cap}</li>
+            <li className="rounded-full px-3 py-1 text-xs font-medium text-cream/90 ring-1 ring-white/20">
+              {capitalize(scopeText(you.scope))}
+            </li>
+          </ul>
         </div>
+
         <CodeBox code={me.code} link={me.link} />
+      </div>
+
+      <div className="mt-8 border-t border-white/15 pt-6">
+        <h3 className="text-sm font-semibold text-cream">Share in one tap</h3>
+        <ShareButtons message={shareMessage} link={me.link} onDark className="mt-3" />
+        <figure className="mt-4 max-w-3xl">
+          <figcaption className="text-xs font-semibold tracking-wider text-cream/80 uppercase">
+            Your friends get this message
+          </figcaption>
+          <blockquote className="mt-1.5 text-sm leading-relaxed text-cream/90 [overflow-wrap:anywhere]">
+            {shareMessage}
+          </blockquote>
+        </figure>
       </div>
     </section>
   );
@@ -303,6 +316,32 @@ function SectionHead({ id, title, count, children }: { id: string; title: string
   );
 }
 
+/** An empty list as one compact row: icon, what's missing, and an optional action. */
+function EmptyRow({
+  icon: Icon,
+  title,
+  description,
+  action,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-start gap-4 rounded-2xl border border-dashed border-border bg-surface p-5 sm:flex-row sm:items-center sm:gap-5">
+      <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary-soft text-primary-hover">
+        <Icon aria-hidden="true" className="size-6" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold text-foreground">{title}</p>
+        <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
+    </div>
+  );
+}
+
 function LoadError({ what, message }: { what: string; message: string }) {
   return (
     <Notice tone="danger" icon={CircleAlert}>
@@ -352,13 +391,7 @@ function RewardsSection({
       {rewards.error && rewards.items.length === 0 ? (
         <LoadError what="rewards" message={rewards.error} />
       ) : rewards.items.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-surface">
-          <EmptyState
-            icon={Gift}
-            title="No rewards yet"
-            description="Share your code to earn your first."
-          />
-        </div>
+        <EmptyRow icon={Gift} title="No rewards yet" description="Share your code to earn your first." />
       ) : (
         <>
           <ul className="grid gap-3 sm:grid-cols-2 lg:gap-4 2xl:grid-cols-3">
@@ -568,19 +601,21 @@ function FriendsSection({
 
   return (
     <section aria-labelledby="refer-friends-title">
-      <SectionHead id="refer-friends-title" title="Your friends" count={friends.total} />
+      <SectionHead id="refer-friends-title" title="Your friends" count={friends.total}>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          Everyone who joined with your code, and how far they&apos;ve got.
+        </p>
+      </SectionHead>
 
       {friends.error && friends.items.length === 0 ? (
         <LoadError what="friends" message={friends.error} />
       ) : friends.items.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-surface">
-          <EmptyState
-            icon={Users}
-            title="No friends yet"
-            description="When a friend signs up with your code, you'll see how far they've got here."
-            action={share ? <ShareLink channel="whatsapp" message={share.message} link={share.link} /> : undefined}
-          />
-        </div>
+        <EmptyRow
+          icon={Users}
+          title="No friends yet"
+          description="When a friend signs up with your code, you'll see them here."
+          action={share ? <ShareLink channel="whatsapp" message={share.message} link={share.link} /> : undefined}
+        />
       ) : (
         <>
           <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
@@ -735,20 +770,23 @@ function HowItWorks({ terms, code }: { terms: ReferralTerms; code: string | null
   return (
     <section aria-labelledby="refer-how-title">
       <SectionHead id="refer-how-title" title="How it works" />
-      <ol className="grid gap-3 sm:grid-cols-3 lg:gap-4">
+      <ol className="rounded-2xl border border-border bg-surface p-5 sm:p-6">
         {steps.map((s, i) => (
-          <li key={s.title} className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
-                <s.icon aria-hidden="true" className="size-5" />
-              </span>
-              <span className="text-sm font-semibold text-primary tabular-nums">
-                <span className="sr-only">Step </span>
-                {i + 1}
-              </span>
+          <li key={s.title} className="relative flex gap-4 pb-6 last:pb-0">
+            {i < steps.length - 1 && (
+              // The line joining this step to the next.
+              <span aria-hidden="true" className="absolute top-12 bottom-1 left-5 w-px -translate-x-1/2 bg-border" />
+            )}
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-soft text-primary-hover">
+              <s.icon aria-hidden="true" className="size-5" />
+            </span>
+            <div className="min-w-0 pt-0.5">
+              <p className="text-xs font-semibold tracking-wider text-primary-hover uppercase tabular-nums">
+                Step {i + 1}
+              </p>
+              <h3 className="mt-0.5 font-semibold text-foreground">{s.title}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{s.body}</p>
             </div>
-            <h3 className="mt-3 font-semibold text-foreground">{s.title}</h3>
-            <p className="mt-1 text-sm text-muted-foreground">{s.body}</p>
           </li>
         ))}
       </ol>
